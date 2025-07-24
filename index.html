@@ -334,28 +334,6 @@
             </div>
         </div>
 
-        <!-- Modal for Admin Password -->
-        <div id="adminPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-                <div class="bg-indigo-600 text-white px-6 py-4">
-                    <h3 class="text-xl font-bold">Acceso al Panel de Administración</h3>
-                </div>
-                <div class="p-6">
-                    <form id="adminPasswordForm" class="space-y-4">
-                        <div>
-                            <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                            <input type="password" id="adminPassword" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            <p id="adminPasswordError" class="error-message hidden">Contraseña incorrecta.</p>
-                        </div>
-                        <div class="flex justify-end space-x-2">
-                            <button type="button" id="cancelPasswordBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Acceder</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
         <!-- Toast Notification -->
         <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
             <span id="toastMessage">Operación completada con éxito</span>
@@ -365,34 +343,6 @@
     <script>
         // Data Storage
         let products = [];
-
-        // Pre-loaded example products (edit these with real data if needed)
-        const initialProducts = [
-            {
-                id: 'example1',
-                itemNumber: '12345',
-                description: 'Bebida refrescante sabor manzana',
-                upc: '750123456789',
-                nombre: 'Klass Manzana',
-                size: '14.1 Oz',
-                qty: 24,
-                costo: 15.50,
-                url: '',
-                customFields: { 'Palimex': '$15.50', 'ProveedorB': '$16.00' }
-            },
-            {
-                id: 'example2',
-                itemNumber: '12346',
-                description: 'Bebida refrescante sabor uva',
-                upc: '750123456790',
-                nombre: 'Klass Uva',
-                size: '14.1 Oz',
-                qty: 24,
-                costo: 15.75,
-                url: '',
-                customFields: { 'Palimex': '$15.75', 'ProveedorB': '$15.20' }
-            }
-        ];
 
         // DOM Elements
         const productsContainer = document.getElementById('productsContainer');
@@ -413,7 +363,6 @@
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
-        const adminPasswordModal = document.getElementById('adminPasswordModal');
 
         // Buttons
         const selectAll = document.getElementById('selectAll');
@@ -422,21 +371,16 @@
         const addCustomFieldBtn = document.getElementById('addCustomFieldBtn');
         const cancelCustomField = document.getElementById('cancelCustomField');
         const saveCustomField = document.getElementById('saveCustomField');
-        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
 
         // Forms
         const productForm = document.getElementById('productForm');
         const importForm = document.getElementById('importForm');
         const customFieldForm = document.getElementById('customFieldForm');
-        const adminPasswordForm = document.getElementById('adminPasswordForm');
         const customKey = document.getElementById('customKey');
         const customValue = document.getElementById('customValue');
 
         // Current view state
-        let currentView = 'public';
-
-        // Admin password (change this to a secure one for your client)
-        const ADMIN_PASSWORD = 'mexiquense2025';
+        let currentView = 'admin';
 
         // Initialize the application
         function init() {
@@ -445,19 +389,19 @@
             renderPublicTabs();
             setupEventListeners();
             checkLibraries();
-            showView('public');
+            showView('admin');
         }
 
         // Load data from localStorage
         function loadData() {
             try {
                 const storedProducts = localStorage.getItem('products');
-                products = storedProducts ? JSON.parse(storedProducts) : initialProducts;
+                products = storedProducts ? JSON.parse(storedProducts) : [];
                 saveData();
             } catch (error) {
                 console.error('Error loading data:', error);
                 showToast('Error al cargar los datos.', true);
-                products = initialProducts;
+                products = [];
             }
         }
 
@@ -980,25 +924,6 @@
                     if (e.target === productDetailModal) productDetailModal.classList.add('hidden');
                     if (e.target === productFormModal) productFormModal.classList.add('hidden');
                     if (e.target === importModal) importModal.classList.add('hidden');
-                    if (e.target === adminPasswordModal) adminPasswordModal.classList.add('hidden');
-                });
-
-                // Admin password form
-                adminPasswordForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const passwordInput = document.getElementById('adminPassword');
-                    const passwordError = document.getElementById('adminPasswordError');
-                    if (passwordInput.value === ADMIN_PASSWORD) {
-                        adminPasswordModal.classList.add('hidden');
-                        showView('admin');
-                    } else {
-                        passwordError.classList.remove('hidden');
-                        passwordError.textContent = 'Contraseña incorrecta.';
-                    }
-                });
-
-                cancelPasswordBtn.addEventListener('click', () => {
-                    adminPasswordModal.classList.add('hidden');
                 });
 
                 // Select all checkbox (admin)
@@ -1092,11 +1017,8 @@
                     }
                 });
 
-                // View switching with admin password
-                adminViewBtn.addEventListener('click', () => {
-                    adminPasswordModal.classList.remove('hidden');
-                    document.getElementById('adminPassword').focus();
-                });
+                // View switching
+                adminViewBtn.addEventListener('click', () => showView('admin'));
                 publicViewBtn.addEventListener('click', () => showView('public'));
 
                 // Public tab switching
@@ -1167,11 +1089,7 @@
                             doc.setFontSize(10);
                             doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, data.settings.margin.left, 15);
                         }
-                    }/Users/oscar/Desktop/Screenshot 2025-07-24 at 5.14.58 PM.png
-/Users/oscar/Desktop/Screenshot 2025-07-24 at 5.15.02 PM.png
-/Users/oscar/Desktop/Screenshot 2025-07-24 at 5.14.48 PM.png
-/Users/oscar/Desktop/Screenshot 2025-07-24 at 5.14.55 PM.png
-/Users/oscar/Desktop/Screenshot 2025-07-24 at 5.15.12 PM.png
+                    }
                 });
                 doc.save('catalogo-productos.pdf');
                 showToast('Catálogo exportado correctamente a PDF.');
