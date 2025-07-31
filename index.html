@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MEXIQUENSE - Catálogo de Productos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -110,7 +110,6 @@
                 </div>
             </div>
         </header>
-
         <!-- Admin View (Panel de Administración) -->
         <section id="adminView" class="flex-grow container mx auto px-4 py-8 hidden">
             <!-- Search and Filter Bar -->
@@ -126,20 +125,17 @@
                     </div>
                 </div>
             </div>
-
             <!-- Bulk Actions -->
             <div class="flex items-center space-x-4 mb-4">
                 <input type="checkbox" id="selectAll" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                 <label for="selectAll" class="text-gray-700 font-medium">Seleccionar Todos</label>
                 <button id="deleteSelected" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>Eliminar Seleccionados</button>
             </div>
-
             <!-- Products Grid for Admin -->
             <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <!-- Products will be dynamically inserted here -->
             </div>
         </section>
-
         <!-- Public View (Productos) -->
         <section id="publicView" class="flex-grow container mx auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
@@ -165,14 +161,12 @@
                 </div>
             </div>
         </section>
-
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-6">
             <div class="container mx auto px-4 text-center">
                 <p>© 2025 MEXIQUENSE - Sistema de Catálogo</p>
             </div>
         </footer>
-
         <!-- Modal for Product Details (shared for both views, but no edit/delete in public) -->
         <div id="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -232,7 +226,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Modal for Add/Edit Product (only for admin) -->
         <div id="productFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -300,7 +293,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Modal for Import CSV (only for admin) -->
         <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
@@ -336,77 +328,79 @@
                 </div>
             </div>
         </div>
-
         <!-- Toast Notification -->
         <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
             <span id="toastMessage">Operación completada con éxito</span>
         </div>
     </div>
-
     <script>
-        <!-- Código optimizado para loadData y saveData -->
-    // Asegurarse de que la variable products esté inicializada
-    let products = products || [];
+        // Configuración de Firebase - REEMPLAZA ESTOS PLACEHOLDERS CON TUS VALORES REALES DE LA CONSOLA DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI", // Ejemplo: "AIzaSyD...123"
+            authDomain: "catalogomexiquense.firebaseapp.com", // Ejemplo: "tu-proyecto.firebaseapp.com"
+            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com", // Este es el que mencionaste, sin :null
+            projectId: "catalogomexiquense", // Ejemplo: "tu-proyecto-id"
+            storageBucket: "catalogomexiquense.appspot.com", // Ejemplo: "tu-proyecto.appspot.com"
+            messagingSenderId: "TU_SENDER_ID_AQUI", // Ejemplo: "123456789"
+            appId: "TU_APP_ID_AQUI" // Ejemplo: "1:123456789:web:abcdef123456"
+        };
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-    // Verificar si showToast está definida, si no, usar alert como respaldo
-    function showToast(message, isError) {
-        if (typeof showToast === 'function') {
-            showToast(message, isError);
-        } else {
-            alert(message);
-        }
-    }
-
-    // Verificar si localStorage está disponible
-    function isLocalStorageAvailable() {
-        try {
-            const test = '__test__';
-            localStorage.setItem(test, test);
-            localStorage.removeItem(test);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    // Load data from localStorage
-    function loadData() {
-        if (!isLocalStorageAvailable()) {
-            console.warn('localStorage no está disponible.');
-            showToast('No se puede usar el almacenamiento local.', true);
-            products = [];
-            return;
-        }
-
-        try {
-            const storedProducts = localStorage.getItem('products');
-            products = storedProducts ? JSON.parse(storedProducts) : [];
-            saveData(); // Guardar datos después de cargarlos (mantiene consistencia)
-        } catch (error) {
-            console.error('Error loading data:', error);
-            showToast('Error al cargar los datos.', true);
-            products = [];
-        }
-    }
-
-    // Save data to localStorage
-    function saveData() {
-        if (!isLocalStorageAvailable()) {
-            console.warn('localStorage no está disponible.');
-            showToast('No se puede guardar en el almacenamiento local.', true);
-            return;
-        }
-
-        try {
-            localStorage.setItem('products', JSON.stringify(products));
-        } catch (error) {
-            console.error('Error saving data:', error);
-            showToast('Error al guardar los datos.', true);
-        }
-    }
-</script>
-        // Data Storage
+        // Asegurarse de que la variable products esté inicializada
         let products = [];
+
+        // Load data from Firebase (sincronización en tiempo real)
+        function loadData() {
+            try {
+                // Escuchar cambios en tiempo real en Firebase
+                database.ref('products').on('value', (snapshot) => {
+                    products = snapshot.val() || [];
+                    renderAdminProducts();
+                    renderPublicTabs();
+                    showToast('Datos sincronizados desde Firebase.');
+                });
+            } catch (error) {
+                console.error('Error loading data from Firebase:', error);
+                showToast('Error al cargar los datos desde Firebase. Usando localStorage como fallback.', true);
+                // Fallback a localStorage si Firebase falla
+                if (isLocalStorageAvailable()) {
+                    const storedProducts = localStorage.getItem('products');
+                    products = storedProducts ? JSON.parse(storedProducts) : [];
+                    renderAdminProducts();
+                    renderPublicTabs();
+                } else {
+                    products = [];
+                }
+            }
+        }
+
+        // Save data to Firebase
+        function saveData() {
+            try {
+                database.ref('products').set(products);
+            } catch (error) {
+                console.error('Error saving data to Firebase:', error);
+                showToast('Error al guardar los datos en Firebase. Usando localStorage como fallback.', true);
+                // Fallback a localStorage si Firebase falla
+                if (isLocalStorageAvailable()) {
+                    localStorage.setItem('products', JSON.stringify(products));
+                }
+            }
+        }
+
+        // Verificar si localStorage está disponible (para fallback)
+        function isLocalStorageAvailable() {
+            try {
+                const test = '__test__';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
 
         // DOM Elements
         const productsContainer = document.getElementById('productsContainer');
@@ -422,12 +416,10 @@
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
         const addProductBtn = document.getElementById('addProductBtn');
-
         // Modals
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
-
         // Buttons
         const selectAll = document.getElementById('selectAll');
         const deleteSelected = document.getElementById('deleteSelected');
@@ -435,55 +427,25 @@
         const addCustomFieldBtn = document.getElementById('addCustomFieldBtn');
         const cancelCustomField = document.getElementById('cancelCustomField');
         const saveCustomField = document.getElementById('saveCustomField');
-
         // Forms
         const productForm = document.getElementById('productForm');
         const importForm = document.getElementById('importForm');
         const customFieldForm = document.getElementById('customFieldForm');
         const customKey = document.getElementById('customKey');
         const customValue = document.getElementById('customValue');
-
         // Current view state
         let currentView = 'admin';
-
         // Initialize the application
         function init() {
             loadData();
-            renderAdminProducts();
-            renderPublicTabs();
             setupEventListeners();
             checkLibraries();
             showView('admin');
         }
-
-        // Load data from localStorage
-        function loadData() {
-            try {
-                const storedProducts = localStorage.getItem('products');
-                products = storedProducts ? JSON.parse(storedProducts) : [];
-                saveData();
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showToast('Error al cargar los datos.', true);
-                products = [];
-            }
-        }
-
-        // Save data to localStorage
-        function saveData() {
-            try {
-                localStorage.setItem('products', JSON.stringify(products));
-            } catch (error) {
-                console.error('Error saving data:', error);
-                showToast('Error al guardar los datos.', true);
-            }
-        }
-
         // Generate a unique ID
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
         }
-
         // Sanitize input to prevent XSS
         function sanitizeInput(input) {
             if (!input) return '';
@@ -491,19 +453,15 @@
             div.textContent = input;
             return div.innerHTML;
         }
-
         // Format currency
         function formatCurrency(amount) {
             return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
         }
-
         // Render products in admin grid
         function renderAdminProducts() {
             productsContainer.innerHTML = '';
             const searchTerm = sanitizeInput(searchInput.value.toLowerCase());
-
             let filteredProducts = [...products];
-
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => {
                     try {
@@ -518,7 +476,6 @@
                     }
                 });
             }
-
             if (filteredProducts.length === 0) {
                 productsContainer.innerHTML = `
                     <div class="col-span-full text-center py-12">
@@ -531,7 +488,6 @@
                 `;
                 return;
             }
-
             filteredProducts.forEach(product => {
                 try {
                     const card = document.createElement('div');
@@ -557,23 +513,18 @@
                             </div>
                         </div>
                     `;
-
                     productsContainer.appendChild(card);
                 } catch (error) {
                     console.error('Error rendering product:', product, error);
                 }
             });
-
             updateDeleteButton();
         }
-
         // Render public tabs and content
         function renderPublicTabs(searchTerm = '') {
             publicTabs.innerHTML = '';
             publicTabContent.innerHTML = '';
-
             let filteredProducts = [...products];
-
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => {
                     return (
@@ -582,7 +533,6 @@
                     );
                 });
             }
-
             if (filteredProducts.length === 0) {
                 publicTabContent.innerHTML = `
                     <div class="col-span-full text-center py-12">
@@ -595,16 +545,13 @@
                 `;
                 return;
             }
-
             const uniqueSizes = [...new Set(filteredProducts.map(p => p.size || 'Sin Tamaño'))];
-
             // All products tab
             const allTabBtn = createTabButton('Todos los Productos', 'all', true);
             publicTabs.appendChild(allTabBtn);
             const allTabContent = createTabContent('all', true);
             renderPublicProducts(filteredProducts, allTabContent);
             publicTabContent.appendChild(allTabContent);
-
             // Tabs for each size
             uniqueSizes.forEach(size => {
                 const tabBtn = createTabButton(size, size);
@@ -615,7 +562,6 @@
                 publicTabContent.appendChild(tabContent);
             });
         }
-
         // Helper to create tab button
         function createTabButton(label, id, active = false) {
             const btn = document.createElement('button');
@@ -624,7 +570,6 @@
             btn.dataset.tab = id;
             return btn;
         }
-
         // Helper to create tab content div
         function createTabContent(id, active = false) {
             const div = document.createElement('div');
@@ -632,7 +577,6 @@
             div.className = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${active ? '' : 'hidden'}`;
             return div;
         }
-
         // Render products in public tab
         function renderPublicProducts(filteredProducts, container) {
             container.innerHTML = '';
@@ -644,7 +588,6 @@
                 `;
                 return;
             }
-
             filteredProducts.forEach(product => {
                 try {
                     const card = document.createElement('div');
@@ -677,13 +620,11 @@
                 }
             });
         }
-
         // Update delete selected button state (admin only)
         function updateDeleteButton() {
             const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
             deleteSelected.disabled = checkedCount === 0;
         }
-
         // Show product details in modal (shared, but hide admin elements in public view)
         function showProductDetails(productId) {
             const product = products.find(p => p.id === productId);
@@ -691,7 +632,6 @@
                 showToast('Producto no encontrado.', true);
                 return;
             }
-
             try {
                 document.getElementById('modalProductTitle').textContent = sanitizeInput(product.nombre || 'Sin nombre');
                 document.getElementById('productItemNumber').textContent = sanitizeInput(product.itemNumber || 'N/A');
@@ -700,7 +640,6 @@
                 document.getElementById('productQty').textContent = sanitizeInput(product.qty || 'N/A');
                 document.getElementById('productDescription').textContent = sanitizeInput(product.description || 'Sin descripción');
                 document.getElementById('productCosto').textContent = formatCurrency(product.costo || 0);
-
                 const imageSrc = document.getElementById('productImageSrc');
                 const imagePlaceholder = document.getElementById('productImagePlaceholder');
                 if (product.url) {
@@ -715,7 +654,6 @@
                     imageSrc.classList.add('hidden');
                     imagePlaceholder.classList.remove('hidden');
                 }
-
                 // Render custom fields
                 const customFieldsContainer = document.getElementById('customFields');
                 customFieldsContainer.innerHTML = '';
@@ -725,7 +663,6 @@
                     p.innerHTML = `<strong>${sanitizeInput(key)}:</strong> <span class="text-gray-700">${sanitizeInput(value)}</span>`;
                     customFieldsContainer.appendChild(p);
                 });
-
                 deleteProductBtn.dataset.id = product.id;
                 // Hide admin-only elements if in public view
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = currentView === 'admin' ? '' : 'none');
@@ -735,7 +672,6 @@
                 showToast('Error al mostrar los detalles del producto.', true);
             }
         }
-
         // Import products from CSV
         function importFromCSV(file) {
             try {
@@ -747,7 +683,6 @@
                 const importSubmitBtn = document.getElementById('importSubmitBtn');
                 importLoader.classList.remove('hidden');
                 importSubmitBtn.disabled = true;
-
                 Papa.parse(file, {
                     header: true,
                     delimiter: ',',
@@ -755,7 +690,6 @@
                     complete: function(results) {
                         const importedProducts = [];
                         let errors = 0;
-
                         const requiredHeaders = ['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO'];
                         const csvHeaders = Object.keys(results.data[0] || {});
                         const missingHeaders = requiredHeaders.filter(header => !csvHeaders.includes(header));
@@ -765,14 +699,12 @@
                             importSubmitBtn.disabled = false;
                             return;
                         }
-
                         if (!results.data || results.data.length === 0) {
                             showToast('El archivo CSV está vacío.', true);
                             importLoader.classList.add('hidden');
                             importSubmitBtn.disabled = false;
                             return;
                         }
-
                         results.data.forEach((row, index) => {
                             try {
                                 if (!row['ITEM NUMBER']?.trim() || !row['DESCRIPTION']?.trim() || !row['UPC']?.trim() ||
@@ -780,12 +712,10 @@
                                     errors++;
                                     return;
                                 }
-
                                 if (isNaN(parseInt(row['QTY'])) || isNaN(parseFloat(row['COSTO']))) {
                                     errors++;
                                     return;
                                 }
-
                                 const newProduct = {
                                     id: generateId(),
                                     itemNumber: sanitizeInput(row['ITEM NUMBER']),
@@ -798,14 +728,12 @@
                                     url: row['URL'] ? sanitizeInput(row['URL'].trim()) : '',
                                     customFields: {}
                                 };
-
                                 // Add extra columns as custom fields
                                 for (let [k, v] of Object.entries(row)) {
                                     if (!['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO', 'URL'].includes(k)) {
                                         newProduct.customFields[sanitizeInput(k)] = sanitizeInput(v?.trim() || '');
                                     }
                                 }
-
                                 const existingProduct = products.find(p => p.itemNumber === newProduct.itemNumber || p.upc === newProduct.upc);
                                 if (existingProduct) {
                                     Object.assign(existingProduct, newProduct);
@@ -817,7 +745,6 @@
                                 errors++;
                             }
                         });
-
                         products = [...products, ...importedProducts];
                         saveData();
                         renderAdminProducts();
@@ -844,7 +771,6 @@
                 importSubmitBtn.disabled = false;
             }
         }
-
         // Validate form inputs
         function validateForm(formId, fields) {
             let isValid = true;
@@ -852,10 +778,8 @@
                 const element = document.getElementById(field.id);
                 const errorElement = document.getElementById(`${field.id}Error`);
                 if (!element || !errorElement) return;
-
                 errorElement.classList.add('hidden');
                 errorElement.textContent = '';
-
                 if (field.required && !element.value.trim()) {
                     errorElement.textContent = `${field.label} es obligatorio.`;
                     errorElement.classList.remove('hidden');
@@ -876,7 +800,6 @@
             });
             return isValid;
         }
-
         // Check if required libraries are loaded
         function checkLibraries() {
             if (!window.Papa) {
@@ -886,7 +809,6 @@
                 showToast('Error: Las bibliotecas para exportar PDF no se cargaron.', true);
             }
         }
-
         // Show specific view
         function showView(view) {
             currentView = view;
@@ -904,7 +826,6 @@
                 adminButtons.style.display = 'none';
             }
         }
-
         // Setup event listeners
         function setupEventListeners() {
             try {
@@ -937,9 +858,7 @@
                         { id: 'costo', label: 'Costo', required: true, type: 'number', min: 0 },
                         { id: 'description', label: 'Descripción', required: true }
                     ];
-
                     if (!validateForm('productForm', fields)) return;
-
                     const productId = document.getElementById('productId').value;
                     const newProduct = {
                         id: productId || generateId(),
@@ -953,7 +872,6 @@
                         description: sanitizeInput(document.getElementById('description').value),
                         customFields: {}
                     };
-
                     if (productId) {
                         const product = products.find(p => p.id === productId);
                         if (product) {
@@ -964,32 +882,27 @@
                     } else {
                         products.push(newProduct);
                     }
-
                     saveData();
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.');
                     productFormModal.classList.add('hidden');
                 });
-
                 importForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     const fileInput = document.getElementById('csvFile');
                     if (fileInput.files.length > 0) importFromCSV(fileInput.files[0]);
                     else showToast('Por favor selecciona un archivo CSV.', true);
                 });
-
                 document.getElementById('csvFile').addEventListener('change', (e) => {
                     const fileName = e.target.files[0]?.name || 'Ningún archivo seleccionado';
                     document.getElementById('fileName').textContent = sanitizeInput(fileName);
                 });
-
                 window.addEventListener('click', (e) => {
                     if (e.target === productDetailModal) productDetailModal.classList.add('hidden');
                     if (e.target === productFormModal) productFormModal.classList.add('hidden');
                     if (e.target === importModal) importModal.classList.add('hidden');
                 });
-
                 // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
                     document.querySelectorAll('.product-checkbox').forEach(cb => {
@@ -997,7 +910,6 @@
                     });
                     updateDeleteButton();
                 });
-
                 // Delete selected (admin)
                 deleteSelected.addEventListener('click', () => {
                     if (!confirm('¿Eliminar los productos seleccionados?')) return;
@@ -1009,7 +921,6 @@
                     showToast('Productos eliminados correctamente.');
                     selectAll.checked = false;
                 });
-
                 // Checkbox change for update button state (admin)
                 productsContainer.addEventListener('change', (e) => {
                     if (e.target.classList.contains('product-checkbox')) {
@@ -1018,21 +929,18 @@
                         selectAll.checked = allChecked;
                     }
                 });
-
                 // Event delegation for view details in admin
                 productsContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-
                 // Event delegation for view details in public
                 publicTabContent.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-
                 // Delete from modal (admin)
                 deleteProductBtn.addEventListener('click', () => {
                     const productId = deleteProductBtn.dataset.id;
@@ -1045,7 +953,6 @@
                         showToast('Producto eliminado correctamente.');
                     }
                 });
-
                 // Custom fields event listeners (admin)
                 addCustomFieldBtn.addEventListener('click', () => {
                     customFieldForm.classList.remove('hidden');
@@ -1053,12 +960,10 @@
                     customKey.value = '';
                     customValue.value = '';
                 });
-
                 cancelCustomField.addEventListener('click', () => {
                     customFieldForm.classList.add('hidden');
                     addCustomFieldBtn.classList.remove('hidden');
                 });
-
                 saveCustomField.addEventListener('click', () => {
                     const key = sanitizeInput(customKey.value.trim());
                     const value = sanitizeInput(customValue.value.trim());
@@ -1080,11 +985,9 @@
                         renderPublicTabs();
                     }
                 });
-
                 // View switching
                 adminViewBtn.addEventListener('click', () => showView('admin'));
                 publicViewBtn.addEventListener('click', () => showView('public'));
-
                 // Public tab switching
                 publicTabs.addEventListener('click', (e) => {
                     if (e.target.classList.contains('public-tab-btn')) {
@@ -1094,7 +997,6 @@
                         });
                         e.target.classList.add('border-b-2', 'border-indigo-600', 'text-indigo-600');
                         e.target.classList.remove('text-gray-500', 'hover:text-indigo-600');
-
                         document.querySelectorAll('#publicTabContent > div').forEach(content => content.classList.add('hidden'));
                         document.getElementById(`tab-${e.target.dataset.tab}`).classList.remove('hidden');
                     }
@@ -1104,7 +1006,6 @@
                 showToast('Error al inicializar la aplicación.', true);
             }
         }
-
         // Debounce function
         function debounce(func, wait) {
             let timeout;
@@ -1117,7 +1018,6 @@
                 timeout = setTimeout(later, wait);
             };
         }
-
         // Export catalog to PDF
         function exportToPDF() {
             try {
@@ -1128,7 +1028,6 @@
                 const { jsPDF } = window.jspdf;
                 exportBtn.disabled = true;
                 exportBtn.innerHTML = '<div class="loader inline-block"></div> Exportando...';
-
                 const doc = new jsPDF();
                 doc.autoTable({
                     head: [['Nombre', 'Descripción', 'Número de Ítem', 'UPC', 'Tamaño', 'Cantidad', 'Costo']],
@@ -1170,7 +1069,6 @@
                 `;
             }
         }
-
         // Show toast notification
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
@@ -1182,7 +1080,6 @@
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         }
-
         // Initialize the application on page load
         document.addEventListener('DOMContentLoaded', init);
     </script>
