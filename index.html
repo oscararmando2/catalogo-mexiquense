@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -344,6 +344,22 @@
     </div>
 
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
+            authDomain: "catalogomexiquense.firebaseapp.com",
+            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+            projectId: "catalogomexiquense",
+            storageBucket: "catalogomexiquense.firebasestorage.app",
+            messagingSenderId: "105727682757",
+            appId: "1:105727682757:web:2887f0de033b857786e8ac",
+            measurementId: "G-PRXPTEW7WL"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // Data Storage
         let products = [];
 
@@ -387,7 +403,7 @@
 
         // Initialize the application
         function init() {
-            loadData();
+            loadDataFromFirebase();
             renderAdminProducts();
             renderPublicTabs();
             setupEventListeners();
@@ -395,45 +411,33 @@
             showView('admin');
         }
 
-        // Load data from localStorage
-        function loadData() {
-            try {
-                const storedProducts = localStorage.getItem('products');
-                products = storedProducts ? JSON.parse(storedProducts) : [];
-                saveData();
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showToast('Error al cargar los datos.', true);
+        // Load data from Firebase
+        function loadDataFromFirebase() {
+            const productsRef = database.ref('products');
+            productsRef.on('value', (snapshot) => {
+                products = snapshot.val() || [];
+                if (Array.isArray(products)) {
+                    products = products;
+                } else {
+                    products = Object.values(products);
+                }
+                renderAdminProducts();
+                renderPublicTabs();
+            }, (error) => {
+                console.error('Error loading data from Firebase:', error);
+                showToast('Error al cargar los datos de Firebase.', true);
                 products = [];
-            }
+            });
         }
 
-        // Save data to localStorage
-        function saveData() {
-            try {
-                localStorage.setItem('products', JSON.stringify(products));
-            } catch (error) {
-                console.error('Error saving data:', error);
-                showToast('Error al guardar los datos.', true);
-            }
-        }
-
-        // Generate a unique ID
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
-        }
-
-        // Sanitize input to prevent XSS
-        function sanitizeInput(input) {
-            if (!input) return '';
-            const div = document.createElement('div');
-            div.textContent = input;
-            return div.innerHTML;
-        }
-
-        // Format currency
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+        // Save data to Firebase
+        function saveDataToFirebase() {
+            const productsRef = database.ref('products');
+            productsRef.set(products)
+                .catch((error) => {
+                    console.error('Error saving data to Firebase:', error);
+                    showToast('Error al guardar los datos en Firebase.', true);
+                });
         }
 
         // Render products in admin grid
@@ -758,7 +762,7 @@
                         });
 
                         products = [...products, ...importedProducts];
-                        saveData();
+                        saveDataToFirebase();
                         renderAdminProducts();
                         renderPublicTabs();
                         const message = errors > 0
@@ -904,7 +908,7 @@
                         products.push(newProduct);
                     }
 
-                    saveData();
+                    saveDataToFirebase();
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.');
@@ -942,7 +946,7 @@
                     if (!confirm('¿Eliminar los productos seleccionados?')) return;
                     const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
                     products = products.filter(p => !selectedIds.includes(p.id));
-                    saveData();
+                    saveDataToFirebase();
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast('Productos eliminados correctamente.');
@@ -977,7 +981,7 @@
                     const productId = deleteProductBtn.dataset.id;
                     if (confirm('¿Eliminar este producto?')) {
                         products = products.filter(p => p.id !== productId);
-                        saveData();
+                        saveDataToFirebase();
                         renderAdminProducts();
                         renderPublicTabs();
                         productDetailModal.classList.add('hidden');
@@ -1010,7 +1014,7 @@
                     if (product) {
                         if (!product.customFields) product.customFields = {};
                         product.customFields[key] = value;
-                        saveData();
+                        saveDataToFirebase();
                         showProductDetails(productId);
                         customFieldForm.classList.add('hidden');
                         addCustomFieldBtn.classList.remove('hidden');
