@@ -344,6 +344,67 @@
     </div>
 
     <script>
+        <!-- Código optimizado para loadData y saveData -->
+    // Asegurarse de que la variable products esté inicializada
+    let products = products || [];
+
+    // Verificar si showToast está definida, si no, usar alert como respaldo
+    function showToast(message, isError) {
+        if (typeof showToast === 'function') {
+            showToast(message, isError);
+        } else {
+            alert(message);
+        }
+    }
+
+    // Verificar si localStorage está disponible
+    function isLocalStorageAvailable() {
+        try {
+            const test = '__test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Load data from localStorage
+    function loadData() {
+        if (!isLocalStorageAvailable()) {
+            console.warn('localStorage no está disponible.');
+            showToast('No se puede usar el almacenamiento local.', true);
+            products = [];
+            return;
+        }
+
+        try {
+            const storedProducts = localStorage.getItem('products');
+            products = storedProducts ? JSON.parse(storedProducts) : [];
+            saveData(); // Guardar datos después de cargarlos (mantiene consistencia)
+        } catch (error) {
+            console.error('Error loading data:', error);
+            showToast('Error al cargar los datos.', true);
+            products = [];
+        }
+    }
+
+    // Save data to localStorage
+    function saveData() {
+        if (!isLocalStorageAvailable()) {
+            console.warn('localStorage no está disponible.');
+            showToast('No se puede guardar en el almacenamiento local.', true);
+            return;
+        }
+
+        try {
+            localStorage.setItem('products', JSON.stringify(products));
+        } catch (error) {
+            console.error('Error saving data:', error);
+            showToast('Error al guardar los datos.', true);
+        }
+    }
+</script>
         // Data Storage
         let products = [];
 
