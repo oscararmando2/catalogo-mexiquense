@@ -117,7 +117,7 @@
             </div>
         </header>
         <!-- Admin View (Panel de Administración) -->
-        <section id="adminView" class="flex-grow container mx-auto px-4 py-8 hidden">
+        <section id="adminView" class="flex-grow container mx auto px-4 py-8 hidden">
             <!-- Search and Filter Bar -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                 <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
@@ -143,7 +143,7 @@
             </div>
         </section>
         <!-- Public View (Productos) -->
-        <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
+        <section id="publicView" class="flex-grow container mx auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                 <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
                 <!-- Search Bar for Public View -->
@@ -159,17 +159,17 @@
                         </div>
                     </div>
                 </div>
-                <div id="departmentTabs" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                    <!-- Department cards will be dynamically inserted here -->
+                <div id="publicTabs" class="flex space-x-4 border-b border-gray-200">
+                    <!-- Tabs will be dynamically inserted here -->
                 </div>
                 <div id="publicTabContent" class="mt-6">
-                    <!-- Product grids for each department will be inserted here -->
+                    <!-- Product grids for each tab will be inserted here -->
                 </div>
             </div>
         </section>
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-6">
-            <div class="container mx-auto px-4 text-center">
+            <div class="container mx auto px-4 text-center">
                 <p>© 2025 MEXIQUENSE - Sistema de Catálogo</p>
             </div>
         </footer>
@@ -198,15 +198,6 @@
                                 <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
                                 <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
                                 <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
-                                <p class="admin-only"><strong>Departamento:</strong> <span id="productDepartment" class="text-gray-700"></span></p>
-                                <div class="admin-only mt-4">
-                                    <label for="departmentSelect" class="block text-sm font-medium text-gray-700 mb-1">Asignar Departamento</label>
-                                    <select id="departmentSelect" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                        <option value="">Sin Categoría</option>
-                                        <!-- Options will be dynamically added -->
-                                    </select>
-                                    <button id="saveDepartmentBtn" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar Departamento</button>
-                                </div>
                             </div>
                             <div id="customFields" class="space-y-2 mt-4"></div>
                             <div class="mt-4 admin-only">
@@ -300,13 +291,6 @@
                             <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
                             <p id="descriptionError" class="error-message hidden"></p>
                         </div>
-                        <div>
-                            <label for="departmentSelectForm" class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
-                            <select id="departmentSelectForm" name="departmentId" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                <option value="">Sin Categoría</option>
-                                <!-- Options will be dynamically added -->
-                            </select>
-                        </div>
                         <div class="pt-4 flex justify-end space-x-2">
                             <button type="button" id="cancelProductBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
                             <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar Producto</button>
@@ -315,29 +299,38 @@
                 </div>
             </div>
         </div>
-        <!-- Modal for Manage Departments (only for admin) -->
-        <div id="departmentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-                <h3 class="text-xl font-bold text-indigo-600 mb-4">Gestionar Departamentos</h3>
-                <div class="space-y-4">
-                    <input type="hidden" id="departmentId">
-                    <div>
-                        <label for="departmentName" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Departamento*</label>
-                        <input type="text" id="departmentName" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                        <p id="departmentNameError" class="error-message hidden"></p>
-                    </div>
-                    <div>
-                        <label for="departmentImage" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen (opcional)</label>
-                        <input type="url" id="departmentImage" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    </div>
-                    <div class="flex justify-end space-x-2">
-                        <button id="cancelDepartment" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                        <button id="saveDepartment" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar</button>
-                    </div>
+        <!-- Modal for Import CSV (only for admin) -->
+        <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-xl font-bold">Importar Productos desde CSV</h3>
+                    <button id="closeImportModal" class="text-white hover:text-indigo-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="mt-6">
-                    <h4 class="text-lg font-semibold mb-2">Departamentos Existentes</h4>
-                    <div id="departmentsList" class="space-y-2"></div>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">Sube un archivo CSV con los siguientes encabezados: ITEM NUMBER, DESCRIPTION, UPC, NOMBRE, SIZE, QTY, COSTO, URL (URL es opcional). Usa comas como separador.</p>
+                    <form id="importForm" class="space-y-4">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input type="file" id="csvFile" name="csvFile" accept=".csv" class="hidden">
+                            <label for="csvFile" class="cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span class="mt-2 block text-sm font-medium text-indigo-600">Haz clic para seleccionar archivo</span>
+                                <span id="fileName" class="mt-1 block text-sm text-gray-500">Ningún archivo seleccionado</span>
+                            </label>
+                        </div>
+                        <div id="importLoader" class="hidden">
+                            <div class="loader"></div>
+                            <p class="text-gray-600 mt-2">Importando...</p>
+                        </div>
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit" id="importSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Importar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -374,22 +367,16 @@
 
         // Asegurarse de que la variable products esté inicializada
         let products = [];
-        let departments = [];
 
         // Load data from Firebase (sincronización en tiempo real)
         function loadData() {
             try {
-                // Escuchar cambios en tiempo real en Firebase para productos
+                // Escuchar cambios en tiempo real en Firebase
                 database.ref('products').on('value', (snapshot) => {
                     products = snapshot.val() || [];
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast('Datos sincronizados desde Firebase.');
-                });
-                // Escuchar cambios en tiempo real para departments
-                database.ref('departments').on('value', (snapshot) => {
-                    departments = snapshot.val() || [];
-                    renderPublicDepartmentTabs();
                 });
             } catch (error) {
                 console.error('Error loading data from Firebase:', error);
@@ -398,13 +385,10 @@
                 if (isLocalStorageAvailable()) {
                     const storedProducts = localStorage.getItem('products');
                     products = storedProducts ? JSON.parse(storedProducts) : [];
-                    const storedDepartments = localStorage.getItem('departments');
-                    departments = storedDepartments ? JSON.parse(storedDepartments) : [];
                     renderAdminProducts();
                     renderPublicTabs();
                 } else {
                     products = [];
-                    departments = [];
                 }
             }
         }
@@ -419,19 +403,6 @@
                 // Fallback a localStorage si Firebase falla
                 if (isLocalStorageAvailable()) {
                     localStorage.setItem('products', JSON.stringify(products));
-                }
-            }
-        }
-
-        // Save departments to Firebase
-        function saveDepartments() {
-            try {
-                database.ref('departments').set(departments);
-            } catch (error) {
-                console.error('Error saving departments to Firebase:', error);
-                showToast('Error al guardar los departamentos en Firebase. Usando localStorage como fallback.', true);
-                if (isLocalStorageAvailable()) {
-                    localStorage.setItem('departments', JSON.stringify(departments));
                 }
             }
         }
@@ -462,22 +433,10 @@
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
         const addProductBtn = document.getElementById('addProductBtn');
-        const manageDepartmentsBtn = document.getElementById('manageDepartmentsBtn');
         // Modals
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
-        const passwordModal = document.getElementById('passwordModal');
-        const adminPasswordInput = document.getElementById('adminPasswordInput');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const cancelPassword = document.getElementById('cancelPassword');
-        const departmentsModal = document.getElementById('departmentsModal');
-        const departmentId = document.getElementById('departmentId');
-        const departmentName = document.getElementById('departmentName');
-        const departmentImage = document.getElementById('departmentImage');
-        const saveDepartment = document.getElementById('saveDepartment');
-        const cancelDepartment = document.getElementById('cancelDepartment');
-        const departmentsList = document.getElementById('departmentsList');
         // Buttons
         const selectAll = document.getElementById('selectAll');
         const deleteSelected = document.getElementById('deleteSelected');
@@ -491,19 +450,14 @@
         const customFieldForm = document.getElementById('customFieldForm');
         const customKey = document.getElementById('customKey');
         const customValue = document.getElementById('customValue');
-        const departmentSelect = document.getElementById('departmentSelect');
-        const saveDepartmentBtn = document.getElementById('saveDepartmentBtn');
-        const departmentSelectForm = document.getElementById('departmentSelectForm');
         // Current view state
-        let currentView = 'public'; // Iniciar en vista pública por defecto
-        // Contraseña para admin (cambia 'admin123' por tu contraseña preferida)
-        const adminPassword = 'admin123';
+        let currentView = 'admin';
         // Initialize the application
         function init() {
             loadData();
             setupEventListeners();
             checkLibraries();
-            showView('public'); // Iniciar en vista pública
+            showView('admin');
         }
         // Generate a unique ID
         function generateId() {
@@ -576,51 +530,12 @@
             });
             updateDeleteButton();
         }
-        // Render public departments and products
+        // Render public content without size tabs
         function renderPublicTabs(searchTerm = '') {
-            const departmentTabs = document.getElementById('departmentTabs');
-            departmentTabs.innerHTML = '';
-            // Mostrar cards de departments
-            departments.forEach(dept => {
-                const card = document.createElement('div');
-                card.className = 'department-card bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover cursor-pointer';
-                card.innerHTML = `
-                    <div class="product-image-container relative">
-                        <img src="${dept.image || 'https://placehold.co/300x200/png?text=Departamento'}" alt="${sanitizeInput(dept.name || 'Departamento')}" class="product-image" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
-                    </div>
-                    <div class="p-4 text-center">
-                        <h3 class="text-lg font-semibold text-gray-900">${sanitizeInput(dept.name || 'Sin nombre')}</h3>
-                    </div>
-                `;
-                card.addEventListener('click', () => {
-                    currentDepartmentId = dept.id;
-                    renderPublicProductsForDepartment(searchTerm);
-                });
-                departmentTabs.appendChild(card);
-            });
-            // Card para 'Sin Categoría'
-            const uncategorizedCard = document.createElement('div');
-            uncategorizedCard.className = 'department-card bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover cursor-pointer';
-            uncategorizedCard.innerHTML = `
-                <div class="product-image-container relative">
-                    <img src="https://placehold.co/300x200/png?text=Sin+Categoría" alt="Sin Categoría" class="product-image">
-                </div>
-                <div class="p-4 text-center">
-                    <h3 class="text-lg font-semibold text-gray-900">Sin Categoría</h3>
-                </div>
-            `;
-            uncategorizedCard.addEventListener('click', () => {
-                currentDepartmentId = '';
-                renderPublicProductsForDepartment(searchTerm);
-            });
-            departmentTabs.appendChild(uncategorizedCard);
-            // Renderizar productos iniciales (todos o filtrados)
-            renderPublicProductsForDepartment(searchTerm);
-        }
-        // Render products for selected department in public view
-        function renderPublicProductsForDepartment(searchTerm = '') {
-            publicTabContent.className = 'mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
-            let filteredProducts = products.filter(product => product.departmentId === currentDepartmentId);
+            publicTabs.innerHTML = ''; // Vaciar tabs, ya que no se usan
+            publicTabContent.innerHTML = '';
+            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; // Ajuste para mostrar 2 columnas en móviles para ver más productos por pantalla
+            let filteredProducts = [...products];
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => {
                     return (
@@ -632,33 +547,17 @@
             if (filteredProducts.length === 0) {
                 publicTabContent.innerHTML = `
                     <div class="col-span-full text-center py-12">
-                        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay productos en esta categoría</h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron productos</h3>
+                        <p class="mt-1 text-gray-500">Intenta con otra búsqueda.</p>
                     </div>
                 `;
                 return;
             }
-            filteredProducts.forEach(product => {
-                try {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
-                    card.innerHTML = `
-                        <div class="product-image-container relative">
-                            <img src="${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}" alt="${sanitizeInput(product.nombre || 'Producto')}" class="product-image" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
-                        </div>
-                        <div class="p-5">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
-                            <div class="flex justify-center">
-                                <button class="view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${product.id}">
-                                    Ver detalles
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    publicTabContent.appendChild(card);
-                } catch (error) {
-                    console.error('Error rendering public product:', product, error);
-                }
-            });
+            // Renderizar todos los productos en una sola cuadrícula
+            renderPublicProducts(filteredProducts, publicTabContent);
         }
         // Helper to create tab button (no se usa ahora, pero se mantiene por si se necesita en futuro)
         function createTabButton(label, id, active = false) {
@@ -928,7 +827,6 @@
                     productForm.reset();
                     document.getElementById('productId').value = '';
                     document.getElementById('formTitle').textContent = 'Nuevo Producto';
-                    renderDepartmentOptions(document.getElementById('departmentSelectForm'));
                     productFormModal.classList.remove('hidden');
                 });
                 importBtn.addEventListener('click', () => {
@@ -960,7 +858,6 @@
                         costo: parseFloat(document.getElementById('costo').value),
                         url: document.getElementById('url').value || '',
                         description: sanitizeInput(document.getElementById('description').value),
-                        departmentId: document.getElementById('departmentSelectForm').value || '',
                         customFields: {}
                     };
                     if (productId) {
@@ -993,8 +890,6 @@
                     if (e.target === productDetailModal) productDetailModal.classList.add('hidden');
                     if (e.target === productFormModal) productFormModal.classList.add('hidden');
                     if (e.target === importModal) importModal.classList.add('hidden');
-                    if (e.target === passwordModal) passwordModal.classList.add('hidden');
-                    if (e.target === departmentsModal) departmentsModal.classList.add('hidden');
                 });
                 // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
@@ -1111,51 +1006,6 @@
                 adminPasswordInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         confirmPassword.click();
-                    }
-                });
-                // Manage departments button
-                manageDepartmentsBtn.addEventListener('click', () => {
-                    renderDepartmentsList();
-                    departmentsModal.classList.remove('hidden');
-                });
-                // Cancel department modal
-                cancelDepartment.addEventListener('click', () => {
-                    departmentsModal.classList.add('hidden');
-                });
-                // Save department
-                saveDepartment.addEventListener('click', () => {
-                    const fields = [
-                        { id: 'departmentName', label: 'Nombre del Departamento', required: true }
-                    ];
-                    if (!validateForm('departmentsModal', fields)) return;
-                    const deptId = departmentId.value || generateId();
-                    const newDept = {
-                        id: deptId,
-                        name: sanitizeInput(departmentName.value),
-                        image: departmentImage.value || ''
-                    };
-                    const existingIndex = departments.findIndex(d => d.id === deptId);
-                    if (existingIndex !== -1) {
-                        departments[existingIndex] = newDept;
-                    } else {
-                        departments.push(newDept);
-                    }
-                    saveDepartments();
-                    renderDepartmentsList();
-                    departmentName.value = '';
-                    departmentImage.value = '';
-                    departmentId.value = '';
-                    showToast('Departamento guardado correctamente.');
-                });
-                // Save department in product details modal
-                saveDepartmentBtn.addEventListener('click', () => {
-                    const productId = deleteProductBtn.dataset.id;
-                    const product = products.find(p => p.id === productId);
-                    if (product) {
-                        product.departmentId = departmentSelect.value;
-                        saveData();
-                        showProductDetails(productId);
-                        showToast('Departamento asignado correctamente.');
                     }
                 });
             } catch (error) {
