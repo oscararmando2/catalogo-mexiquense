@@ -524,6 +524,7 @@
         function renderPublicTabs(searchTerm = '') {
             publicTabs.innerHTML = ''; // Vaciar tabs, ya que no se usan
             publicTabContent.innerHTML = '';
+            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; // Ajuste para mostrar 2 columnas en móviles para ver más productos por pantalla
             let filteredProducts = [...products];
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => {
