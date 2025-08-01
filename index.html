@@ -69,6 +69,9 @@
             border-radius: 8px;
             background-color: #f9f9f9; /* Light background for transparency */
         }
+        .department-card {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -159,11 +162,11 @@
                         </div>
                     </div>
                 </div>
-                <div id="publicTabs" class="flex space-x-4 border-b border-gray-200">
-                    <!-- Tabs will be dynamically inserted here -->
+                <div id="departmentTabs" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                    <!-- Department cards will be dynamically inserted here -->
                 </div>
                 <div id="publicTabContent" class="mt-6">
-                    <!-- Product grids for each tab will be inserted here -->
+                    <!-- Product grids for each department will be inserted here -->
                 </div>
             </div>
         </section>
@@ -198,6 +201,15 @@
                                 <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
                                 <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
                                 <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
+                                <p class="admin-only"><strong>Departamento:</strong> <span id="productDepartment" class="text-gray-700"></span></p>
+                                <div class="admin-only mt-4">
+                                    <label for="departmentSelect" class="block text-sm font-medium text-gray-700 mb-1">Asignar Departamento</label>
+                                    <select id="departmentSelect" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="">Sin Categoría</option>
+                                        <!-- Options will be dynamically added -->
+                                    </select>
+                                    <button id="saveDepartmentBtn" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar Departamento</button>
+                                </div>
                             </div>
                             <div id="customFields" class="space-y-2 mt-4"></div>
                             <div class="mt-4 admin-only">
@@ -437,6 +449,10 @@
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
+        const passwordModal = document.getElementById('passwordModal');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const cancelPassword = document.getElementById('cancelPassword');
         // Buttons
         const selectAll = document.getElementById('selectAll');
         const deleteSelected = document.getElementById('deleteSelected');
