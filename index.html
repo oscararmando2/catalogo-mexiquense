@@ -499,13 +499,6 @@
                         </div>
                         <div class="p-5">
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
-                            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${sanitizeInput(product.description || 'Sin descripción')}</p>
-                            <div class="text-sm text-gray-500 mb-4">
-                                <div><strong>Número de Ítem:</strong> ${sanitizeInput(product.itemNumber || 'N/A')}</div>
-                                <div><strong>Tamaño:</strong> ${sanitizeInput(product.size || 'N/A')}</div>
-                                <div><strong>Cantidad:</strong> ${sanitizeInput(product.qty || 'N/A')}</div>
-                                <div><strong>Costo:</strong> ${formatCurrency(product.costo || 0)}</div>
-                            </div>
                             <div class="flex justify-center">
                                 <button class="view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${product.id}">
                                     Ver detalles
@@ -585,15 +578,6 @@
                         </div>
                         <div class="p-5">
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
-                            <p class="text-gray-600 text-sm mb-3">${sanitizeInput(product.description || 'Sin descripción')}</p>
-                            <div class="text-sm text-gray-500 mb-4">
-                                <div><strong>Número de Ítem:</strong> ${sanitizeInput(product.itemNumber || 'N/A')}</div>
-                                <div><strong>UPC:</strong> ${sanitizeInput(product.upc || 'N/A')}</div>
-                                <div><strong>Tamaño:</strong> ${sanitizeInput(product.size || 'N/A')}</div>
-                                <div><strong>Cantidad:</strong> ${sanitizeInput(product.qty || 'N/A')}</div>
-                                <div><strong>Costo:</strong> ${formatCurrency(product.costo || 0)}</div>
-                                ${Object.entries(product.customFields || {}).map(([key, value]) => `<div><strong>${sanitizeInput(key)}:</strong> ${sanitizeInput(value)}</div>`).join('')}
-                            </div>
                             <div class="flex justify-center">
                                 <button class="view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${product.id}">
                                     Ver detalles
