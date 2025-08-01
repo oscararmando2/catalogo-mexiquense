@@ -930,6 +930,7 @@
                     addCustomFieldBtn.classList.add('hidden');
                     customKey.value = '';
                     customValue.value = '';
+                    saveCustomField.disabled = true; // Asegurar que esté disabled al abrir
                 });
                 cancelCustomField.addEventListener('click', () => {
                     customFieldForm.classList.add('hidden');
@@ -956,6 +957,13 @@
                         renderPublicTabs();
                     }
                 });
+                // Nueva función para actualizar el estado del botón Guardar
+                function updateSaveCustomButton() {
+                    saveCustomField.disabled = !(customKey.value.trim() && customValue.value.trim());
+                }
+                // Listeners para habilitar el botón al escribir
+                customKey.addEventListener('input', updateSaveCustomButton);
+                customValue.addEventListener('input', updateSaveCustomButton);
                 // View switching
                 adminViewBtn.addEventListener('click', () => showView('admin'));
                 publicViewBtn.addEventListener('click', () => showView('public'));
