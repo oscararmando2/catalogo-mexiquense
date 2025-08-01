@@ -332,6 +332,17 @@
         <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
             <span id="toastMessage">Operación completada con éxito</span>
         </div>
+        <!-- Modal for Admin Password -->
+        <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-indigo-600 mb-4">Ingresar Contraseña para Administración</h3>
+                <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4">
+                <div class="flex justify-end space-x-2">
+                    <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         // Configuración de Firebase - REEMPLAZA ESTOS PLACEHOLDERS CON TUS VALORES REALES DE LA CONSOLA DE FIREBASE
@@ -420,6 +431,10 @@
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
+        const passwordModal = document.getElementById('passwordModal');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const cancelPassword = document.getElementById('cancelPassword');
         // Buttons
         const selectAll = document.getElementById('selectAll');
         const deleteSelected = document.getElementById('deleteSelected');
@@ -434,13 +449,15 @@
         const customKey = document.getElementById('customKey');
         const customValue = document.getElementById('customValue');
         // Current view state
-        let currentView = 'admin';
+        let currentView = 'public'; // Iniciar en vista pública por defecto
+        // Contraseña para admin (cambia 'admin123' por tu contraseña preferida)
+        const adminPassword = 'admin123';
         // Initialize the application
         function init() {
             loadData();
             setupEventListeners();
             checkLibraries();
-            showView('admin');
+            showView('public'); // Iniciar en vista pública
         }
         // Generate a unique ID
         function generateId() {
@@ -873,6 +890,7 @@
                     if (e.target === productDetailModal) productDetailModal.classList.add('hidden');
                     if (e.target === productFormModal) productFormModal.classList.add('hidden');
                     if (e.target === importModal) importModal.classList.add('hidden');
+                    if (e.target === passwordModal) passwordModal.classList.add('hidden');
                 });
                 // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
@@ -965,8 +983,32 @@
                 customKey.addEventListener('input', updateSaveCustomButton);
                 customValue.addEventListener('input', updateSaveCustomButton);
                 // View switching
-                adminViewBtn.addEventListener('click', () => showView('admin'));
+                adminViewBtn.addEventListener('click', () => {
+                    passwordModal.classList.remove('hidden');
+                    adminPasswordInput.focus();
+                });
                 publicViewBtn.addEventListener('click', () => showView('public'));
+                // Confirmar contraseña
+                confirmPassword.addEventListener('click', () => {
+                    if (adminPasswordInput.value === adminPassword) {
+                        passwordModal.classList.add('hidden');
+                        showView('admin');
+                    } else {
+                        showToast('Contraseña incorrecta.', true);
+                    }
+                    adminPasswordInput.value = '';
+                });
+                // Cancelar contraseña
+                cancelPassword.addEventListener('click', () => {
+                    passwordModal.classList.add('hidden');
+                    adminPasswordInput.value = '';
+                });
+                // Permitir enter para confirmar contraseña
+                adminPasswordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        confirmPassword.click();
+                    }
+                });
             } catch (error) {
                 console.error('Error setting up event listeners:', error);
                 showToast('Error al inicializar la aplicación.', true);
