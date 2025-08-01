@@ -520,9 +520,9 @@
             });
             updateDeleteButton();
         }
-        // Render public tabs and content
+        // Render public content without size tabs
         function renderPublicTabs(searchTerm = '') {
-            publicTabs.innerHTML = '';
+            publicTabs.innerHTML = ''; // Vaciar tabs, ya que no se usan
             publicTabContent.innerHTML = '';
             let filteredProducts = [...products];
             if (searchTerm) {
@@ -545,24 +545,10 @@
                 `;
                 return;
             }
-            const uniqueSizes = [...new Set(filteredProducts.map(p => p.size || 'Sin Tamaño'))];
-            // All products tab
-            const allTabBtn = createTabButton('Todos los Productos', 'all', true);
-            publicTabs.appendChild(allTabBtn);
-            const allTabContent = createTabContent('all', true);
-            renderPublicProducts(filteredProducts, allTabContent);
-            publicTabContent.appendChild(allTabContent);
-            // Tabs for each size
-            uniqueSizes.forEach(size => {
-                const tabBtn = createTabButton(size, size);
-                publicTabs.appendChild(tabBtn);
-                const tabContent = createTabContent(size);
-                const sizeFiltered = filteredProducts.filter(p => p.size === size);
-                renderPublicProducts(sizeFiltered, tabContent);
-                publicTabContent.appendChild(tabContent);
-            });
+            // Renderizar todos los productos en una sola cuadrícula
+            renderPublicProducts(filteredProducts, publicTabContent);
         }
-        // Helper to create tab button
+        // Helper to create tab button (no se usa ahora, pero se mantiene por si se necesita en futuro)
         function createTabButton(label, id, active = false) {
             const btn = document.createElement('button');
             btn.className = `public-tab-btn px-4 py-2 text-sm font-medium ${active ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-indigo-600'}`;
@@ -570,14 +556,14 @@
             btn.dataset.tab = id;
             return btn;
         }
-        // Helper to create tab content div
+        // Helper to create tab content div (no se usa ahora, pero se mantiene)
         function createTabContent(id, active = false) {
             const div = document.createElement('div');
             div.id = `tab-${id}`;
             div.className = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${active ? '' : 'hidden'}`;
             return div;
         }
-        // Render products in public tab
+        // Render products in public view
         function renderPublicProducts(filteredProducts, container) {
             container.innerHTML = '';
             if (filteredProducts.length === 0) {
@@ -988,19 +974,6 @@
                 // View switching
                 adminViewBtn.addEventListener('click', () => showView('admin'));
                 publicViewBtn.addEventListener('click', () => showView('public'));
-                // Public tab switching
-                publicTabs.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('public-tab-btn')) {
-                        document.querySelectorAll('.public-tab-btn').forEach(btn => {
-                            btn.classList.remove('border-b-2', 'border-indigo-600', 'text-indigo-600');
-                            btn.classList.add('text-gray-500', 'hover:text-indigo-600');
-                        });
-                        e.target.classList.add('border-b-2', 'border-indigo-600', 'text-indigo-600');
-                        e.target.classList.remove('text-gray-500', 'hover:text-indigo-600');
-                        document.querySelectorAll('#publicTabContent > div').forEach(content => content.classList.add('hidden'));
-                        document.getElementById(`tab-${e.target.dataset.tab}`).classList.remove('hidden');
-                    }
-                });
             } catch (error) {
                 console.error('Error setting up event listeners:', error);
                 showToast('Error al inicializar la aplicación.', true);
