@@ -69,9 +69,6 @@
             border-radius: 8px;
             background-color: #f9f9f9; /* Light background for transparency */
         }
-        .department-card {
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -107,12 +104,6 @@
                                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                                 </svg>
                                 Nuevo Producto
-                            </button>
-                            <button id="manageDepartmentsBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-                                </svg>
-                                Gestionar Departamentos
                             </button>
                         </div>
                     </div>
@@ -162,11 +153,11 @@
                         </div>
                     </div>
                 </div>
-                <div id="departmentTabs" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                    <!-- Department cards will be dynamically inserted here -->
+                <div id="publicTabs" class="flex space-x-4 border-b border-gray-200">
+                    <!-- Tabs will be dynamically inserted here -->
                 </div>
                 <div id="publicTabContent" class="mt-6">
-                    <!-- Product grids for each department will be inserted here -->
+                    <!-- Product grids for each tab will be inserted here -->
                 </div>
             </div>
         </section>
@@ -201,15 +192,6 @@
                                 <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
                                 <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
                                 <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
-                                <p class="admin-only"><strong>Departamento:</strong> <span id="productDepartment" class="text-gray-700"></span></p>
-                                <div class="admin-only mt-4">
-                                    <label for="departmentSelect" class="block text-sm font-medium text-gray-700 mb-1">Asignar Departamento</label>
-                                    <select id="departmentSelect" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                        <option value="">Sin Categoría</option>
-                                        <!-- Options will be dynamically added -->
-                                    </select>
-                                    <button id="saveDepartmentBtn" class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar Departamento</button>
-                                </div>
                             </div>
                             <div id="customFields" class="space-y-2 mt-4"></div>
                             <div class="mt-4 admin-only">
@@ -361,6 +343,32 @@
                 </div>
             </div>
         </div>
+        <!-- Modal for Manage Departments (only for admin) -->
+        <div id="departmentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+                <h3 class="text-xl font-bold text-indigo-600 mb-4">Gestionar Departamentos</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="departmentId">
+                    <div>
+                        <label for="departmentName" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Departamento*</label>
+                        <input type="text" id="departmentName" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <p id="departmentNameError" class="error-message hidden"></p>
+                    </div>
+                    <div>
+                        <label for="departmentImage" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen (opcional)</label>
+                        <input type="url" id="departmentImage" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button id="cancelDepartment" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                        <button id="saveDepartment" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar</button>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-2">Departamentos Existentes</h4>
+                    <div id="departmentsList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         // Configuración de Firebase - REEMPLAZA ESTOS PLACEHOLDERS CON TUS VALORES REALES DE LA CONSOLA DE FIREBASE
@@ -449,10 +457,6 @@
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
         const importModal = document.getElementById('importModal');
-        const passwordModal = document.getElementById('passwordModal');
-        const adminPasswordInput = document.getElementById('adminPasswordInput');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const cancelPassword = document.getElementById('cancelPassword');
         // Buttons
         const selectAll = document.getElementById('selectAll');
         const deleteSelected = document.getElementById('deleteSelected');
@@ -1107,4 +1111,4 @@
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
-</html>
+</html> ``` 
