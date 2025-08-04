@@ -849,7 +849,7 @@
                 importBtn.addEventListener('click', () => {
                     importForm.reset();
                     document.getElementById('fileName').textContent = 'Ningún archivo seleccionado';
-                    importModal.classList.add('hidden');
+                    importModal.classList.remove('hidden');
                 });
                 exportBtn.addEventListener('click', exportToPDF);
                 productForm.addEventListener('submit', (e) => {
