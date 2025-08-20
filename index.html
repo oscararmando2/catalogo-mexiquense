@@ -144,11 +144,161 @@
                 <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                     <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
                         <div class="flex-grow">
+                            <div class="relativeI apologize for the incomplete response. Below is the complete and corrected HTML code with the fix for the CSV import button and additional error handling to address the 404 error you encountered. The changes ensure that the import functionality works robustly, the PapaParse library is verified, and Firebase configuration issues are better handled. I've also included detailed instructions to help you integrate and test the changes, along with steps to verify your Firebase setup, as the 404 error might be related to a resource or configuration issue.
+
+### Código completo actualizado
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEXIQUENSE - Catálogo de Productos</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="showToast('Error: No se pudo cargar PapaParse. Verifica tu conexión a Internet.', true)"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a5b4fc;
+        }
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .product-image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* Aspect ratio 1:1 for square */
+        }
+        .product-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Show full image without cropping */
+            border-radius: 8px;
+            background-color: #f9f9f9; /* Light background for transparency */
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                        </svg>
+                        <h1 class="text-2xl md:text-3xl font-bold">MEXIQUENSE</h1>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
+                        <button id="publicViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
+                        <div id="adminButtons" class="flex flex-wrap gap-2">
+                            <button id="importBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                Importar CSV
+                            </button>
+                            <button id="exportBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                Exportar PDF
+                            </button>
+                            <button id="addProductBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                                Nuevo Producto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- Admin View (Panel de Administración) -->
+        <section id="adminView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <!-- Search and Filter Bar -->
+            <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Bulk Actions -->
+            <div class="flex items-center space-x-4 mb-4">
+                <input type="checkbox" id="selectAll" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                <label for="selectAll" class="text-gray-700 font-medium">Seleccionar Todos</label>
+                <button id="deleteSelected" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>Eliminar Seleccionados</button>
+            </div>
+            <!-- Products Grid for Admin -->
+            <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Products will be dynamically inserted here -->
+            </div>
+        </section>
+        <!-- Public View (Productos) -->
+        <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
+                <!-- Search Bar for Public View -->
+                <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="flex-grow">
                             <div class="relative">
                                 <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                                </svg>
+                            </svg>
                             </div>
                         </div>
                     </div>
@@ -171,7 +321,7 @@
         <div id="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
-                    <h3 id="modalProductTitle" class="text-xl font-bold">Detalles del Producto</h3>
+                    <h3 id="modalProductTitle" class="text-2xl font-bold">Detalles del Producto</h3>
                     <button id="closeDetailModal" class="text-white hover:text-indigo-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -339,7 +489,7 @@
                 <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4">
                 <div class="flex justify-end space-x-2">
                     <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
+                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition話題all">Confirmar</button>
                 </div>
             </div>
         </div>
@@ -347,16 +497,22 @@
     <script>
         // Configuración de Firebase - REEMPLAZA ESTOS PLACEHOLDERS CON TUS VALORES REALES DE LA CONSOLA DE FIREBASE
         const firebaseConfig = {
-            apiKey: "TU_API_KEY_AQUI", // Ejemplo: "AIzaSyD...123"
-            authDomain: "catalogomexiquense.firebaseapp.com", // Ejemplo: "tu-proyecto.firebaseapp.com"
-            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com", // Este es el que mencionaste, sin :null
-            projectId: "catalogomexiquense", // Ejemplo: "tu-proyecto-id"
-            storageBucket: "catalogomexiquense.appspot.com", // Ejemplo: "tu-proyecto.appspot.com"
-            messagingSenderId: "TU_SENDER_ID_AQUI", // Ejemplo: "123456789"
-            appId: "TU_APP_ID_AQUI" // Ejemplo: "1:123456789:web:abcdef123456"
+            apiKey: "TU_API_KEY_AQUI",
+            authDomain: "catalogomexiquense.firebaseapp.com",
+            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+            projectId: "catalogomexiquense",
+            storageBucket: "catalogomexiquense.appspot.com",
+            messagingSenderId: "TU_SENDER_ID_AQUI",
+            appId: "TU_APP_ID_AQUI"
         };
+
         // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (error) {
+            console.error('Error initializing Firebase:', error);
+            showToast('Error al inicializar Firebase. Verifica la configuración.', true);
+        }
         const database = firebase.database();
 
         // Contraseña para admin (cambia 'admin123' por tu contraseña preferida)
@@ -374,30 +530,40 @@
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast('Datos sincronizados desde Firebase.');
+                }, (error) => {
+                    console.error('Error loading data from Firebase:', error);
+                    showToast('Error al cargar datos desde Firebase. Usando localStorage como fallback.', true);
+                    // Fallback a localStorage si Firebase falla
+                    if (isLocalStorageAvailable()) {
+                        const storedProducts = localStorage.getItem('products');
+                        products = storedProducts ? JSON.parse(storedProducts) : [];
+                        renderAdminProducts();
+                        renderPublicTabs();
+                    } else {
+                        products = [];
+                    }
                 });
             } catch (error) {
-                console.error('Error loading data from Firebase:', error);
-                showToast('Error al cargar los datos desde Firebase. Usando localStorage como fallback.', true);
-                // Fallback a localStorage si Firebase falla
-                if (isLocalStorageAvailable()) {
-                    const storedProducts = localStorage.getItem('products');
-                    products = storedProducts ? JSON.parse(storedProducts) : [];
-                    renderAdminProducts();
-                    renderPublicTabs();
-                } else {
-                    products = [];
-                }
+                console.error('Error setting up Firebase listener:', error);
+                showToast('Error al configurar la sincronización con Firebase.', true);
             }
         }
 
         // Save data to Firebase
         function saveData() {
             try {
-                database.ref('products').set(products);
+                database.ref('products').set(products, (error) => {
+                    if (error) {
+                        console.error('Error saving data to Firebase:', error);
+                        showToast('Error al guardar datos en Firebase. Usando localStorage como fallback.', true);
+                        if (isLocalStorageAvailable()) {
+                            localStorage.setItem('products', JSON.stringify(products));
+                        }
+                    }
+                });
             } catch (error) {
-                console.error('Error saving data to Firebase:', error);
-                showToast('Error al guardar los datos en Firebase. Usando localStorage como fallback.', true);
-                // Fallback a localStorage si Firebase falla
+                console.error('Error saving data to fIrebase:', error);
+                showToast('Error al guardar datos en Firebase. Usando localStorage como fallback.', true);
                 if (isLocalStorageAvailable()) {
                     localStorage.setItem('products', JSON.stringify(products));
                 }
@@ -541,7 +707,7 @@
         function renderPublicTabs(searchTerm = '') {
             publicTabs.innerHTML = ''; // Vaciar tabs, ya que no se usan
             publicTabContent.innerHTML = '';
-            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'; // Ajuste para mostrar 2 columnas en móviles para ver más productos por pantalla
+            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
             let filteredProducts = [...products];
             if (searchTerm) {
                 filteredProducts = filteredProducts.filter(product => {
@@ -563,11 +729,10 @@
                 `;
                 return;
             }
-            // Renderizar todos los productos en una sola cuadrícula
             renderPublicProducts(filteredProducts, publicTabContent);
         }
 
-        // Helper to create tab button (no se usa ahora, pero se mantiene por si se necesita en futuro)
+        // Helper to create tab button (no se usa ahora, pero se mantiene)
         function createTabButton(label, id, active = false) {
             const btn = document.createElement('button');
             btn.className = `public-tab-btn px-4 py-2 text-sm font-medium ${active ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-indigo-600'}`;
@@ -625,7 +790,7 @@
             deleteSelected.disabled = checkedCount === 0;
         }
 
-        // Show product details in modal (shared, but hide admin elements in public view)
+        // Show product details in modal
         function showProductDetails(productId) {
             const product = products.find(p => p.id === productId);
             if (!product) {
@@ -677,13 +842,22 @@
         function importFromCSV(file) {
             try {
                 if (!window.Papa) {
-                    showToast('Error: La biblioteca PapaParse no se cargó.', true);
+                    showToast('Error: No se pudo cargar la biblioteca PapaParse. Verifica tu conexión a Internet.', true);
                     return;
                 }
                 const importLoader = document.getElementById('importLoader');
                 const importSubmitBtn = document.getElementById('importSubmitBtn');
                 importLoader.classList.remove('hidden');
                 importSubmitBtn.disabled = true;
+
+                // Validate file type
+                if (!file.name.endsWith('.csv')) {
+                    showToast('Por favor selecciona un archivo CSV válido.', true);
+                    importLoader.classList.add('hidden');
+                    importSubmitBtn.disabled = false;
+                    return;
+                }
+
                 Papa.parse(file, {
                     header: true,
                     delimiter: ',',
@@ -710,10 +884,12 @@
                             try {
                                 if (!row['ITEM NUMBER']?.trim() || !row['DESCRIPTION']?.trim() || !row['UPC']?.trim() ||
                                     !row['NOMBRE']?.trim() || !row['SIZE']?.trim() || !row['QTY']?.trim() || !row['COSTO']?.trim()) {
+                                    console.error(`Fila ${index + 1} incompleta:`, row);
                                     errors++;
                                     return;
                                 }
                                 if (isNaN(parseInt(row['QTY'])) || isNaN(parseFloat(row['COSTO']))) {
+                                    console.error(`Fila ${index + 1} tiene valores no numéricos en QTY o COSTO:`, row);
                                     errors++;
                                     return;
                                 }
@@ -760,14 +936,14 @@
                     },
                     error: function(error) {
                         console.error('Error parsing CSV:', error);
-                        showToast('Error al procesar el archivo CSV.', true);
+                        showToast('Error al procesar el archivo CSV. Asegúrate de que el archivo esté bien formado.', true);
                         importLoader.classList.add('hidden');
                         importSubmitBtn.disabled = false;
                     }
                 });
             } catch (error) {
                 console.error('Error en importación de CSV:', error);
-                showToast('Error al importar el archivo CSV.', true);
+                showToast('Error al importar el archivo CSV. Verifica tu conexión a Internet.', true);
                 importLoader.classList.add('hidden');
                 importSubmitBtn.disabled = false;
             }
@@ -806,7 +982,7 @@
         // Check if required libraries are loaded
         function checkLibraries() {
             if (!window.Papa) {
-                showToast('Error: La biblioteca PapaParse no se cargó.', true);
+                showToast('Error: La biblioteca PapaParse no se cargó. Verifica tu conexión a Internet.', true);
             }
             if (!window.jspdf || !window.html2canvas) {
                 showToast('Error: Las bibliotecas para exportar PDF no se cargaron.', true);
@@ -881,7 +1057,6 @@
                         const product = products.find(p => p.id === productId);
                         if (product) {
                             Object.assign(product, newProduct);
-                            // Preserve existing customFields if any
                             newProduct.customFields = product.customFields || {};
                         }
                     } else {
@@ -896,8 +1071,11 @@
                 importForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     const fileInput = document.getElementById('csvFile');
-                    if (fileInput.files.length > 0) importFromCSV(fileInput.files[0]);
-                    else showToast('Por favor selecciona un archivo CSV.', true);
+                    if (fileInput.files.length > 0) {
+                        importFromCSV(fileInput.files[0]);
+                    } else {
+                        showToast('Por favor selecciona un archivo CSV.', true);
+                    }
                 });
                 document.getElementById('csvFile').addEventListener('change', (e) => {
                     const fileName = e.target.files[0]?.name || 'Ningún archivo seleccionado';
@@ -909,14 +1087,12 @@
                     if (e.target === importModal) importModal.classList.add('hidden');
                     if (e.target === passwordModal) passwordModal.classList.add('hidden');
                 });
-                // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
                     document.querySelectorAll('.product-checkbox').forEach(cb => {
                         cb.checked = e.target.checked;
                     });
                     updateDeleteButton();
                 });
-                // Delete selected (admin)
                 deleteSelected.addEventListener('click', () => {
                     if (!confirm('¿Eliminar los productos seleccionados?')) return;
                     const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
@@ -927,7 +1103,6 @@
                     showToast('Productos eliminados correctamente.');
                     selectAll.checked = false;
                 });
-                // Checkbox change for update button state (admin)
                 productsContainer.addEventListener('change', (e) => {
                     if (e.target.classList.contains('product-checkbox')) {
                         updateDeleteButton();
@@ -935,182 +1110,15 @@
                         selectAll.checked = allChecked;
                     }
                 });
-                // Event delegation for view details in admin
                 productsContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-                // Event delegation for view details in public
                 publicTabContent.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-                // Delete from modal (admin)
                 deleteProductBtn.addEventListener('click', () => {
                     const productId = deleteProductBtn.dataset.id;
-                    if (confirm('¿Eliminar este producto?')) {
-                        products = products.filter(p => p.id !== productId);
-                        saveData();
-                        renderAdminProducts();
-                        renderPublicTabs();
-                        productDetailModal.classList.add('hidden');
-                        showToast('Producto eliminado correctamente.');
-                    }
-                });
-                // Custom fields event listeners (admin)
-                addCustomFieldBtn.addEventListener('click', () => {
-                    customFieldForm.classList.remove('hidden');
-                    addCustomFieldBtn.classList.add('hidden');
-                    customKey.value = '';
-                    customValue.value = '';
-                    saveCustomField.disabled = true; // Asegurar que esté disabled al abrir
-                });
-                cancelCustomField.addEventListener('click', () => {
-                    customFieldForm.classList.add('hidden');
-                    addCustomFieldBtn.classList.remove('hidden');
-                });
-                saveCustomField.addEventListener('click', () => {
-                    const key = sanitizeInput(customKey.value.trim());
-                    const value = sanitizeInput(customValue.value.trim());
-                    if (!key) {
-                        showToast('La clave es obligatoria.', true);
-                        return;
-                    }
-                    const productId = deleteProductBtn.dataset.id;
-                    const product = products.find(p => p.id === productId);
-                    if (product) {
-                        if (!product.customFields) product.customFields = {};
-                        product.customFields[key] = value;
-                        saveData();
-                        showProductDetails(productId);
-                        customFieldForm.classList.add('hidden');
-                        addCustomFieldBtn.classList.remove('hidden');
-                        showToast('Campo personalizado agregado correctamente.');
-                        renderAdminProducts();
-                        renderPublicTabs();
-                    }
-                });
-                // Nueva función para actualizar el estado del botón Guardar
-                function updateSaveCustomButton() {
-                    saveCustomField.disabled = !(customKey.value.trim() && customValue.value.trim());
-                }
-                // Listeners para habilitar el botón al escribir
-                customKey.addEventListener('input', updateSaveCustomButton);
-                customValue.addEventListener('input', updateSaveCustomButton);
-                // View switching
-                adminViewBtn.addEventListener('click', () => {
-                    passwordModal.classList.remove('hidden');
-                    adminPasswordInput.focus();
-                });
-                publicViewBtn.addEventListener('click', () => showView('public'));
-                // Confirmar contraseña
-                confirmPassword.addEventListener('click', () => {
-                    if (adminPasswordInput.value === adminPassword) {
-                        passwordModal.classList.add('hidden');
-                        showView('admin');
-                    } else {
-                        showToast('Contraseña incorrecta.', true);
-                    }
-                    adminPasswordInput.value = '';
-                });
-                // Cancelar contraseña
-                cancelPassword.addEventListener('click', () => {
-                    passwordModal.classList.add('hidden');
-                    adminPasswordInput.value = '';
-                });
-                // Permitir enter para confirmar contraseña
-                adminPasswordInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        confirmPassword.click();
-                    }
-                });
-            } catch (error) {
-                console.error('Error setting up event listeners:', error);
-                showToast('Error al inicializar la aplicación.', true);
-            }
-        }
-
-        // Debounce function
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // Export catalog to PDF
-        function exportToPDF() {
-            try {
-                if (!window.jspdf) {
-                    showToast('Error: No se pudieron cargar las bibliotecas para exportar PDF.', true);
-                    return;
-                }
-                const { jsPDF } = window.jspdf;
-                exportBtn.disabled = true;
-                exportBtn.innerHTML = '<div class="loader inline-block"></div> Exportando...';
-                const doc = new jsPDF();
-                doc.autoTable({
-                    head: [['Nombre', 'Descripción', 'Número de Ítem', 'UPC', 'Tamaño', 'Cantidad', 'Costo']],
-                    body: products.map(product => [
-                        sanitizeInput(product.nombre || 'N/A'),
-                        sanitizeInput(product.description || 'N/A'),
-                        sanitizeInput(product.itemNumber || 'N/A'),
-                        sanitizeInput(product.upc || 'N/A'),
-                        sanitizeInput(product.size || 'N/A'),
-                        sanitizeInput(product.qty || 'N/A'),
-                        formatCurrency(product.costo || 0)
-                    ]),
-                    theme: 'grid',
-                    headStyles: { fillColor: [99, 102, 241] }, // indigo
-                    styles: { font: 'helvetica', fontSize: 10 },
-                    margin: { top: 20 },
-                    didDrawPage: function (data) {
-                        // Add title on first page
-                        if (data.pageNumber === 1) {
-                            doc.setFontSize(18);
-                            doc.text('Catálogo de Productos', data.settings.margin.left, 10);
-                            doc.setFontSize(10);
-                            doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, data.settings.margin.left, 15);
-                        }
-                    }
-                });
-                doc.save('catalogo-productos.pdf');
-                showToast('Catálogo exportado correctamente a PDF.');
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                showToast('Error al generar el PDF.', true);
-            } finally {
-                exportBtn.disabled = false;
-                exportBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                    Exportar PDF
-                `;
-            }
-        }
-
-        // Show toast notification
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            toastMessage.textContent = message;
-            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 ${isError ? 'bg-red-600' : 'bg-gray-800'} text-white`;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        // Initialize the application on page load
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-</body>
-</html>
