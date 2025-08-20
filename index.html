@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="showToast('Error al cargar la biblioteca para importar CSV. Verifica tu conexión a Internet.', true);"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
@@ -146,8 +146,8 @@
                         <div class="flex-grow">
                             <div class="relative">
                                 <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                                 </svg>
                             </div>
                         </div>
@@ -567,7 +567,7 @@
             renderPublicProducts(filteredProducts, publicTabContent);
         }
 
-        // Helper to create tab button (no se usa ahora, pero se mantiene por si se necesita en futuro)
+        // Helper to create tab button (no se usa ahora, pero se mantiene)
         function createTabButton(label, id, active = false) {
             const btn = document.createElement('button');
             btn.className = `public-tab-btn px-4 py-2 text-sm font-medium ${active ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500 hover:text-indigo-600'}`;
@@ -637,9 +637,9 @@
                 document.getElementById('productItemNumber').textContent = sanitizeInput(product.itemNumber || 'N/A');
                 document.getElementById('productUpc').textContent = sanitizeInput(product.upc || 'N/A');
                 document.getElementById('productSize').textContent = sanitizeInput(product.size || 'N/A');
-                document.getElementById('productQty').textContent = sanitizeInput(product.qty || 'N/A');
+                document.getElementById('productQty').textContent = product.qty != null ? product.qty : 'N/A';
                 document.getElementById('productDescription').textContent = sanitizeInput(product.description || 'Sin descripción');
-                document.getElementById('productCosto').textContent = formatCurrency(product.costo || 0);
+                document.getElementById('productCosto').textContent = product.costo != null ? formatCurrency(product.costo) : 'N/A';
                 const imageSrc = document.getElementById('productImageSrc');
                 const imagePlaceholder = document.getElementById('productImagePlaceholder');
                 if (product.url) {
@@ -654,14 +654,16 @@
                     imageSrc.classList.add('hidden');
                     imagePlaceholder.classList.remove('hidden');
                 }
-                // Render custom fields
+                // Render custom fields, excluding any placeholder or empty fields
                 const customFieldsContainer = document.getElementById('customFields');
                 customFieldsContainer.innerHTML = '';
                 const customFields = product.customFields || {};
                 Object.entries(customFields).forEach(([key, value]) => {
-                    const p = document.createElement('p');
-                    p.innerHTML = `<strong>${sanitizeInput(key)}:</strong> <span class="text-gray-700">${sanitizeInput(value)}</span>`;
-                    customFieldsContainer.appendChild(p);
+                    if (key && value && value !== 'N/A' && !key.match(/^_\d+$/)) { // Exclude placeholder fields like "_1"
+                        const p = document.createElement('p');
+                        p.innerHTML = `<strong>${sanitizeInput(key)}:</strong> <span class="text-gray-700">${sanitizeInput(value)}</span>`;
+                        customFieldsContainer.appendChild(p);
+                    }
                 });
                 deleteProductBtn.dataset.id = product.id;
                 // Hide admin-only elements if in public view
@@ -691,6 +693,7 @@
                     complete: function(results) {
                         const importedProducts = [];
                         let errors = 0;
+                        let errorDetails = [];
                         const requiredHeaders = ['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO'];
                         const csvHeaders = Object.keys(results.data[0] || {});
                         const missingHeaders = requiredHeaders.filter(header => !csvHeaders.includes(header));
@@ -708,13 +711,19 @@
                         }
                         results.data.forEach((row, index) => {
                             try {
+                                // Validate required fields
                                 if (!row['ITEM NUMBER']?.trim() || !row['DESCRIPTION']?.trim() || !row['UPC']?.trim() ||
-                                    !row['NOMBRE']?.trim() || !row['SIZE']?.trim() || !row['QTY']?.trim() || !row['COSTO']?.trim()) {
+                                    !row['NOMBRE']?.trim() || !row['SIZE']?.trim()) {
                                     errors++;
+                                    errorDetails.push(`Fila ${index + 2}: Faltan datos obligatorios (ITEM NUMBER, DESCRIPTION, UPC, NOMBRE, SIZE).`);
                                     return;
                                 }
-                                if (isNaN(parseInt(row['QTY'])) || isNaN(parseFloat(row['COSTO']))) {
+                                // Handle QTY and COSTO, default to 0 if invalid
+                                const qty = row['QTY']?.trim() && row['QTY'].toLowerCase() !== 'n/a' && !isNaN(parseInt(row['QTY'])) ? parseInt(row['QTY']) : 0;
+                                const costo = row['COSTO']?.trim() && row['COSTO'].toLowerCase() !== 'n/a' && !isNaN(parseFloat(row['COSTO'])) ? parseFloat(row['COSTO']) : 0;
+                                if (qty < 0 || costo < 0) {
                                     errors++;
+                                    errorDetails.push(`Fila ${index + 2}: QTY o COSTO tienen valores negativos o inválidos.`);
                                     return;
                                 }
                                 const newProduct = {
@@ -724,15 +733,17 @@
                                     upc: sanitizeInput(row['UPC']),
                                     nombre: sanitizeInput(row['NOMBRE']),
                                     size: sanitizeInput(row['SIZE']),
-                                    qty: parseInt(row['QTY']),
-                                    costo: parseFloat(row['COSTO']),
+                                    qty: qty,
+                                    costo: costo,
                                     url: row['URL'] ? sanitizeInput(row['URL'].trim()) : '',
                                     customFields: {}
                                 };
-                                // Add extra columns as custom fields
+                                // Add extra columns as custom fields, excluding empty or N/A values
                                 for (let [k, v] of Object.entries(row)) {
                                     if (!['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO', 'URL'].includes(k)) {
-                                        newProduct.customFields[sanitizeInput(k)] = sanitizeInput(v?.trim() || '');
+                                        if (v && v.trim() !== 'N/A' && v.trim() !== '') {
+                                            newProduct.customFields[sanitizeInput(k)] = sanitizeInput(v.trim());
+                                        }
                                     }
                                 }
                                 const existingProduct = products.find(p => p.itemNumber === newProduct.itemNumber || p.upc === newProduct.upc);
@@ -742,8 +753,9 @@
                                     importedProducts.push(newProduct);
                                 }
                             } catch (error) {
-                                console.error(`Error en fila ${index + 1}:`, row, error);
+                                console.error(`Error en fila ${index + 2}:`, row, error);
                                 errors++;
+                                errorDetails.push(`Fila ${index + 2}: Error al procesar la fila - ${error.message}`);
                             }
                         });
                         products = [...products, ...importedProducts];
@@ -751,7 +763,7 @@
                         renderAdminProducts();
                         renderPublicTabs();
                         const message = errors > 0
-                            ? `Importación completada: ${importedProducts.length} productos nuevos, ${errors} errores.`
+                            ? `Importación completada: ${importedProducts.length} productos nuevos, ${errors} errores. Detalles: ${errorDetails.join('; ')}`
                             : `Importación completada: ${importedProducts.length} productos nuevos.`;
                         showToast(message, errors > 0);
                         importModal.classList.add('hidden');
@@ -760,14 +772,14 @@
                     },
                     error: function(error) {
                         console.error('Error parsing CSV:', error);
-                        showToast('Error al procesar el archivo CSV.', true);
+                        showToast('Error al procesar el archivo CSV: ' + error.message, true);
                         importLoader.classList.add('hidden');
                         importSubmitBtn.disabled = false;
                     }
                 });
             } catch (error) {
                 console.error('Error en importación de CSV:', error);
-                showToast('Error al importar el archivo CSV.', true);
+                showToast('Error al importar el archivo CSV: ' + error.message, true);
                 importLoader.classList.add('hidden');
                 importSubmitBtn.disabled = false;
             }
@@ -881,7 +893,6 @@
                         const product = products.find(p => p.id === productId);
                         if (product) {
                             Object.assign(product, newProduct);
-                            // Preserve existing customFields if any
                             newProduct.customFields = product.customFields || {};
                         }
                     } else {
@@ -909,14 +920,12 @@
                     if (e.target === importModal) importModal.classList.add('hidden');
                     if (e.target === passwordModal) passwordModal.classList.add('hidden');
                 });
-                // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
                     document.querySelectorAll('.product-checkbox').forEach(cb => {
                         cb.checked = e.target.checked;
                     });
                     updateDeleteButton();
                 });
-                // Delete selected (admin)
                 deleteSelected.addEventListener('click', () => {
                     if (!confirm('¿Eliminar los productos seleccionados?')) return;
                     const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
@@ -927,7 +936,6 @@
                     showToast('Productos eliminados correctamente.');
                     selectAll.checked = false;
                 });
-                // Checkbox change for update button state (admin)
                 productsContainer.addEventListener('change', (e) => {
                     if (e.target.classList.contains('product-checkbox')) {
                         updateDeleteButton();
@@ -935,19 +943,16 @@
                         selectAll.checked = allChecked;
                     }
                 });
-                // Event delegation for view details in admin
                 productsContainer.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-                // Event delegation for view details in public
                 publicTabContent.addEventListener('click', (e) => {
                     if (e.target.classList.contains('view-details')) {
                         showProductDetails(e.target.dataset.id);
                     }
                 });
-                // Delete from modal (admin)
                 deleteProductBtn.addEventListener('click', () => {
                     const productId = deleteProductBtn.dataset.id;
                     if (confirm('¿Eliminar este producto?')) {
@@ -959,13 +964,12 @@
                         showToast('Producto eliminado correctamente.');
                     }
                 });
-                // Custom fields event listeners (admin)
                 addCustomFieldBtn.addEventListener('click', () => {
                     customFieldForm.classList.remove('hidden');
                     addCustomFieldBtn.classList.add('hidden');
                     customKey.value = '';
                     customValue.value = '';
-                    saveCustomField.disabled = true; // Asegurar que esté disabled al abrir
+                    saveCustomField.disabled = true;
                 });
                 cancelCustomField.addEventListener('click', () => {
                     customFieldForm.classList.add('hidden');
@@ -992,20 +996,16 @@
                         renderPublicTabs();
                     }
                 });
-                // Nueva función para actualizar el estado del botón Guardar
                 function updateSaveCustomButton() {
                     saveCustomField.disabled = !(customKey.value.trim() && customValue.value.trim());
                 }
-                // Listeners para habilitar el botón al escribir
                 customKey.addEventListener('input', updateSaveCustomButton);
                 customValue.addEventListener('input', updateSaveCustomButton);
-                // View switching
                 adminViewBtn.addEventListener('click', () => {
                     passwordModal.classList.remove('hidden');
                     adminPasswordInput.focus();
                 });
                 publicViewBtn.addEventListener('click', () => showView('public'));
-                // Confirmar contraseña
                 confirmPassword.addEventListener('click', () => {
                     if (adminPasswordInput.value === adminPassword) {
                         passwordModal.classList.add('hidden');
@@ -1015,12 +1015,10 @@
                     }
                     adminPasswordInput.value = '';
                 });
-                // Cancelar contraseña
                 cancelPassword.addEventListener('click', () => {
                     passwordModal.classList.add('hidden');
                     adminPasswordInput.value = '';
                 });
-                // Permitir enter para confirmar contraseña
                 adminPasswordInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         confirmPassword.click();
@@ -1064,8 +1062,8 @@
                         sanitizeInput(product.itemNumber || 'N/A'),
                         sanitizeInput(product.upc || 'N/A'),
                         sanitizeInput(product.size || 'N/A'),
-                        sanitizeInput(product.qty || 'N/A'),
-                        formatCurrency(product.costo || 0)
+                        product.qty != null ? product.qty : 'N/A',
+                        product.costo != null ? formatCurrency(product.costo) : 'N/A'
                     ]),
                     theme: 'grid',
                     headStyles: { fillColor: [99, 102, 241] }, // indigo
@@ -1106,7 +1104,7 @@
             toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            }, 5000); // Extended duration for longer error messages
         }
 
         // Initialize the application on page load
