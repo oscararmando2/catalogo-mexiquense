@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="showToast('Error al cargar la biblioteca para importar CSV. Verifica tu conexión a Internet.', true);"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
@@ -849,7 +849,6 @@
                 importBtn.addEventListener('click', () => {
                     importForm.reset();
                     document.getElementById('fileName').textContent = 'Ningún archivo seleccionado';
-                    importModal.classList.add('hidden');
                     importModal.classList.remove('hidden');
                 });
                 exportBtn.addEventListener('click', exportToPDF);
