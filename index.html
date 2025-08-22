@@ -13,6 +13,9 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    <!-- Apple Touch Icon para iPhone con tu logo -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180x180.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -111,7 +114,7 @@
             </div>
         </header>
         <!-- Admin View (Panel de Administración) -->
-        <section id="adminView" class="flex-grow container mx auto px-4 py-8 hidden">
+        <section id="adminView" class="flex-grow container mx-auto px-4 py-8 hidden">
             <!-- Search and Filter Bar -->
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                 <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
@@ -137,7 +140,7 @@
             </div>
         </section>
         <!-- Public View (Productos) -->
-        <section id="publicView" class="flex-grow container mx auto px-4 py-8">
+        <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                 <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
                 <!-- Search Bar for Public View -->
@@ -163,7 +166,7 @@
         </section>
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-6">
-            <div class="container mx auto px-4 text-center">
+            <div class="container mx-auto px-4 text-center">
                 <p>© 2025 MEXIQUENSE - Sistema de Catálogo</p>
             </div>
         </footer>
@@ -332,6 +335,17 @@
         <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
             <span id="toastMessage">Operación completada con éxito</span>
         </div>
+        <!-- Modal for Admin Password -->
+        <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-indigo-600 mb-4">Ingresar Contraseña para Administración</h3>
+                <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4">
+                <div class="flex justify-end space-x-2">
+                    <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         // Configuración de Firebase - REEMPLAZA ESTOS PLACEHOLDERS CON TUS VALORES REALES DE LA CONSOLA DE FIREBASE
@@ -347,6 +361,9 @@
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        // Contraseña para admin (cambia 'admin123' por tu contraseña preferida)
+        const adminPassword = 'admin123';
 
         // Asegurarse de que la variable products esté inicializada
         let products = [];
@@ -416,6 +433,10 @@
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
         const addProductBtn = document.getElementById('addProductBtn');
+        const passwordModal = document.getElementById('passwordModal');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const cancelPassword = document.getElementById('cancelPassword');
         // Modals
         const productDetailModal = document.getElementById('productDetailModal');
         const productFormModal = document.getElementById('productFormModal');
@@ -434,18 +455,21 @@
         const customKey = document.getElementById('customKey');
         const customValue = document.getElementById('customValue');
         // Current view state
-        let currentView = 'admin';
+        let currentView = 'public'; // Iniciar en vista pública por defecto
+
         // Initialize the application
         function init() {
             loadData();
             setupEventListeners();
             checkLibraries();
-            showView('admin');
+            showView('public'); // Iniciar en vista pública
         }
+
         // Generate a unique ID
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
         }
+
         // Sanitize input to prevent XSS
         function sanitizeInput(input) {
             if (!input) return '';
@@ -453,10 +477,12 @@
             div.textContent = input;
             return div.innerHTML;
         }
+
         // Format currency
         function formatCurrency(amount) {
             return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
         }
+
         // Render products in admin grid
         function renderAdminProducts() {
             productsContainer.innerHTML = '';
@@ -513,6 +539,7 @@
             });
             updateDeleteButton();
         }
+
         // Render public content without size tabs
         function renderPublicTabs(searchTerm = '') {
             publicTabs.innerHTML = ''; // Vaciar tabs, ya que no se usan
@@ -542,6 +569,7 @@
             // Renderizar todos los productos en una sola cuadrícula
             renderPublicProducts(filteredProducts, publicTabContent);
         }
+
         // Helper to create tab button (no se usa ahora, pero se mantiene por si se necesita en futuro)
         function createTabButton(label, id, active = false) {
             const btn = document.createElement('button');
@@ -550,6 +578,7 @@
             btn.dataset.tab = id;
             return btn;
         }
+
         // Helper to create tab content div (no se usa ahora, pero se mantiene)
         function createTabContent(id, active = false) {
             const div = document.createElement('div');
@@ -557,6 +586,7 @@
             div.className = `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${active ? '' : 'hidden'}`;
             return div;
         }
+
         // Render products in public view
         function renderPublicProducts(filteredProducts, container) {
             container.innerHTML = '';
@@ -591,11 +621,13 @@
                 }
             });
         }
+
         // Update delete selected button state (admin only)
         function updateDeleteButton() {
             const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
             deleteSelected.disabled = checkedCount === 0;
         }
+
         // Show product details in modal (shared, but hide admin elements in public view)
         function showProductDetails(productId) {
             const product = products.find(p => p.id === productId);
@@ -643,6 +675,7 @@
                 showToast('Error al mostrar los detalles del producto.', true);
             }
         }
+
         // Import products from CSV
         function importFromCSV(file) {
             try {
@@ -742,6 +775,7 @@
                 importSubmitBtn.disabled = false;
             }
         }
+
         // Validate form inputs
         function validateForm(formId, fields) {
             let isValid = true;
@@ -771,6 +805,7 @@
             });
             return isValid;
         }
+
         // Check if required libraries are loaded
         function checkLibraries() {
             if (!window.Papa) {
@@ -780,6 +815,7 @@
                 showToast('Error: Las bibliotecas para exportar PDF no se cargaron.', true);
             }
         }
+
         // Show specific view
         function showView(view) {
             currentView = view;
@@ -797,6 +833,7 @@
                 adminButtons.style.display = 'none';
             }
         }
+
         // Setup event listeners
         function setupEventListeners() {
             try {
@@ -815,7 +852,7 @@
                 importBtn.addEventListener('click', () => {
                     importForm.reset();
                     document.getElementById('fileName').textContent = 'Ningún archivo seleccionado';
-                    importModal.classList.remove('hidden');
+                    importModal.classList.add('hidden');
                 });
                 exportBtn.addEventListener('click', exportToPDF);
                 productForm.addEventListener('submit', (e) => {
@@ -873,6 +910,7 @@
                     if (e.target === productDetailModal) productDetailModal.classList.add('hidden');
                     if (e.target === productFormModal) productFormModal.classList.add('hidden');
                     if (e.target === importModal) importModal.classList.add('hidden');
+                    if (e.target === passwordModal) passwordModal.classList.add('hidden');
                 });
                 // Select all checkbox (admin)
                 selectAll.addEventListener('change', (e) => {
@@ -965,13 +1003,38 @@
                 customKey.addEventListener('input', updateSaveCustomButton);
                 customValue.addEventListener('input', updateSaveCustomButton);
                 // View switching
-                adminViewBtn.addEventListener('click', () => showView('admin'));
+                adminViewBtn.addEventListener('click', () => {
+                    passwordModal.classList.remove('hidden');
+                    adminPasswordInput.focus();
+                });
                 publicViewBtn.addEventListener('click', () => showView('public'));
+                // Confirmar contraseña
+                confirmPassword.addEventListener('click', () => {
+                    if (adminPasswordInput.value === adminPassword) {
+                        passwordModal.classList.add('hidden');
+                        showView('admin');
+                    } else {
+                        showToast('Contraseña incorrecta.', true);
+                    }
+                    adminPasswordInput.value = '';
+                });
+                // Cancelar contraseña
+                cancelPassword.addEventListener('click', () => {
+                    passwordModal.classList.add('hidden');
+                    adminPasswordInput.value = '';
+                });
+                // Permitir enter para confirmar contraseña
+                adminPasswordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        confirmPassword.click();
+                    }
+                });
             } catch (error) {
                 console.error('Error setting up event listeners:', error);
                 showToast('Error al inicializar la aplicación.', true);
             }
         }
+
         // Debounce function
         function debounce(func, wait) {
             let timeout;
@@ -984,6 +1047,7 @@
                 timeout = setTimeout(later, wait);
             };
         }
+
         // Export catalog to PDF
         function exportToPDF() {
             try {
@@ -1035,6 +1099,7 @@
                 `;
             }
         }
+
         // Show toast notification
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
@@ -1046,6 +1111,7 @@
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         }
+
         // Initialize the application on page load
         document.addEventListener('DOMContentLoaded', init);
     </script>
