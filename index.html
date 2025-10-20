@@ -695,105 +695,129 @@
       });
       return isValid;
     }
+// Importar productos desde CSV (versión compatible con GitHub Pages + Firebase)
+function importFromCSV(file) {
+    try {
+        if (!window.Papa) {
+            showToast('Error: La biblioteca PapaParse no se cargó.', true);
+            return;
+        }
 
-    // Importar CSV
-    function importFromCSV(file) {
-      try {
-        if (!window.Papa) { showToast('Error: La biblioteca PapaParse no se cargó.', true); return; }
         const importLoader = document.getElementById('importLoader');
         const importSubmitBtn = document.getElementById('importSubmitBtn');
-        importLoader.classList.remove('hidden'); importSubmitBtn.disabled = true;
+        importLoader.classList.remove('hidden');
+        importSubmitBtn.disabled = true;
 
-        Papa.parse(file, {
-          header: true, delimiter: ',', skipEmptyLines: true,
-          complete: function(results) {
-            const importedProducts = [];
-            let errors = 0;
-            const requiredHeaders = ['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO'];
-            const csvHeaders = Object.keys(results.data[0] || {});
-            const missingHeaders = requiredHeaders.filter(h => !csvHeaders.includes(h));
-            if (missingHeaders.length > 0) {
-              showToast(`Faltan encabezados: ${missingHeaders.join(', ')}.`, true);
-              importLoader.classList.add('hidden'); importSubmitBtn.disabled = false; return;
-            }
-            if (!results.data || results.data.length === 0) {
-              showToast('El archivo CSV está vacío.', true);
-              importLoader.classList.add('hidden'); importSubmitBtn.disabled = false; return;
-            }
-            results.data.forEach((row, index) => {
-              try {
-                if (!row['ITEM NUMBER']?.trim() || !row['DESCRIPTION']?.trim() || !row['UPC']?.trim() ||
-                    !row['NOMBRE']?.trim() || !row['SIZE']?.trim() || !row['QTY']?.trim() || !row['COSTO']?.trim()) { errors++; return; }
-                if (isNaN(parseInt(row['QTY'])) || isNaN(parseFloat(row['COSTO']))) { errors++; return; }
+        // Usar FileReader en lugar de URL directa (evita errores CORB)
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const csvData = e.target.result;
 
-                const inCsvItem = (row['ITEM NUMBER'] || '').trim().toLowerCase();
-                const inCsvUpc = (row['UPC'] || '').trim().toLowerCase();
-                const duplicate = products.find(p =>
-                  p.itemNumber?.toLowerCase() === inCsvItem || p.upc?.toLowerCase() === inCsvUpc
-                );
+            Papa.parse(csvData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    const importedProducts = [];
+                    let errors = 0;
 
-                if (duplicate) {
-                  duplicate.itemNumber = sanitizeInput(row['ITEM NUMBER']);
-                  duplicate.description = sanitizeInput(row['DESCRIPTION']);
-                  duplicate.upc = sanitizeInput(row['UPC']);
-                  duplicate.nombre = sanitizeInput(row['NOMBRE']);
-                  duplicate.size = sanitizeInput(row['SIZE']);
-                  duplicate.qty = parseInt(row['QTY']);
-                  duplicate.costo = parseFloat(row['COSTO']);
-                  duplicate.url = row['URL'] ? sanitizeInput(row['URL'].trim()) : '';
-                  duplicate.customFields = duplicate.customFields || {};
-                  for (let [k, v] of Object.entries(row)) {
-                    if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL'].includes(k)) {
-                      duplicate.customFields[sanitizeInput(k)] = sanitizeInput(v?.trim() || '');
+                    const requiredHeaders = ['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO'];
+                    const csvHeaders = Object.keys(results.data[0] || {});
+                    const missingHeaders = requiredHeaders.filter(h => !csvHeaders.includes(h));
+
+                    if (missingHeaders.length > 0) {
+                        showToast(`Faltan columnas: ${missingHeaders.join(', ')}`, true);
+                        importLoader.classList.add('hidden');
+                        importSubmitBtn.disabled = false;
+                        return;
                     }
-                  }
-                  // si es actualización, no tocamos dateAdded
-                } else {
-                  const newProduct = {
-                    id: generateId(),
-                    itemNumber: sanitizeInput(row['ITEM NUMBER']),
-                    description: sanitizeInput(row['DESCRIPTION']),
-                    upc: sanitizeInput(row['UPC']),
-                    nombre: sanitizeInput(row['NOMBRE']),
-                    size: sanitizeInput(row['SIZE']),
-                    qty: parseInt(row['QTY']),
-                    costo: parseFloat(row['COSTO']),
-                    url: row['URL'] ? sanitizeInput(row['URL'].trim()) : '',
-                    customFields: {},
-                    dateAdded: new Date().toISOString() // <-- marca para NEW
-                  };
-                  for (let [k, v] of Object.entries(row)) {
-                    if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL'].includes(k)) {
-                      newProduct.customFields[sanitizeInput(k)] = sanitizeInput(v?.trim() || '');
-                    }
-                  }
-                  importedProducts.push(newProduct);
+
+                    results.data.forEach((row, index) => {
+                        try {
+                            if (!row['UPC']?.trim() || !row['NOMBRE']?.trim()) {
+                                errors++;
+                                return;
+                            }
+
+                            const newProduct = {
+                                id: generateId(),
+                                itemNumber: sanitizeInput(row['ITEM NUMBER']),
+                                description: sanitizeInput(row['DESCRIPTION']),
+                                upc: sanitizeInput(row['UPC']),
+                                nombre: sanitizeInput(row['NOMBRE']),
+                                size: sanitizeInput(row['SIZE'] || ''),
+                                qty: parseInt(row['QTY'] || 0),
+                                costo: parseFloat(row['COSTO'] || 0),
+                                url: sanitizeInput(row['URL'] || ''),
+                                customFields: {}
+                            };
+
+                            // Agregar campos adicionales como personalizados
+                            for (let [key, value] of Object.entries(row)) {
+                                if (!['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO', 'URL'].includes(key)) {
+                                    if (value && value.trim()) {
+                                        newProduct.customFields[sanitizeInput(key)] = sanitizeInput(value);
+                                    }
+                                }
+                            }
+
+                            // Actualizar productos existentes
+                            const existingProduct = products.find(p => p.upc === newProduct.upc);
+                            if (existingProduct) {
+                                // Solo actualizar los campos que tienen contenido
+                                Object.keys(newProduct).forEach(key => {
+                                    if (newProduct[key] && newProduct[key] !== '' && key !== 'id') {
+                                        existingProduct[key] = newProduct[key];
+                                    }
+                                });
+                            } else {
+                                importedProducts.push(newProduct);
+                            }
+
+                        } catch (err) {
+                            console.error(`Error en fila ${index + 1}:`, err);
+                            errors++;
+                        }
+                    });
+
+                    products = [...products, ...importedProducts];
+                    saveData();
+                    renderAdminProducts();
+                    renderPublicTabs();
+
+                    const msg = errors > 0
+                        ? `Importación completada: ${importedProducts.length} productos nuevos, ${errors} errores.`
+                        : `Importación completada: ${importedProducts.length} productos nuevos.`;
+
+                    showToast(msg, errors > 0);
+                    importModal.classList.add('hidden');
+                    importLoader.classList.add('hidden');
+                    importSubmitBtn.disabled = false;
+                },
+                error: function (error) {
+                    console.error('Error al leer el CSV:', error);
+                    showToast('Error al leer el archivo CSV.', true);
+                    importLoader.classList.add('hidden');
+                    importSubmitBtn.disabled = false;
                 }
-              } catch (err) { console.error(`Error fila ${index+1}:`, err); errors++; }
             });
+        };
 
-            products = [...products, ...importedProducts];
-            saveData(); renderAdminProducts(); renderPublicTabs();
+        reader.onerror = function () {
+            showToast('Error al cargar el archivo CSV. Intenta nuevamente.', true);
+            importLoader.classList.add('hidden');
+            importSubmitBtn.disabled = false;
+        };
 
-            const msg = errors > 0
-              ? `Importación: ${importedProducts.length} agregados/actualizados, ${errors} errores.`
-              : `Importación: ${importedProducts.length} agregados/actualizados.`;
-            showToast(msg, errors > 0);
-            importModal.classList.add('hidden');
-            importLoader.classList.add('hidden'); importSubmitBtn.disabled = false;
-          },
-          error: function(error) {
-            console.error('Papa.parse error:', error);
-            showToast('Error al procesar el CSV.', true);
-            importLoader.classList.add('hidden'); importSubmitBtn.disabled = false;
-          }
-        });
-      } catch (error) {
-        console.error('Error importFromCSV:', error);
-        showToast('Error al importar el archivo CSV.', true);
-        importLoader.classList.add('hidden'); importSubmitBtn.disabled = false;
-      }
+        reader.readAsText(file);
+
+    } catch (error) {
+        console.error('Error en importación CSV:', error);
+        showToast('Error inesperado al importar el archivo.', true);
+        importLoader.classList.add('hidden');
+        importSubmitBtn.disabled = false;
     }
+}
+
 
     // Eventos
     function setupEventListeners(){
