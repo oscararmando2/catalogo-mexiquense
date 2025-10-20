@@ -194,20 +194,19 @@
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                            <div class="space-y-2" id="productFields">
-    <div class="flex items-center justify-between">
-        <label class="font-semibold text-gray-800">Número de Ítem:</label>
-        <input id="productItemNumberInput"
-               type="text"
-               class="admin-only border border-gray-300 rounded-lg px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-32 hidden"
-               placeholder="Sin código">
-        <span id="productItemNumber" class="text-gray-700"></span>
-    </div>
-    <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
-    <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
-    <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
+                           <div class="space-y-2" id="productFields">
+  <div>
+    <label for="productItemNumberInput" class="font-semibold text-gray-800 block mb-1">Número de Ítem:</label>
+    <input id="productItemNumberInput"
+           type="text"
+           class="admin-only border border-gray-300 rounded-lg px-3 py-1 w-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hidden"
+           placeholder="Sin código">
+    <span id="productItemNumber" class="text-gray-700 block"></span>
+  </div>
+  <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
+  <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
+  <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
 </div>
-
                             <div id="customFields" class="space-y-2 mt-4"></div>
                             <div class="mt-4 admin-only">
                                 <button id="addCustomFieldBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Agregar Campo Personalizado</button>
