@@ -194,22 +194,6 @@
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg> 
-                               <div class="space-y-2" id="productFields">
-    <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
-    <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
-    <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
-    <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
-</div>
-                            <div id="customFields" class="space-y-2 mt-4"></div>
-                            <div class="mt-4 admin-only">
-                                <button id="addCustomFieldBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Agregar Campo Personalizado</button>
-                            </div>
-                            <div id="customFieldForm" class="hidden mt-4 space-y-4 admin-only">
-                                <div>
-                                    <label for="customKey" class="block text-sm font-medium text-gray-700 mb-1">Clave (ej. Palimex):</label>
-                                    <input type="text" id="customKey" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                    <p id="customKeyError" class="error-message hidden"></p>
-                                </div>
                                 <div>
                                     <label for="customValue" class="block text-sm font-medium text-gray-700 mb-1">Valor (ej. $3.80):</label>
                                     <input type="text" id="customValue" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
@@ -223,6 +207,41 @@
                         <div>
                             <h4 class="text-lg font-semibold mb-2">Descripción</h4>
                             <p id="productDescription" class="text-gray-700 mb-4"></p>
+                            <!-- NUEVO: Especificaciones debajo de Descripción -->
+<h4 class="text-lg font-semibold mb-2">Especificaciones</h4>
+
+<div class="space-y-2 mb-4" id="productFields">
+    <!-- Si quieres edición inline del Item Code, deja cursor-pointer; si no, quítalo -->
+    <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
+    <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
+    <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
+    <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
+</div>
+
+<!-- Campos personalizados + acciones admin (quedan debajo también) -->
+<div id="customFields" class="space-y-2"></div>
+
+<div class="mt-4 admin-only">
+    <button id="addCustomFieldBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">
+        Agregar Campo Personalizado
+    </button>
+</div>
+
+<div id="customFieldForm" class="hidden mt-4 space-y-4 admin-only">
+    <div>
+        <label for="customKey" class="block text-sm font-medium text-gray-700 mb-1">Clave (ej. Palimex):</label>
+        <input type="text" id="customKey" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <p id="customKeyError" class="error-message hidden"></p>
+    </div>
+    <div>
+        <label for="customValue" class="block text-sm font-medium text-gray-700 mb-1">Valor (ej. $3.80):</label>
+        <input type="text" id="customValue" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+    </div>
+    <div class="flex justify-end space-x-2">
+        <button id="cancelCustomField" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+        <button id="saveCustomField" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50" disabled>Guardar</button>
+    </div>
+</div>
                             <h4 class="text-lg font-semibold mb-2">Costo</h4>
                             <p id="productCosto" class="text-2xl font-bold text-indigo-600 mb-4"></p>
                         </div>
