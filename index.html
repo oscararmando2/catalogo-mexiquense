@@ -5,199 +5,386 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MEXIQUENSE - Catálogo de Productos</title>
 
-  <!-- Tailwind + fuentes -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Librerías -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- jsPDF para exportar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" integrity="sha512-FJb4u8d3mX8SjYQ7w0l8Q4fVxXk2YwCIHkH9wCw7u3i0S3k2aYQ8dH7A1P7gk9QFqgSTKp5b3o8yS0Yy8cP7WQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
   <style>
-    body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
-    .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
-    .card-hover:hover { transform: translateY(-6px); box-shadow: 0 10px 20px rgba(0,0,0,.1); }
-
-    /* Scrollbar y loader */
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a5b4fc; }
-    .loader { border:4px solid #f3f3f3; border-top:4px solid #4f46e5; border-radius:50%; width:24px; height:24px; animation:spin 1s linear infinite; margin:0 auto; }
-    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-
-    /* Imagenes */
-    .product-image-container { position:relative; width:100%; padding-top:100%; }
-    .product-image { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; border-radius:8px; background-color:#f9fafb; }
-
-    /* Badge NEW */
-    .new-badge {
-      position:absolute; top:.5rem; right:.5rem;
-      background-color:#a3e635; color:#065f46; font-weight:700; font-size:.75rem;
-      padding:.25rem .5rem; border-radius:9999px; box-shadow:0 2px 6px rgba(0,0,0,.2);
-      animation:fadeIn .8s ease-in-out;
-    }
-    .fade-in { animation:fadeIn 1s ease; }
-    @keyframes fadeIn { from{opacity:0; transform:scale(.95)} to{opacity:1; transform:scale(1)} }
-
-    /* === Selección múltiple visual === */
-    .selection-box {
-      position: fixed;
-      border: 2px dashed #6366f1;
-      background: rgba(99, 102, 241, 0.1);
-      pointer-events: none;
-      z-index: 1000;
-    }
-    .product-checkbox:checked ~ .p-5 {
-      background-color: #eef2ff;
-      transition: background-color 0.2s ease;
-    }
-
-    #offlineBanner { display:none; }
+    :root { --sel-ring: 2px; }
+    html, body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+    .fade-in { animation: fade 300ms ease-in-out; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none; } }
+    /* Resaltado de selección múltiple */
+    .selected-card { outline: var(--sel-ring) solid rgb(59 130 246); background: rgb(239 246 255); }
   </style>
 </head>
-<body>
-  <div class="min-h-screen flex flex-col">
-
-    <!-- Header -->
-    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
-      <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
-        <div class="flex items-center mb-4 md:mb-0">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4z" clip-rule="evenodd"/>
-          </svg>
-          <h1 class="text-2xl md:text-3xl font-bold">MEXIQUENSE</h1>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">Panel de Administración</button>
-          <button id="publicViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">Productos</button>
-          <div id="adminButtons" class="flex flex-wrap gap-2">
-            <button id="importBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">Importar CSV</button>
-            <button id="exportBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">Exportar PDF</button>
-            <button id="addProductBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium">Nuevo Producto</button>
-          </div>
-        </div>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-7xl mx-auto p-4 md:p-6">
+    <header class="flex items-center justify-between gap-4 mb-6">
+      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Catálogo de Productos</h1>
+      <div class="flex items-center gap-2">
+        <!-- Exportar PDF -->
+        <button id="btnExportPDF" class="px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition">
+          Exportar PDF
+        </button>
+        <!-- Importar CSV -->
+        <label class="px-3 py-2 rounded-xl bg-white border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+          Importar CSV
+          <input id="inputCSV" type="file" accept=".csv" class="hidden" />
+        </label>
+        <!-- Agregar producto -->
+        <button id="btnAdd" class="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition">
+          Agregar
+        </button>
       </div>
     </header>
 
-    <div id="offlineBanner" class="w-full bg-yellow-100 text-yellow-800 border border-yellow-300 px-4 py-2 text-center text-sm">
-      ⚠️ Sin conexión con Firebase. <strong>Usando datos locales</strong>.
+    <!-- Buscador / filtros -->
+    <section class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
+      <input id="searchInput" type="text" placeholder="Buscar por nombre o código..." class="w-full rounded-xl border-slate-300" />
+      <select id="orderSelect" class="w-full rounded-xl border-slate-300">
+        <option value="recent">Más recientes primero</option>
+        <option value="old">Más antiguos primero</option>
+        <option value="name">Por nombre (A–Z)</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <button id="btnClearFilters" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">Limpiar</button>
+        <!-- Eliminar seleccionados (multi) -->
+        <button id="btnDeleteSelected" class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition disabled:opacity-40" disabled>
+          Eliminar seleccionados
+        </button>
+      </div>
+    </section>
+
+    <!-- Aviso selección múltiple -->
+    <div class="text-sm text-slate-600 mb-2">
+      Selección múltiple: mantén <b>Ctrl</b> (Windows) o <b>Cmd</b> (Mac) y haz clic en varios productos. Los seleccionados se verán con borde azul y fondo azul claro. Luego usa <b>“Eliminar seleccionados”</b>.
     </div>
 
-    <!-- Panel Administración -->
-    <section id="adminView" class="flex-grow container mx-auto px-4 py-8 hidden">
-      <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-        <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"/>
-      </div>
+    <!-- Grid productos -->
+    <main id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></main>
 
-      <div class="flex items-center space-x-4 mb-4">
-        <input type="checkbox" id="selectAll" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-        <label for="selectAll" class="text-gray-700 font-medium">Seleccionar Todos</label>
-        <button id="deleteSelected" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50" disabled>Eliminar Seleccionados</button>
-      </div>
+    <!-- Modal CRUD -->
+    <dialog id="crudModal" class="rounded-2xl p-0 backdrop:bg-black/30">
+      <form method="dialog" class="w-[92vw] max-w-xl bg-white rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 id="crudTitle" class="text-lg font-semibold">Nuevo producto</h3>
+          <button type="button" id="btnCloseModal" class="text-slate-500 hover:text-slate-800">&times;</button>
+        </div>
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-slate-600">Nombre</label>
+            <input id="f_name" class="w-full rounded-xl border-slate-300" required/>
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Código (Item Code)</label>
+            <input id="f_code" class="w-full rounded-xl border-slate-300"/>
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Precio</label>
+            <input id="f_price" type="number" step="0.01" class="w-full rounded-xl border-slate-300" required/>
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Costo</label>
+            <input id="f_cost" type="number" step="0.01" class="w-full rounded-xl border-slate-300"/>
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Cantidad</label>
+            <input id="f_qty" type="number" step="1" class="w-full rounded-xl border-slate-300"/>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="f_isNew" type="checkbox" class="rounded border-slate-300"/>
+            <label for="f_isNew" class="text-sm text-slate-700">Marcar como NEW</label>
+          </div>
 
-      <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
-    </section>
+          <!-- Campos personalizados simples (clave:valor) -->
+          <div class="md:col-span-2">
+            <label class="text-sm text-slate-600">Campos personalizados (JSON)</label>
+            <textarea id="f_custom" rows="3" placeholder='{"proveedor":"Palimex"}' class="w-full rounded-xl border-slate-300"></textarea>
+            <p class="text-xs text-slate-500 mt-1">Opcional. Debe ser JSON válido.</p>
+          </div>
+        </div>
+        <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-end gap-2">
+          <button id="btnDeleteSingle" type="button" class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 hidden">Eliminar</button>
+          <button id="btnSave" class="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+    <script>
+      // ===== CONFIGURACIÓN FIREBASE (usa tu config) =====
+      // Puedes definir window.FB_CONFIG antes de este archivo para no exponer aquí.
+      const firebaseConfig = window.FB_CONFIG || {
+        apiKey: "TU_API_KEY",
+        authDomain: "TU_AUTH_DOMAIN",
+        databaseURL: "TU_DATABASE_URL",
+        projectId: "TU_PROJECT_ID",
+        storageBucket: "TU_STORAGE_BUCKET",
+        messagingSenderId: "TU_SENDER_ID",
+        appId: "TU_APP_ID"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const REF = db.ref("/products");
 
-    <!-- Catálogo Público -->
-    <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
-      <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
-      <div class="mb-8">
-        <input id="publicSearchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"/>
-      </div>
-      <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
-    </section>
+      // ===== Estado en memoria =====
+      let products = [];            // lista completa
+      let filtered = [];            // lista filtrada/ordenada para render
+      let selection = new Set();    // ids seleccionados (multi)
+      let editingId = null;         // id que se edita en modal
 
-    <footer class="bg-gray-800 text-white py-6 text-center">
-      © 2025 MEXIQUENSE - Sistema de Catálogo
-    </footer>
-  </div>
+      // ===== Utilidades =====
+      const $ = (sel) => document.querySelector(sel);
+      const grid = $("#productsGrid");
+      const searchInput = $("#searchInput");
+      const orderSelect = $("#orderSelect");
+      const btnClearFilters = $("#btnClearFilters");
+      const btnDeleteSelected = $("#btnDeleteSelected");
+      const btnExportPDF = $("#btnExportPDF");
+      const inputCSV = $("#inputCSV");
+      const btnAdd = $("#btnAdd");
 
-  <!-- Firebase Config -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY_AQUI",
-      authDomain: "catalogomexiquense.firebaseapp.com",
-      databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
-      projectId: "catalogomexiquense",
-      storageBucket: "catalogomexiquense.appspot.com",
-      messagingSenderId: "TU_SENDER_ID_AQUI",
-      appId: "TU_APP_ID_AQUI"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-  </script>
+      // CRUD modal refs
+      const crudModal = $("#crudModal");
+      const crudTitle = $("#crudTitle");
+      const btnCloseModal = $("#btnCloseModal");
+      const f_name = $("#f_name");
+      const f_code = $("#f_code");
+      const f_price = $("#f_price");
+      const f_cost = $("#f_cost");
+      const f_qty = $("#f_qty");
+      const f_isNew = $("#f_isNew");
+      const f_custom = $("#f_custom");
+      const btnSave = $("#btnSave");
+      const btnDeleteSingle = $("#btnDeleteSingle");
 
-  <script>
-  // ========================
-  //  NUEVA SELECCIÓN VISUAL
-  // ========================
-  function setupEventListeners(){
-    const productsContainer = document.getElementById('productsContainer');
-    const deleteSelected = document.getElementById('deleteSelected');
-    const selectAll = document.getElementById('selectAll');
-
-    function updateDeleteButton(){
-      const checkedCount = document.querySelectorAll('.product-checkbox:checked').length;
-      deleteSelected.disabled = checkedCount === 0;
-    }
-
-    // === Selección múltiple por arrastre con rectángulo visual ===
-    let isSelecting = false;
-    let startX = 0, startY = 0;
-    let selectionBox = null;
-
-    productsContainer.addEventListener('mousedown', (e) => {
-      if (e.target.closest('button') || e.target.closest('input[type="checkbox"]')) return;
-      isSelecting = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      selectionBox = document.createElement('div');
-      selectionBox.classList.add('selection-box');
-      document.body.appendChild(selectionBox);
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!isSelecting) return;
-
-      const x1 = Math.min(e.clientX, startX);
-      const y1 = Math.min(e.clientY, startY);
-      const x2 = Math.max(e.clientX, startX);
-      const y2 = Math.max(e.clientY, startY);
-
-      selectionBox.style.left = `${x1}px`;
-      selectionBox.style.top = `${y1}px`;
-      selectionBox.style.width = `${x2 - x1}px`;
-      selectionBox.style.height = `${y2 - y1}px`;
-
-      const cards = productsContainer.querySelectorAll('.card-hover');
-      cards.forEach(card => {
-        const rect = card.getBoundingClientRect();
-        const overlap = rect.right >= x1 && rect.left <= x2 && rect.bottom >= y1 && rect.top <= y2;
-        const checkbox = card.querySelector('.product-checkbox');
-        if (checkbox) checkbox.checked = overlap;
-      });
-      updateDeleteButton();
-    });
-
-    window.addEventListener('mouseup', () => {
-      if (isSelecting) {
-        isSelecting = false;
-        if (selectionBox) {
-          document.body.removeChild(selectionBox);
-          selectionBox = null;
+      // Cebolla: recordatorio de equivalencia de códigos (según tu regla)
+      const normalizeCode = (code, name) => {
+        if (!code) return code;
+        const low = (name || "").toLowerCase();
+        // Si contiene cebolla blanca o amarilla, usa el mismo código que ingrese
+        if (low.includes("cebolla blanca") || low.includes("cebolla amarilla")) {
+          // Tu regla: mismo item code; aquí no lo sobrescribimos, solo mantenemos consistencia si lo usas
+          return code.trim();
         }
-      }
-    });
-  }
+        return code.trim();
+      };
 
-  document.addEventListener('DOMContentLoaded', setupEventListeners);
-  </script>
+      // Aleatorizar array (Fisher–Yates)
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      // NEW badge por 7 días desde creación o si isNew = true
+      function isNew(p) {
+        if (p.isNew) return true;
+        if (!p.createdAt) return false;
+        const age = Date.now() - p.createdAt;
+        return age <= 7 * 24 * 60 * 60 * 1000;
+      }
+
+      // ===== Render de tarjetas =====
+      function render() {
+        grid.innerHTML = "";
+        // Filtro
+        const q = (searchInput.value || "").toLowerCase().trim();
+        filtered = products.filter(p => {
+          if (!q) return true;
+          return (p.name||"").toLowerCase().includes(q) ||
+                 (p.code||"").toLowerCase().includes(q);
+        });
+
+        // Orden
+        const ord = orderSelect.value;
+        if (ord === "recent") {
+          filtered.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+        } else if (ord === "old") {
+          filtered.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+        } else if (ord === "name") {
+          filtered.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+        }
+
+        // Para "orden aleatorio de productos antiguos": mezclamos los que tengan >30 días
+        const THIRTY_D = 30*24*60*60*1000;
+        const now = Date.now();
+        const recent = [];
+        const oldies = [];
+        for (const p of filtered) {
+          if (p.createdAt && (now - p.createdAt) > THIRTY_D) oldies.push(p);
+          else recent.push(p);
+        }
+        const mixed = recent.concat(shuffle(oldies));
+
+        for (const p of mixed) {
+          const card = document.createElement("article");
+          card.className =
+            "fade-in rounded-2xl bg-white border border-slate-200 p-3 flex flex-col gap-2 hover:shadow-sm transition cursor-pointer";
+          card.dataset.id = p.id;
+
+          if (selection.has(p.id)) card.classList.add("selected-card");
+
+          const title = document.createElement("div");
+          title.className = "flex items-start justify-between gap-2";
+          title.innerHTML = `
+            <h4 class="font-medium leading-tight">${p.name || "Sin nombre"}</h4>
+            ${isNew(p) ? '<span class="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">NEW</span>' : ""}
+          `;
+
+          const meta = document.createElement("div");
+          meta.className = "text-sm text-slate-600";
+          const code = p.code ? `<div class="text-xs text-slate-500">Código: <b>${p.code}</b></div>` : "";
+          const price = (p.price!=null && p.price!=="") ? `$${Number(p.price).toFixed(2)}` : "—";
+          const cost  = (p.cost!=null && p.cost!=="") ? `$${Number(p.cost).toFixed(2)}` : "—";
+          const qty   = (p.qty!=null && p.qty!=="") ? Number(p.qty) : "—";
+          meta.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="text-lg font-semibold">${price}</div>
+              <div class="text-xs text-slate-500">Costo: ${cost}</div>
+            </div>
+            <div class="text-xs text-slate-500">Existencia: ${qty}</div>
+            ${code}
+          `;
+
+          const actions = document.createElement("div");
+          actions.className = "mt-1 flex items-center gap-2";
+          actions.innerHTML = `
+            <button class="btn-edit px-2 py-1 text-sm rounded-lg bg-slate-900 text-white hover:bg-slate-800">Editar</button>
+          `;
+
+          // Click para selección múltiple (Ctrl/Cmd) o edición (click simple)
+          card.addEventListener("click", (ev) => {
+            const id = p.id;
+            const multi = ev.ctrlKey || ev.metaKey;
+            if (multi) {
+              // togglear selección
+              if (selection.has(id)) selection.delete(id); else selection.add(id);
+              updateSelectionUI();
+            } else {
+              openEdit(p);
+            }
+          });
+
+          actions.querySelector(".btn-edit").addEventListener("click", (ev)=>{
+            ev.stopPropagation();
+            openEdit(p);
+          });
+
+          card.appendChild(title);
+          card.appendChild(meta);
+          card.appendChild(actions);
+          grid.appendChild(card);
+        }
+
+        btnDeleteSelected.disabled = selection.size === 0;
+      }
+
+      function updateSelectionUI() {
+        // Marcar/desmarcar tarjetas
+        document.querySelectorAll("#productsGrid article").forEach(el=>{
+          const id = el.dataset.id;
+          if (selection.has(id)) el.classList.add("selected-card");
+          else el.classList.remove("selected-card");
+        });
+        btnDeleteSelected.disabled = selection.size === 0;
+      }
+
+      // ===== Listeners UI =====
+      searchInput.addEventListener("input", render);
+      orderSelect.addEventListener("change", render);
+      btnClearFilters.addEventListener("click", ()=>{
+        searchInput.value = "";
+        orderSelect.value = "recent";
+        render();
+      });
+
+      // ===== Realtime Firebase =====
+      REF.on("value", (snap)=>{
+        const val = snap.val() || {};
+        products = Object.entries(val).map(([id, p])=>({ id, ...p }));
+        render();
+      });
+
+      // ===== Abrir modal para nuevo =====
+      btnAdd.addEventListener("click", ()=>{
+        editingId = null;
+        crudTitle.textContent = "Nuevo producto";
+        f_name.value = "";
+        f_code.value = "";
+        f_price.value = "";
+        f_cost.value = "";
+        f_qty.value = "";
+        f_isNew.checked = false;
+        f_custom.value = "";
+        btnDeleteSingle.classList.add("hidden");
+        crudModal.showModal();
+      });
+
+      // ===== Cerrar modal =====
+      btnCloseModal.addEventListener("click", ()=>crudModal.close());
+
+      // ===== Guardar (crear/editar) =====
+      btnSave.addEventListener("click", async (e)=>{
+        e.preventDefault();
+        try {
+          const payload = {
+            name: (f_name.value||"").trim(),
+            code: normalizeCode(f_code.value, f_name.value),
+            price: f_price.value ? Number(f_price.value) : null,
+            cost: f_cost.value ? Number(f_cost.value) : null,
+            qty: f_qty.value ? Number(f_qty.value) : null,
+            isNew: !!f_isNew.checked,
+            updatedAt: Date.now(),
+          };
+          if (f_custom.value.trim()) {
+            try { payload.custom = JSON.parse(f_custom.value); }
+            catch { alert("El JSON de campos personalizados no es válido."); return; }
+          }
+
+          if (editingId) {
+            await REF.child(editingId).update(payload);
+          } else {
+            const now = Date.now();
+            await REF.push({ ...payload, createdAt: now });
+          }
+          crudModal.close();
+        } catch (err) {
+          console.error(err);
+          alert("Error guardando el producto.");
+        }
+      });
+
+      // ===== Eliminar individual desde modal =====
+      btnDeleteSingle.addEventListener("click", async ()=>{
+        if (!editingId) return;
+        if (!confirm("¿Eliminar este producto?")) return;
+        await REF.child(editingId).remove();
+        crudModal.close();
+      });
+
+      function openEdit(p) {
+        editingId = p.id;
+        crudTitle.textContent = "Editar producto";
+        f_name.value = p.name || "";
+        f_code.value = p.code || "";
+        f_price.value = (p.price ?? "") === "" ? "" : (p.price ?? "");
+        f_cost.value  = (p.cost  ?? "") === "" ? "" : (p.cost  ?? "");
+        f_qty.value   = (p.qty   ?? "") === "" ? "" : (p.qty   ?? "");
+        f_isNew.checked = !!p.isNew;
+        f_custom.value = p.custom ? JSON.stringify(p.custom, null, 2) : "";
+        btnDeleteSingle.classList.remove("hidden");
+        crudModal.showModal();
+      }
+</div> <!-- container -->
 </body>
 </html>
