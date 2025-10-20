@@ -553,22 +553,7 @@
         }
 
         // ==== Import CSV ====
-        function importFromCSV(file){
-            try{
-                if(!window.Papa){ showToast('Error: PapaParse no se cargó.', true); return; }
-                importLoader.classList.remove('hidden');
-                importSubmitBtn.disabled = true;
-
-                Papa.parse(file, {
-                    header:true, delimiter:',', skipEmptyLines:true,
-                    complete: (results)=>{
-                        const imported=[]; let errors=0;
-                        const required=['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO'];
-                        const headers = Object.keys(results.data[0] || {});
-                        const missing = required.filter(h=>!headers.includes(h));
-                        if(missing.length>0){ showToast(`Faltan encabezados: ${missing.join(', ')}`, true); importLoader.classList.add('hidden'); importSubmitBtn.disabled=false; return; }
-                        if(!results.data || results.data.length===0){ showToast('El CSV está vacío.', true); importLoader.classList.add('hidden'); importSubmitBtn.disabled=false; return; }
-                        function importFromCSV(file) {
+    function importFromCSV(file) {
   try {
     if (!window.Papa) {
       showToast('Error: PapaParse no se cargó.', true);
@@ -582,30 +567,17 @@
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
-      delimitersToGuess: [',', ';', '\t'], // acepta coma, punto y coma o tab
+      delimiter: "\t", // 💡 CSV de Palimex usa TAB como separador
       complete: (results) => {
         const imported = [];
         let errors = 0;
 
-        const required = ['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'QTY', 'COSTO'];
-        const headers = Object.keys(results.data[0] || {});
-        const missing = required.filter(h => !headers.includes(h));
-        if (missing.length > 0) {
-          showToast(`Faltan encabezados: ${missing.join(', ')}`, true);
-          importLoader.classList.add('hidden');
-          importSubmitBtn.disabled = false;
-          return;
-        }
-
         results.data.forEach((row, idx) => {
           try {
-            // Evita errores por filas vacías o incompletas
-            if (
-              !row['ITEM NUMBER'] &&
-              !row['DESCRIPTION'] &&
-              !row['UPC'] &&
-              !row['NOMBRE']
-            ) return;
+            if (!row['ITEM NUMBER'] && !row['DESCRIPTION'] && !row['UPC'] && !row['NOMBRE']) {
+              // Fila vacía o inválida
+              return;
+            }
 
             const newProduct = {
               id: generateId(),
@@ -613,23 +585,27 @@
               description: sanitizeInput(String(row['DESCRIPTION'] || '').trim()),
               upc: sanitizeInput(String(row['UPC'] || '').trim()),
               nombre: sanitizeInput(String(row['NOMBRE'] || '').trim()),
-              size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null, // si no hay size -> null
-              qty: row['QTY'] != null ? parseInt(row['QTY']) : 0,
-              costo: row['COSTO'] != null ? parseFloat(String(row['COSTO']).replace(',', '.')) : 0,
+              size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null,
+              qty: row['QTY'] != null && row['QTY'] !== '' ? parseInt(row['QTY']) : 0,
+              costo: row['COSTO'] != null && row['COSTO'] !== '' 
+                ? parseFloat(String(row['COSTO']).replace(',', '.'))
+                : 0,
               url: row['URL'] ? sanitizeInput(String(row['URL']).trim()) : '',
+              proveedor: row['PALIMEX'] ? sanitizeInput(String(row['PALIMEX']).trim()) : '',
               customFields: {},
               dateAdded: Date.now()
             };
 
-            // Copia cualquier campo adicional del CSV como campo personalizado
-            for (const [k, v] of Object.entries(row)) {
-              if (!['ITEM NUMBER', 'DESCRIPTION', 'UPC', 'NOMBRE', 'SIZE', 'QTY', 'COSTO', 'URL'].includes(k)) {
-                if (v != null && v !== '') {
-                  newProduct.customFields[sanitizeInput(k)] = sanitizeInput(String(v).trim());
+            // Copia cualquier campo adicional del CSV como custom field
+            for (const [key, val] of Object.entries(row)) {
+              if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
+                if (val != null && val !== '') {
+                  newProduct.customFields[sanitizeInput(key)] = sanitizeInput(String(val).trim());
                 }
               }
             }
 
+            // Si ya existe el producto, actualiza; si no, lo agrega
             const existing = products.find(
               (p) => p.itemNumber === newProduct.itemNumber || p.upc === newProduct.upc
             );
@@ -639,7 +615,6 @@
             } else {
               imported.push(newProduct);
             }
-
           } catch (e) {
             console.error(`Error fila ${idx + 1}`, e);
             errors++;
@@ -651,10 +626,9 @@
         renderAdminProducts();
         renderPublicTabs();
 
-        const msg =
-          errors > 0
-            ? `Importados ${imported.length} productos, ${errors} errores.`
-            : `Importados ${imported.length} productos correctamente.`;
+        const msg = errors > 0
+          ? `Importados ${imported.length} productos, ${errors} errores.`
+          : `Importados ${imported.length} productos correctamente.`;
         showToast(msg, errors > 0);
 
         importModal.classList.add('hidden');
@@ -675,8 +649,6 @@
     importSubmitBtn.disabled = false;
   }
 }
-        }
-
         // ==== Validación + libs + vistas ====
         function validateForm(_, fields){
             let ok=true;
