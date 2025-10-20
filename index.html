@@ -194,18 +194,11 @@
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg> 
-                                <div>
-                           <div class="space-y-2" id="productFields">
-                               <label for="productItemNumberInput" class="font-semibold text-gray-800 block mb-1">Número de Ítem:</label>
-    <input id="productItemNumberInput"
-           type="text"
-           class="admin-only border border-gray-300 rounded-lg px-3 py-1 w-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hidden"
-           placeholder="Sin código">
-    <span id="productItemNumber" class="text-gray-700 block"></span>
-  </div>
-  <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
-  <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
-  <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
+                               <div class="space-y-2" id="productFields">
+    <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
+    <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
+    <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
+    <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
 </div>
                             <div id="customFields" class="space-y-2 mt-4"></div>
                             <div class="mt-4 admin-only">
@@ -1155,39 +1148,52 @@
                 }
             });
         })(); 
-                // ==== NUEVO: edición directa del Item Code en el modal ====
-        (function enableItemCodeEdit() {
-            const input = document.getElementById('productItemNumberInput');
-            const span = document.getElementById('productItemNumber');
+    // === NUEVO: edición inline del Item Code sin romper diseño ===
+(function enableInlineItemEdit() {
+    const itemSpan = document.getElementById('productItemNumber');
 
-            // Cuando se abre el modal de detalles, actualizamos visibilidad
-            const observer = new MutationObserver(() => {
-                if (!productDetailModal.classList.contains('hidden') && currentView === 'admin') {
-                    input.classList.remove('hidden');
-                    span.classList.add('hidden');
-                    input.value = span.textContent.trim() || '';
-                } else {
-                    input.classList.add('hidden');
-                    span.classList.remove('hidden');
-                }
-            });
-            observer.observe(productDetailModal, { attributes: true, attributeFilter: ['class'] });
+    itemSpan.addEventListener('click', () => {
+        if (currentView !== 'admin') return; // solo en modo admin
 
-            // Guardar cambios al salir del campo (blur)
-            input.addEventListener('change', () => {
-                const newValue = input.value.trim();
-                const id = deleteProductBtn.dataset.id;
-                const product = products.find(p => p.id === id);
-                if (!product) return;
+        const currentValue = itemSpan.textContent.trim();
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentValue === 'N/A' ? '' : currentValue;
+        input.className = 'border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
+        input.style.width = '100px';
 
-                product.itemNumber = newValue || 'N/A';
-                saveData();
-                span.textContent = newValue || 'N/A';
-                showToast('Item Code actualizado correctamente.');
-                renderAdminProducts();
-                renderPublicTabs();
-            });
-        })();
+        itemSpan.replaceWith(input);
+        input.focus();
+
+        const saveChange = () => {
+            const newValue = input.value.trim() || 'N/A';
+            const productId = deleteProductBtn.dataset.id;
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            product.itemNumber = newValue;
+            saveData();
+
+            const newSpan = document.createElement('span');
+            newSpan.id = 'productItemNumber';
+            newSpan.className = 'text-gray-700 cursor-pointer';
+            newSpan.textContent = newValue;
+            input.replaceWith(newSpan);
+
+            showToast('Item Code actualizado correctamente.');
+            renderAdminProducts();
+            renderPublicTabs();
+
+            // volver a activar el listener
+            enableInlineItemEdit();
+        };
+
+        input.addEventListener('blur', saveChange);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') input.blur();
+        });
+    });
+})();
     </script>
 </body>
 </html>
