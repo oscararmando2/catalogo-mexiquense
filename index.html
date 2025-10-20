@@ -1155,6 +1155,39 @@
                     selectionBox = null;
                 }
             });
+        })(); 
+                // ==== NUEVO: edición directa del Item Code en el modal ====
+        (function enableItemCodeEdit() {
+            const input = document.getElementById('productItemNumberInput');
+            const span = document.getElementById('productItemNumber');
+
+            // Cuando se abre el modal de detalles, actualizamos visibilidad
+            const observer = new MutationObserver(() => {
+                if (!productDetailModal.classList.contains('hidden') && currentView === 'admin') {
+                    input.classList.remove('hidden');
+                    span.classList.add('hidden');
+                    input.value = span.textContent.trim() || '';
+                } else {
+                    input.classList.add('hidden');
+                    span.classList.remove('hidden');
+                }
+            });
+            observer.observe(productDetailModal, { attributes: true, attributeFilter: ['class'] });
+
+            // Guardar cambios al salir del campo (blur)
+            input.addEventListener('change', () => {
+                const newValue = input.value.trim();
+                const id = deleteProductBtn.dataset.id;
+                const product = products.find(p => p.id === id);
+                if (!product) return;
+
+                product.itemNumber = newValue || 'N/A';
+                saveData();
+                span.textContent = newValue || 'N/A';
+                showToast('Item Code actualizado correctamente.');
+                renderAdminProducts();
+                renderPublicTabs();
+            });
         })();
     </script>
 </body>
