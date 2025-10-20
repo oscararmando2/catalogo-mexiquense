@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MEXIQUENSE - Catálogo de Productos</title>
 
-  <!-- Tailwind + fuentes -->
+  <!-- Tailwind y fuentes -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -15,13 +15,21 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
   <style>
-    body { font-family: 'Poppins', sans-serif; background:#f8fafc; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+    }
     .fade-in { animation: fade .3s ease-in-out; }
-    @keyframes fade { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:none;} }
-    .selected-card { outline:2px solid rgb(59,130,246); background:rgb(239,246,255); }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none; } }
+    .selected-card {
+      outline: 2px solid rgb(59 130 246);
+      background: rgb(239 246 255);
+    }
   </style>
 </head>
-<body class="text-slate-800">
+
+<body>
   <div class="max-w-7xl mx-auto p-4 md:p-6">
     <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <h1 class="text-3xl font-semibold tracking-tight">Catálogo de Productos</h1>
@@ -32,14 +40,14 @@
           <input id="inputCSV" type="file" accept=".csv" class="hidden">
         </label>
         <button id="btnAdd" class="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Agregar</button>
-        <button id="btnDeleteSelected"
-          class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition disabled:opacity-40"
-          disabled>Eliminar seleccionados</button>
+        <button id="btnDeleteSelected" class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-40" disabled>
+          Eliminar seleccionados
+        </button>
       </div>
     </header>
 
     <section class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
-      <input id="searchInput" type="text" placeholder="Buscar..." class="rounded-xl border-slate-300">
+      <input id="searchInput" type="text" placeholder="Buscar..." class="rounded-xl border-slate-300" />
       <select id="orderSelect" class="rounded-xl border-slate-300">
         <option value="recent">Más recientes</option>
         <option value="old">Más antiguos</option>
@@ -48,7 +56,9 @@
       <button id="btnClearFilters" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">Limpiar</button>
     </section>
 
-    <p class="text-sm text-slate-600 mb-2">Mantén <b>Ctrl</b> (Windows) o <b>Cmd</b> (Mac) y haz clic en varios productos para seleccionarlos. Luego usa “Eliminar seleccionados”.</p>
+    <p class="text-sm text-slate-600 mb-2">
+      Mantén <b>Ctrl</b> (Windows) o <b>Cmd</b> (Mac) y haz clic en varios productos para seleccionarlos. Luego usa “Eliminar seleccionados”.
+    </p>
 
     <main id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></main>
 
@@ -59,15 +69,38 @@
           <h3 id="crudTitle" class="text-lg font-semibold">Nuevo producto</h3>
           <button type="button" id="btnCloseModal" class="text-slate-500 hover:text-slate-800">&times;</button>
         </div>
+
         <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="text-sm text-slate-600">Nombre</label><input id="f_name" class="w-full rounded-xl border-slate-300" required></div>
-          <div><label class="text-sm text-slate-600">Código</label><input id="f_code" class="w-full rounded-xl border-slate-300"></div>
-          <div><label class="text-sm text-slate-600">Precio</label><input id="f_price" type="number" step="0.01" class="w-full rounded-xl border-slate-300" required></div>
-          <div><label class="text-sm text-slate-600">Costo</label><input id="f_cost" type="number" step="0.01" class="w-full rounded-xl border-slate-300"></div>
-          <div><label class="text-sm text-slate-600">Cantidad</label><input id="f_qty" type="number" step="1" class="w-full rounded-xl border-slate-300"></div>
-          <div class="flex items-center gap-2"><input id="f_isNew" type="checkbox"><label for="f_isNew" class="text-sm text-slate-700">Marcar como NEW</label></div>
-          <div class="md:col-span-2"><label class="text-sm text-slate-600">Campos personalizados (JSON)</label><textarea id="f_custom" rows="3" class="w-full rounded-xl border-slate-300"></textarea></div>
+          <div>
+            <label class="text-sm text-slate-600">Nombre</label>
+            <input id="f_name" class="w-full rounded-xl border-slate-300" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Código</label>
+            <input id="f_code" class="w-full rounded-xl border-slate-300" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Precio</label>
+            <input id="f_price" type="number" step="0.01" class="w-full rounded-xl border-slate-300" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Costo</label>
+            <input id="f_cost" type="number" step="0.01" class="w-full rounded-xl border-slate-300" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600">Cantidad</label>
+            <input id="f_qty" type="number" class="w-full rounded-xl border-slate-300" />
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="f_isNew" type="checkbox">
+            <label for="f_isNew" class="text-sm text-slate-700">Marcar como NEW</label>
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-sm text-slate-600">Campos personalizados (JSON)</label>
+            <textarea id="f_custom" rows="3" class="w-full rounded-xl border-slate-300"></textarea>
+          </div>
         </div>
+
         <div class="px-5 py-4 border-t border-slate-200 flex items-center justify-end gap-2">
           <button id="btnDeleteSingle" type="button" class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 hidden">Eliminar</button>
           <button id="btnSave" class="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Guardar</button>
@@ -77,8 +110,8 @@
   </div>
 
   <script>
-    // === CONFIG FIREBASE (ajusta con tus datos)
-    const firebaseConfig = window.FB_CONFIG || {
+    // === CONFIG FIREBASE ===
+    const firebaseConfig = {
       apiKey: "TU_API_KEY",
       authDomain: "TU_AUTH_DOMAIN",
       databaseURL: "TU_DATABASE_URL",
@@ -91,13 +124,10 @@
     const db = firebase.database();
     const REF = db.ref("/products");
 
+    // === REFERENCIAS ===
     const grid = document.getElementById("productsGrid");
-    const btnDeleteSelected = document.getElementById("btnDeleteSelected");
     const selection = new Set();
-
-    const searchInput = document.getElementById("searchInput");
-    const orderSelect = document.getElementById("orderSelect");
-    const btnClearFilters = document.getElementById("btnClearFilters");
+    const btnDeleteSelected = document.getElementById("btnDeleteSelected");
     const btnAdd = document.getElementById("btnAdd");
     const crudModal = document.getElementById("crudModal");
     const crudTitle = document.getElementById("crudTitle");
@@ -113,68 +143,69 @@
     const btnDeleteSingle = document.getElementById("btnDeleteSingle");
     const inputCSV = document.getElementById("inputCSV");
     const btnExportPDF = document.getElementById("btnExportPDF");
+    const searchInput = document.getElementById("searchInput");
+    const orderSelect = document.getElementById("orderSelect");
+    const btnClearFilters = document.getElementById("btnClearFilters");
 
     let products = [];
     let filtered = [];
     let editingId = null;
 
-    function normalizeCode(code,name){
-      if(!code)return code;
-      const low=(name||"").toLowerCase();
-      if(low.includes("cebolla blanca")||low.includes("cebolla amarilla"))return code.trim();
+    // === FUNCIONES AUXILIARES ===
+    function normalizeCode(code, name) {
+      if (!code) return code;
+      const low = (name || "").toLowerCase();
+      if (low.includes("cebolla blanca") || low.includes("cebolla amarilla")) return code.trim();
       return code.trim();
     }
+    function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
+    function isNew(p) { if (p.isNew) return true; if (!p.createdAt) return false; return Date.now() - p.createdAt <= 7 * 24 * 60 * 60 * 1000; }
 
-    function isNew(p){
-      if(p.isNew)return true;
-      if(!p.createdAt)return false;
-      return Date.now()-p.createdAt<=7*24*60*60*1000;
-    }
-
-    function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
-
-    function updateSelectionUI(){
-      grid.querySelectorAll("[data-id]").forEach(el=>{
-        const id=el.dataset.id;
-        if(selection.has(id))el.classList.add("selected-card");else el.classList.remove("selected-card");
+    function updateSelectionUI() {
+      grid.querySelectorAll("[data-id]").forEach(el => {
+        const id = el.dataset.id;
+        if (selection.has(id)) el.classList.add("selected-card");
+        else el.classList.remove("selected-card");
       });
-      btnDeleteSelected.disabled=selection.size===0;
+      btnDeleteSelected.disabled = selection.size === 0;
     }
 
-    function render(){
-      grid.innerHTML="";
-      const q=(searchInput.value||"").toLowerCase().trim();
-      filtered=products.filter(p=>!q||(p.name||"").toLowerCase().includes(q)||(p.code||"").toLowerCase().includes(q));
-      const ord=orderSelect.value;
-      if(ord==="recent")filtered.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-      else if(ord==="old")filtered.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-      else if(ord==="name")filtered.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-      const now=Date.now();const oldies=[],recent=[];
-      for(const p of filtered){if(p.createdAt&&(now-p.createdAt)>30*24*60*60*1000)oldies.push(p);else recent.push(p);}
-      const mixed=recent.concat(shuffle(oldies));
-
-      for(const p of mixed){
-        const card=document.createElement("article");
-        card.className="fade-in rounded-2xl bg-white border border-slate-200 p-3 flex flex-col gap-2 hover:shadow-sm transition cursor-pointer";
-        card.dataset.id=p.id;
-        if(selection.has(p.id))card.classList.add("selected-card");
-        card.innerHTML=`
-          <div class="flex items-start justify-between gap-2">
-            <h4 class="font-medium">${p.name||"Sin nombre"}</h4>
-            ${isNew(p)?'<span class="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">NEW</span>':""}
+    // === RENDER ===
+    function render() {
+      grid.innerHTML = "";
+      const q = (searchInput.value || "").toLowerCase().trim();
+      filtered = products.filter(p => !q || (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q));
+      const ord = orderSelect.value;
+      if (ord === "recent") filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      else if (ord === "old") filtered.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      else if (ord === "name") filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const now = Date.now(); const oldies = [], recent = [];
+      for (const p of filtered) { if (p.createdAt && (now - p.createdAt) > 30 * 24 * 60 * 60 * 1000) oldies.push(p); else recent.push(p); }
+      const mixed = recent.concat(shuffle(oldies));
+      for (const p of mixed) {
+        const card = document.createElement("article");
+        card.className = "fade-in rounded-2xl bg-white border border-slate-200 p-3 flex flex-col gap-2 hover:shadow transition cursor-pointer";
+        card.dataset.id = p.id;
+        if (selection.has(p.id)) card.classList.add("selected-card");
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <h4 class="font-medium">${p.name || "Sin nombre"}</h4>
+            ${isNew(p) ? '<span class="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">NEW</span>' : ""}
           </div>
           <div class="text-sm text-slate-600">
             <div class="flex justify-between">
-              <div class="text-lg font-semibold">$${(p.price||0).toFixed(2)}</div>
-              <div class="text-xs text-slate-500">Costo: $${(p.cost||0).toFixed(2)}</div>
+              <div class="text-lg font-semibold">$${(p.price || 0).toFixed(2)}</div>
+              <div class="text-xs text-slate-500">Costo: $${(p.cost || 0).toFixed(2)}</div>
             </div>
-            <div class="text-xs text-slate-500">Cant: ${p.qty??"—"}</div>
-            <div class="text-xs text-slate-500">Código: ${p.code??"—"}</div>
-          </div>`;
-        card.addEventListener("click",e=>{
-          if(e.ctrlKey||e.metaKey){e.preventDefault();e.stopPropagation();
-            if(selection.has(p.id))selection.delete(p.id);else selection.add(p.id);
-            updateSelectionUI();return;
+            <div class="text-xs text-slate-500">Cant: ${p.qty ?? "—"}</div>
+            <div class="text-xs text-slate-500">Código: ${p.code ?? "—"}</div>
+          </div>
+        `;
+        card.addEventListener("click", e => {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault(); e.stopPropagation();
+            if (selection.has(p.id)) selection.delete(p.id); else selection.add(p.id);
+            updateSelectionUI(); return;
           }
           openEdit(p);
         });
@@ -183,80 +214,88 @@
       updateSelectionUI();
     }
 
-    REF.on("value",snap=>{
-      const val=snap.val()||{};
-      products=Object.entries(val).map(([id,p])=>({id,...p}));
+    REF.on("value", snap => {
+      const val = snap.val() || {};
+      products = Object.entries(val).map(([id, p]) => ({ id, ...p }));
       render();
     });
 
-    function openEdit(p){
-      editingId=p.id;
-      crudTitle.textContent="Editar producto";
-      f_name.value=p.name||"";
-      f_code.value=p.code||"";
-      f_price.value=p.price??"";
-      f_cost.value=p.cost??"";
-      f_qty.value=p.qty??"";
-      f_isNew.checked=!!p.isNew;
-      f_custom.value=p.custom?JSON.stringify(p.custom,null,2):"";
+    // === CRUD ===
+    function openEdit(p) {
+      editingId = p.id;
+      crudTitle.textContent = "Editar producto";
+      f_name.value = p.name || "";
+      f_code.value = p.code || "";
+      f_price.value = p.price ?? "";
+      f_cost.value = p.cost ?? "";
+      f_qty.value = p.qty ?? "";
+      f_isNew.checked = !!p.isNew;
+      f_custom.value = p.custom ? JSON.stringify(p.custom, null, 2) : "";
       btnDeleteSingle.classList.remove("hidden");
       crudModal.showModal();
     }
 
-    btnAdd.addEventListener("click",()=>{
-      editingId=null;
-      crudTitle.textContent="Nuevo producto";
-      [f_name,f_code,f_price,f_cost,f_qty,f_custom].forEach(x=>x.value="");
-      f_isNew.checked=false;
+    btnAdd.addEventListener("click", () => {
+      editingId = null;
+      crudTitle.textContent = "Nuevo producto";
+      [f_name, f_code, f_price, f_cost, f_qty, f_custom].forEach(x => x.value = "");
+      f_isNew.checked = false;
       btnDeleteSingle.classList.add("hidden");
       crudModal.showModal();
     });
-    btnCloseModal.addEventListener("click",()=>crudModal.close());
+    btnCloseModal.addEventListener("click", () => crudModal.close());
 
-    btnSave.addEventListener("click",async e=>{
+    btnSave.addEventListener("click", async e => {
       e.preventDefault();
-      const payload={
-        name:f_name.value.trim(),
-        code:normalizeCode(f_code.value,f_name.value),
-        price:f_price.value?Number(f_price.value):null,
-        cost:f_cost.value?Number(f_cost.value):null,
-        qty:f_qty.value?Number(f_qty.value):null,
-        isNew:f_isNew.checked,
-        updatedAt:Date.now()
+      const payload = {
+        name: f_name.value.trim(),
+        code: normalizeCode(f_code.value, f_name.value),
+        price: f_price.value ? Number(f_price.value) : null,
+        cost: f_cost.value ? Number(f_cost.value) : null,
+        qty: f_qty.value ? Number(f_qty.value) : null,
+        isNew: f_isNew.checked,
+        updatedAt: Date.now()
       };
-      if(f_custom.value.trim()){try{payload.custom=JSON.parse(f_custom.value);}catch{return alert("JSON inválido");}}
-      if(editingId)await REF.child(editingId).update(payload);
-      else await REF.push({...payload,createdAt:Date.now()});
+      if (f_custom.value.trim()) { try { payload.custom = JSON.parse(f_custom.value); } catch { return alert("JSON inválido"); } }
+      if (editingId) await REF.child(editingId).update(payload);
+      else await REF.push({ ...payload, createdAt: Date.now() });
       crudModal.close();
     });
 
-    btnDeleteSingle.addEventListener("click",async()=>{
-      if(!editingId)return;
-      if(!confirm("¿Eliminar este producto?"))return;
+    btnDeleteSingle.addEventListener("click", async () => {
+      if (!editingId) return;
+      if (!confirm("¿Eliminar este producto?")) return;
       await REF.child(editingId).remove();
       crudModal.close();
     });
 
-    btnDeleteSelected.addEventListener("click",async()=>{
-      if(!selection.size)return;
-      if(!confirm(`¿Eliminar ${selection.size} productos seleccionados?`))return;
-      const updates={};selection.forEach(id=>updates[id]=null);
+    // === ELIMINAR SELECCIONADOS ===
+    btnDeleteSelected.addEventListener("click", async () => {
+      if (!selection.size) return;
+      if (!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return;
+      const updates = {}; selection.forEach(id => updates[id] = null);
       await REF.update(updates);
-      selection.clear();updateSelectionUI();
+      selection.clear(); updateSelectionUI();
     });
 
-    btnClearFilters.addEventListener("click",()=>{searchInput.value="";orderSelect.value="recent";render();});
-    searchInput.addEventListener("input",render);
-    orderSelect.addEventListener("change",render);
+    // === BUSCADOR Y FILTROS ===
+    btnClearFilters.addEventListener("click", () => { searchInput.value = ""; orderSelect.value = "recent"; render(); });
+    searchInput.addEventListener("input", render);
+    orderSelect.addEventListener("change", render);
 
-    btnExportPDF.addEventListener("click",()=>{
-      const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"pt",format:"a4"});
-      let y=40;doc.setFont("helvetica","bold");doc.text("Catálogo de Productos",40,y);y+=20;
-      doc.setFont("helvetica","normal");
-      const rows=filtered.length?filtered:products;
-      rows.forEach(p=>{
-        doc.text(`${p.name||""}  ${p.code||""}  $${(p.price||0).toFixed(2)}  Cant:${p.qty??0}`,40,y);
-        y+=16;if(y>780){doc.addPage();y=40;}
+    // === EXPORTAR PDF ===
+    btnExportPDF.addEventListener("click", () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      let y = 40;
+      doc.setFont("helvetica", "bold");
+      doc.text("Catálogo de Productos", 40, y); y += 20;
+      doc.setFont("helvetica", "normal");
+      const rows = filtered.length ? filtered : products;
+      rows.forEach(p => {
+        doc.text(`${p.name || ""}  ${p.code || ""}  $${(p.price || 0).toFixed(2)}  Cant:${p.qty ?? 0}`, 40, y);
+        y += 16;
+        if (y > 780) { doc.addPage(); y = 40; }
       });
       doc.save("catalogo.pdf");
     });
