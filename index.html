@@ -553,7 +553,8 @@
         }
 
         // ==== Import CSV ====
-    function importFromCSV(file) {
+  // ==== Import CSV ====
+function importFromCSV(file) {
   try {
     if (!window.Papa) {
       showToast('Error: PapaParse no se cargó.', true);
@@ -566,18 +567,23 @@
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      dynamicTyping: true,
-      delimiter: "\t", // 💡 CSV de Palimex usa TAB como separador
+      dynamicTyping: false,
+      delimiter: "\t", // 💡 Forzamos tabulación (TSV)
       complete: (results) => {
         const imported = [];
         let errors = 0;
 
+        if (!results.data || results.data.length === 0) {
+          showToast('El archivo está vacío o no tiene encabezados válidos.', true);
+          importLoader.classList.add('hidden');
+          importSubmitBtn.disabled = false;
+          return;
+        }
+
         results.data.forEach((row, idx) => {
           try {
-            if (!row['ITEM NUMBER'] && !row['DESCRIPTION'] && !row['UPC'] && !row['NOMBRE']) {
-              // Fila vacía o inválida
-              return;
-            }
+            // Ignorar filas completamente vacías
+            if (!row || Object.values(row).every(v => v === '')) return;
 
             const newProduct = {
               id: generateId(),
@@ -586,8 +592,8 @@
               upc: sanitizeInput(String(row['UPC'] || '').trim()),
               nombre: sanitizeInput(String(row['NOMBRE'] || '').trim()),
               size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null,
-              qty: row['QTY'] != null && row['QTY'] !== '' ? parseInt(row['QTY']) : 0,
-              costo: row['COSTO'] != null && row['COSTO'] !== '' 
+              qty: row['QTY'] && !isNaN(row['QTY']) ? parseInt(row['QTY']) : 0,
+              costo: row['COSTO'] && !isNaN(parseFloat(String(row['COSTO']).replace(',', '.')))
                 ? parseFloat(String(row['COSTO']).replace(',', '.'))
                 : 0,
               url: row['URL'] ? sanitizeInput(String(row['URL']).trim()) : '',
@@ -596,7 +602,7 @@
               dateAdded: Date.now()
             };
 
-            // Copia cualquier campo adicional del CSV como custom field
+            // Guardar campos extra como personalizados
             for (const [key, val] of Object.entries(row)) {
               if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
                 if (val != null && val !== '') {
@@ -605,9 +611,10 @@
               }
             }
 
-            // Si ya existe el producto, actualiza; si no, lo agrega
-            const existing = products.find(
-              (p) => p.itemNumber === newProduct.itemNumber || p.upc === newProduct.upc
+            // Si ya existe, actualiza; si no, agrega
+            const existing = products.find(p =>
+              (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
+              (p.upc && p.upc === newProduct.upc)
             );
 
             if (existing) {
@@ -615,8 +622,9 @@
             } else {
               imported.push(newProduct);
             }
+
           } catch (e) {
-            console.error(`Error fila ${idx + 1}`, e);
+            console.error(`Error en fila ${idx + 1}:`, e);
             errors++;
           }
         });
@@ -649,6 +657,7 @@
     importSubmitBtn.disabled = false;
   }
 }
+
         // ==== Validación + libs + vistas ====
         function validateForm(_, fields){
             let ok=true;
