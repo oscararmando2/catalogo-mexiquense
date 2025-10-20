@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MEXIQUENSE - Catálogo de Productos</title>
 
-  <!-- Tailwind y fuentes -->
+  <!-- Tailwind + fuentes -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -22,10 +22,6 @@
     }
     .fade-in { animation: fade .3s ease-in-out; }
     @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none; } }
-    .selected-card {
-      outline: 2px solid rgb(59 130 246);
-      background: rgb(239 246 255);
-    }
   </style>
 </head>
 
@@ -40,9 +36,6 @@
           <input id="inputCSV" type="file" accept=".csv" class="hidden">
         </label>
         <button id="btnAdd" class="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Agregar</button>
-        <button id="btnDeleteSelected" class="px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-40" disabled>
-          Eliminar seleccionados
-        </button>
       </div>
     </header>
 
@@ -55,10 +48,6 @@
       </select>
       <button id="btnClearFilters" class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">Limpiar</button>
     </section>
-
-    <p class="text-sm text-slate-600 mb-2">
-      Mantén <b>Ctrl</b> (Windows) o <b>Cmd</b> (Mac) y haz clic en varios productos para seleccionarlos. Luego usa “Eliminar seleccionados”.
-    </p>
 
     <main id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></main>
 
@@ -124,10 +113,7 @@
     const db = firebase.database();
     const REF = db.ref("/products");
 
-    // === REFERENCIAS ===
     const grid = document.getElementById("productsGrid");
-    const selection = new Set();
-    const btnDeleteSelected = document.getElementById("btnDeleteSelected");
     const btnAdd = document.getElementById("btnAdd");
     const crudModal = document.getElementById("crudModal");
     const crudTitle = document.getElementById("crudTitle");
@@ -151,26 +137,16 @@
     let filtered = [];
     let editingId = null;
 
-    // === FUNCIONES AUXILIARES ===
     function normalizeCode(code, name) {
       if (!code) return code;
       const low = (name || "").toLowerCase();
       if (low.includes("cebolla blanca") || low.includes("cebolla amarilla")) return code.trim();
       return code.trim();
     }
+
     function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
     function isNew(p) { if (p.isNew) return true; if (!p.createdAt) return false; return Date.now() - p.createdAt <= 7 * 24 * 60 * 60 * 1000; }
 
-    function updateSelectionUI() {
-      grid.querySelectorAll("[data-id]").forEach(el => {
-        const id = el.dataset.id;
-        if (selection.has(id)) el.classList.add("selected-card");
-        else el.classList.remove("selected-card");
-      });
-      btnDeleteSelected.disabled = selection.size === 0;
-    }
-
-    // === RENDER ===
     function render() {
       grid.innerHTML = "";
       const q = (searchInput.value || "").toLowerCase().trim();
@@ -185,8 +161,6 @@
       for (const p of mixed) {
         const card = document.createElement("article");
         card.className = "fade-in rounded-2xl bg-white border border-slate-200 p-3 flex flex-col gap-2 hover:shadow transition cursor-pointer";
-        card.dataset.id = p.id;
-        if (selection.has(p.id)) card.classList.add("selected-card");
         card.innerHTML = `
           <div class="flex items-start justify-between">
             <h4 class="font-medium">${p.name || "Sin nombre"}</h4>
@@ -201,17 +175,9 @@
             <div class="text-xs text-slate-500">Código: ${p.code ?? "—"}</div>
           </div>
         `;
-        card.addEventListener("click", e => {
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault(); e.stopPropagation();
-            if (selection.has(p.id)) selection.delete(p.id); else selection.add(p.id);
-            updateSelectionUI(); return;
-          }
-          openEdit(p);
-        });
+        card.addEventListener("click", () => openEdit(p));
         grid.appendChild(card);
       }
-      updateSelectionUI();
     }
 
     REF.on("value", snap => {
@@ -220,7 +186,6 @@
       render();
     });
 
-    // === CRUD ===
     function openEdit(p) {
       editingId = p.id;
       crudTitle.textContent = "Editar producto";
@@ -269,21 +234,10 @@
       crudModal.close();
     });
 
-    // === ELIMINAR SELECCIONADOS ===
-    btnDeleteSelected.addEventListener("click", async () => {
-      if (!selection.size) return;
-      if (!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return;
-      const updates = {}; selection.forEach(id => updates[id] = null);
-      await REF.update(updates);
-      selection.clear(); updateSelectionUI();
-    });
-
-    // === BUSCADOR Y FILTROS ===
     btnClearFilters.addEventListener("click", () => { searchInput.value = ""; orderSelect.value = "recent"; render(); });
     searchInput.addEventListener("input", render);
     orderSelect.addEventListener("change", render);
 
-    // === EXPORTAR PDF ===
     btnExportPDF.addEventListener("click", () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: "pt", format: "a4" });
