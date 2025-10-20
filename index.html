@@ -1067,7 +1067,88 @@
             showView('public'); // iniciar en vista pública
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', init); 
+                // ==== NUEVO: Selección por arrastre (Drag Select) ====
+        (function enableDragSelection() {
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let selectionBox = null;
+
+            const container = document.getElementById('productsContainer');
+
+            container.addEventListener('mousedown', (e) => {
+                // Evitar arrastre al hacer clic en botones o elementos interactivos
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('svg')) return;
+
+                isDragging = true;
+                startX = e.pageX;
+                startY = e.pageY;
+
+                selectionBox = document.createElement('div');
+                selectionBox.style.position = 'absolute';
+                selectionBox.style.border = '2px solid rgba(59,130,246,0.7)';
+                selectionBox.style.background = 'rgba(59,130,246,0.2)';
+                selectionBox.style.pointerEvents = 'none';
+                selectionBox.style.zIndex = '9999';
+                document.body.appendChild(selectionBox);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging || !selectionBox) return;
+                const x1 = Math.min(e.pageX, startX);
+                const y1 = Math.min(e.pageY, startY);
+                const x2 = Math.max(e.pageX, startX);
+                const y2 = Math.max(e.pageY, startY);
+
+                selectionBox.style.left = `${x1}px`;
+                selectionBox.style.top = `${y1}px`;
+                selectionBox.style.width = `${x2 - x1}px`;
+                selectionBox.style.height = `${y2 - y1}px`;
+            });
+
+            document.addEventListener('mouseup', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                if (selectionBox) {
+                    const rect = selectionBox.getBoundingClientRect();
+                    document.querySelectorAll('#productsContainer [data-id]').forEach(card => {
+                        const cardRect = card.getBoundingClientRect();
+                        const overlap = !(
+                            rect.right < cardRect.left ||
+                            rect.left > cardRect.right ||
+                            rect.bottom < cardRect.top ||
+                            rect.top > cardRect.bottom
+                        );
+                        if (overlap) {
+                            const id = card.dataset.id;
+                            selection.add(id);
+                            card.classList.add('selected-card');
+                        }
+                    });
+                    updateDeleteButton();
+                    document.body.removeChild(selectionBox);
+                    selectionBox = null;
+                }
+            });
+
+            // Cancelar si se sale de la ventana o presiona Escape
+            document.addEventListener('mouseleave', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    if (selectionBox) {
+                        document.body.removeChild(selectionBox);
+                        selectionBox = null;
+                    }
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && selectionBox) {
+                    isDragging = false;
+                    document.body.removeChild(selectionBox);
+                    selectionBox = null;
+                }
+            });
+        })();
     </script>
 </body>
 </html>
