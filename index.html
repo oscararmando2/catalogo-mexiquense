@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEXIQUENSE - Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-
   <style>
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f8fafc;
     }
+    .card-hover {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
     .card-hover:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      transform: translateY(-6px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
     .product-image-container {
       position: relative;
@@ -36,284 +38,193 @@
       height: 100%;
       object-fit: contain;
       border-radius: 8px;
-      background-color: #f9f9f9;
+      background-color: #f9fafb;
     }
-    /* Etiqueta NEW */
     .new-badge {
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      background-color: #84cc16;
-      color: white;
-      font-weight: 600;
+      top: 10px;
+      right: 10px;
+      background-color: #a3e635; /* verde lima */
+      color: #065f46;
+      font-weight: 700;
       font-size: 0.75rem;
+      padding: 4px 8px;
       border-radius: 9999px;
-      padding: 0.25rem 0.5rem;
-      box-shadow: 0 0 10px rgba(132, 204, 22, 0.6);
-      opacity: 0;
-      animation: fadeIn 1s forwards;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      animation: fadeIn 0.8s ease-in-out;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.8); }
       to { opacity: 1; transform: scale(1); }
     }
+    .fade-in {
+      animation: fadeIn 1s ease;
+    }
   </style>
 </head>
 <body>
   <div class="min-h-screen flex flex-col">
-    <!-- HEADER -->
+    <!-- Header -->
     <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
-      <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
-        <div class="flex items-center mb-4 md:mb-0">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zM12 7V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/>
-          </svg>
-          <h1 class="text-3xl font-bold">MEXIQUENSE</h1>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
+      <div class="container mx-auto px-4 py-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold">MEXIQUENSE</h1>
+        <div class="flex gap-2">
+          <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Panel Admin</button>
           <button id="publicViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
         </div>
       </div>
     </header>
 
-    <!-- ADMIN VIEW -->
-    <section id="adminView" class="hidden container mx-auto px-4 py-8">
-      <h2 class="text-2xl font-bold text-indigo-600 mb-6">Panel de Administración</h2>
-      <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-        <div class="flex items-center justify-between">
-          <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full max-w-lg pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"/>
-        </div>
-      </div>
+    <!-- Admin View -->
+    <section id="adminView" class="container mx-auto px-4 py-8 hidden">
+      <h2 class="text-2xl font-bold mb-4 text-indigo-600">Panel de Administración</h2>
+      <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full mb-4 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500">
       <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </section>
 
-    <!-- PUBLIC VIEW -->
+    <!-- Public View -->
     <section id="publicView" class="container mx-auto px-4 py-8">
-      <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-        <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
-        <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-          <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-            <div class="flex-grow">
-              <div class="relative">
-                <input id="publicSearchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"/>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 11-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="publicTabContent" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-      </div>
+      <h2 class="text-2xl font-bold mb-4 text-indigo-600">Catálogo de Productos</h2>
+      <input id="publicSearchInput" type="text" placeholder="Buscar productos..." class="w-full mb-6 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500">
+      <div id="publicTabContent" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
     </section>
 
-    <!-- FOOTER -->
-    <footer class="bg-gray-800 text-white py-6 text-center">
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4 text-center">
       <p>© 2025 MEXIQUENSE - Sistema de Catálogo</p>
     </footer>
+  </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
-      <span id="toastMessage">Operación completada con éxito</span>
-    </div>
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
+    <span id="toastMessage">Operación completada con éxito</span>
   </div>
 
   <script>
-  // === CONFIGURACIÓN DE FIREBASE ===
-  const firebaseConfig = {
-    apiKey: "TU_API_KEY_AQUI",
-    authDomain: "catalogomexiquense.firebaseapp.com",
-    databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
-    projectId: "catalogomexiquense",
-    storageBucket: "catalogomexiquense.appspot.com",
-    messagingSenderId: "TU_SENDER_ID_AQUI",
-    appId: "TU_APP_ID_AQUI"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
+    // === CONFIGURACIÓN FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY_AQUI",
+      authDomain: "catalogomexiquense.firebaseapp.com",
+      databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+      projectId: "catalogomexiquense",
+      storageBucket: "catalogomexiquense.appspot.com",
+      messagingSenderId: "TU_SENDER_ID_AQUI",
+      appId: "TU_APP_ID_AQUI"
+    };
 
-  const adminPassword = 'admin123';
-  let products = [];
-  let currentView = 'public';
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-  function showToast(message, isError=false) {
-    const toast=document.getElementById('toast');
-    const toastMessage=document.getElementById('toastMessage');
-    toastMessage.textContent=message;
-    toast.className=\`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 \${isError?'bg-red-600':'bg-gray-800'} text-white\`;
-    toast.classList.remove('translate-y-20','opacity-0');
-    setTimeout(()=>toast.classList.add('translate-y-20','opacity-0'),3000);
-  }
+    const adminPassword = 'admin123';
+    let products = [];
 
-  function isLocalStorageAvailable(){
-    try{const t='__t__';localStorage.setItem(t,t);localStorage.removeItem(t);return true;}catch(e){return false;}
-  }
+    // === FUNCIONES AUXILIARES ===
+    const showToast = (msg, isError = false) => {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toastMessage');
+      msgEl.textContent = msg;
+      toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 ${isError ? 'bg-red-600' : 'bg-gray-800'} text-white`;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+    };
 
-  function sanitizeInput(input){
-    if(!input)return'';const div=document.createElement('div');div.textContent=input;return div.innerHTML;
-  }
+    const formatCurrency = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
+    const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const sanitize = t => t ? t.replace(/[<>]/g, '') : '';
 
-  function formatCurrency(a){return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(a);}
+    const isNewProduct = date => {
+      if (!date) return false;
+      const now = new Date();
+      const diff = (now - new Date(date)) / (1000 * 60 * 60 * 24);
+      return diff <= 7;
+    };
 
-  function generateId(){return Date.now().toString(36)+Math.random().toString(36).substr(2);}
+    const shuffleArray = arr => arr.sort(() => Math.random() - 0.5);
 
-  // === NUEVO: Determina si el producto es "nuevo" (<=7 días) ===
-  function isNewProduct(dateAdded){
-    if(!dateAdded) return false;
-    const now=new Date();
-    const added=new Date(dateAdded);
-    const diff=(now - added)/(1000*60*60*24);
-    return diff<=7;
-  }
-
-  // === CARGA DE DATOS DESDE FIREBASE ===
-  function loadData(){
-    try{
-      database.ref('products').on('value',snap=>{
-        const data=snap.val()||[];
-        products=data;
-        renderPublicTabs();
-        renderAdminProducts();
-        showToast('Datos sincronizados desde Firebase.');
-      },()=>{showToast('Sin conexión, usando datos locales.',true);
-        if(isLocalStorageAvailable()){
-          const stored=localStorage.getItem('products');
-          products=stored?JSON.parse(stored):[];
-          renderPublicTabs();
+    // === CARGAR DATOS ===
+    const loadData = () => {
+      database.ref('products').on('value', snap => {
+        const val = snap.val();
+        if (!val) {
+          showToast('No hay productos cargados');
+          return;
         }
+        products = Object.values(val);
+        renderPublicProducts();
+        renderAdminProducts();
+      }, err => {
+        console.error(err);
+        showToast('Error al cargar datos de Firebase', true);
       });
-    }catch(e){
-      console.error('Error loadData:',e);
-      showToast('Error al cargar datos de Firebase',true);
-    }
-  }
-  // === FUNCIÓN PARA MOSTRAR PRODUCTOS (ADMIN) ===
-  function renderAdminProducts(){
-    const container=document.getElementById('productsContainer');
-    container.innerHTML='';
-    if(!products.length){container.innerHTML='<p class="text-gray-500">No hay productos.</p>';return;}
-    products.forEach(p=>{
-      const card=document.createElement('div');
-      card.className='bg-white p-4 rounded-lg shadow card-hover';
-      card.innerHTML=`
-        <div class="product-image-container">
-          <img loading="lazy" decoding="async" src="${sanitizeInput(p.url||'https://placehold.co/300x200?text=Sin+Imagen')}" class="product-image" alt="${sanitizeInput(p.nombre||'Producto')}" />
-        </div>
-        <h3 class="mt-3 font-semibold text-gray-800 truncate">${sanitizeInput(p.nombre||'Producto')}</h3>
-        <p class="text-sm text-gray-500 truncate">${sanitizeInput(p.upc||'')}</p>
-        <p class="font-bold text-indigo-600 mt-1">${p.precio?formatCurrency(p.precio):''}</p>
-      `;
-      container.appendChild(card);
+    };
+
+    // === RENDER ADMIN ===
+    const renderAdminProducts = () => {
+      const c = document.getElementById('productsContainer');
+      c.innerHTML = '';
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl p-4 shadow card-hover';
+        card.innerHTML = `
+          <div class="product-image-container">
+            <img src="${sanitize(p.url) || 'https://placehold.co/300x200?text=Sin+Imagen'}" class="product-image">
+          </div>
+          <h3 class="mt-2 font-semibold text-gray-800">${sanitize(p.nombre || 'Producto')}</h3>
+          <p class="text-gray-500 text-sm">${sanitize(p.upc || '')}</p>
+          <p class="text-indigo-600 font-bold">${formatCurrency(p.costo || 0)}</p>
+        `;
+        c.appendChild(card);
+      });
+    };
+
+    // === RENDER PÚBLICO ===
+    const renderPublicProducts = () => {
+      const c = document.getElementById('publicTabContent');
+      c.innerHTML = '';
+      const newProducts = products.filter(p => isNewProduct(p.dateAdded));
+      const oldProducts = shuffleArray(products.filter(p => !isNewProduct(p.dateAdded)));
+      const ordered = [...newProducts, ...oldProducts];
+
+      ordered.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'relative bg-white rounded-xl p-4 shadow-md fade-in card-hover';
+        card.innerHTML = `
+          <div class="product-image-container">
+            <img src="${sanitize(p.url) || 'https://placehold.co/300x200?text=Sin+Imagen'}" class="product-image">
+            ${isNewProduct(p.dateAdded) ? '<span class="new-badge">NEW</span>' : ''}
+          </div>
+          <h3 class="mt-2 font-semibold text-gray-800">${sanitize(p.nombre || 'Producto')}</h3>
+          <p class="text-gray-500 text-sm">${sanitize(p.upc || '')}</p>
+          <p class="text-indigo-600 font-bold">${formatCurrency(p.costo || 0)}</p>
+        `;
+        c.appendChild(card);
+      });
+    };
+
+    // === BUSCADOR ===
+    document.getElementById('publicSearchInput').addEventListener('input', e => {
+      const term = e.target.value.toLowerCase();
+      document.querySelectorAll('#publicTabContent > div').forEach(div => {
+        const name = div.querySelector('h3').textContent.toLowerCase();
+        div.style.display = name.includes(term) ? 'block' : 'none';
+      });
     });
-  }
 
-  // === FUNCIÓN PARA MEZCLAR ALEATORIAMENTE ===
-  function shuffleArray(array){
-    for(let i=array.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [array[i],array[j]]=[array[j],array[i]];
-    }
-    return array;
-  }
-
-  // === FUNCIÓN PARA MOSTRAR PRODUCTOS (PÚBLICO) ===
-  function renderPublicTabs(){
-    const container=document.getElementById('publicTabContent');
-    container.innerHTML='';
-    if(!products.length){container.innerHTML='<p class="text-gray-500">No hay productos disponibles.</p>';return;}
-
-    // Separar nuevos (<=7 días) y antiguos
-    const newOnes=products.filter(p=>isNewProduct(p.dateAdded));
-    const oldOnes=shuffleArray(products.filter(p=>!isNewProduct(p.dateAdded)));
-
-    const sorted=[...newOnes,...oldOnes];
-    sorted.forEach(p=>{
-      const card=document.createElement('div');
-      card.className='relative bg-white p-4 rounded-xl shadow-md transition-all card-hover';
-      const isNew=isNewProduct(p.dateAdded);
-      card.innerHTML=`
-        <div class="product-image-container">
-          <img loading="lazy" decoding="async" src="${sanitizeInput(p.url||'https://placehold.co/300x200?text=Sin+Imagen')}" class="product-image" alt="${sanitizeInput(p.nombre||'Producto')}" />
-          ${isNew?'<span class="new-badge">NEW</span>':''}
-        </div>
-        <h3 class="mt-3 font-semibold text-gray-800 truncate">${sanitizeInput(p.nombre||'Producto')}</h3>
-        <p class="text-sm text-gray-500 truncate">${sanitizeInput(p.upc||'')}</p>
-        <p class="font-bold text-indigo-600 mt-1">${p.precio?formatCurrency(p.precio):''}</p>
-      `;
-      container.appendChild(card);
+    // === CAMBIO DE VISTAS ===
+    document.getElementById('adminViewBtn').addEventListener('click', () => {
+      const pass = prompt('Introduce la contraseña:');
+      if (pass === adminPassword) {
+        document.getElementById('adminView').classList.remove('hidden');
+        document.getElementById('publicView').classList.add('hidden');
+      } else showToast('Contraseña incorrecta', true);
     });
-  }
-
-  // === BOTONES DE VISTA ===
-  const adminViewBtn=document.getElementById('adminViewBtn');
-  const publicViewBtn=document.getElementById('publicViewBtn');
-  const adminView=document.getElementById('adminView');
-  const publicView=document.getElementById('publicView');
-
-  adminViewBtn.addEventListener('click',()=>{
-    const pass=prompt('Introduce la contraseña de administrador:');
-    if(pass===adminPassword){
-      adminView.classList.remove('hidden');
-      publicView.classList.add('hidden');
-      currentView='admin';
-      showToast('Modo administrador activado');
-    }else{
-      showToast('Contraseña incorrecta',true);
-    }
-  });
-
-  publicViewBtn.addEventListener('click',()=>{
-    publicView.classList.remove('hidden');
-    adminView.classList.add('hidden');
-    currentView='public';
-    showToast('Vista pública');
-  });
-
-  // === BUSCADORES ===
-  document.getElementById('searchInput').addEventListener('input',e=>{
-    const term=e.target.value.toLowerCase();
-    const filtered=products.filter(p=>
-      p.nombre?.toLowerCase().includes(term)||
-      p.upc?.toLowerCase().includes(term)||
-      p.itemNumber?.toLowerCase().includes(term)||
-      p.description?.toLowerCase().includes(term)
-    );
-    const container=document.getElementById('productsContainer');
-    container.innerHTML='';
-    filtered.forEach(p=>{
-      const card=document.createElement('div');
-      card.className='bg-white p-4 rounded-lg shadow card-hover';
-      card.innerHTML=`
-        <div class="product-image-container">
-          <img loading="lazy" src="${sanitizeInput(p.url||'https://placehold.co/300x200?text=Sin+Imagen')}" class="product-image" />
-        </div>
-        <h3 class="mt-3 font-semibold text-gray-800 truncate">${sanitizeInput(p.nombre||'')}</h3>
-        <p class="text-sm text-gray-500 truncate">${sanitizeInput(p.upc||'')}</p>
-      `;
-      container.appendChild(card);
+    document.getElementById('publicViewBtn').addEventListener('click', () => {
+      document.getElementById('adminView').classList.add('hidden');
+      document.getElementById('publicView').classList.remove('hidden');
     });
-  });
 
-  document.getElementById('publicSearchInput').addEventListener('input',e=>{
-    const term=e.target.value.toLowerCase();
-    const container=document.getElementById('publicTabContent');
-    container.querySelectorAll('div.relative').forEach(card=>{
-      const name=card.querySelector('h3').textContent.toLowerCase();
-      const upc=card.querySelector('p.text-sm').textContent.toLowerCase();
-      card.style.display=(name.includes(term)||upc.includes(term))?'block':'none';
-    });
-  });
-
-  // === GUARDAR PRODUCTOS NUEVOS (añade fecha automáticamente) ===
-  function addNewProduct(product){
-    const id=generateId();
-    const date=new Date().toISOString();
-    const data={...product,id,dateAdded:date};
-    database.ref('products/'+id).set(data);
-    showToast('Producto añadido correctamente.');
-  }
-
-  // === INICIO ===
-  window.addEventListener('DOMContentLoaded',()=>{loadData();});
+    // === INICIO ===
+    window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
 </html>
