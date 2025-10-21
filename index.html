@@ -551,9 +551,7 @@
                 productDetailModal.classList.remove('hidden');
             }catch(e){ console.error('Error mostrando detalles:', e); showToast('Error al mostrar detalles.', true); }
         }
-
-        // ==== Import CSV ====
-  // ==== Import CSV ====
+// ==== Import CSV ====
 function importFromCSV(file) {
   try {
     if (!window.Papa) {
@@ -564,92 +562,110 @@ function importFromCSV(file) {
     importLoader.classList.remove('hidden');
     importSubmitBtn.disabled = true;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: false,
-      delimiter: "\t", // 💡 Forzamos tabulación (TSV)
-      complete: (results) => {
-        const imported = [];
-        let errors = 0;
+    const reader = new FileReader();
 
-        if (!results.data || results.data.length === 0) {
-          showToast('El archivo está vacío o no tiene encabezados válidos.', true);
-          importLoader.classList.add('hidden');
-          importSubmitBtn.disabled = false;
-          return;
-        }
+    reader.onload = function(e) {
+      let text = e.target.result;
 
-        results.data.forEach((row, idx) => {
-          try {
-            // Ignorar filas completamente vacías
-            if (!row || Object.values(row).every(v => v === '')) return;
+      // 💡 Elimina BOM si viene de Numbers
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
 
-            const newProduct = {
-              id: generateId(),
-              itemNumber: sanitizeInput(String(row['ITEM NUMBER'] || '').trim()),
-              description: sanitizeInput(String(row['DESCRIPTION'] || '').trim()),
-              upc: sanitizeInput(String(row['UPC'] || '').trim()),
-              nombre: sanitizeInput(String(row['NOMBRE'] || '').trim()),
-              size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null,
-              qty: row['QTY'] && !isNaN(row['QTY']) ? parseInt(row['QTY']) : 0,
-              costo: row['COSTO'] && !isNaN(parseFloat(String(row['COSTO']).replace(',', '.')))
-                ? parseFloat(String(row['COSTO']).replace(',', '.'))
-                : 0,
-              url: row['URL'] ? sanitizeInput(String(row['URL']).trim()) : '',
-              proveedor: row['PALIMEX'] ? sanitizeInput(String(row['PALIMEX']).trim()) : '',
-              customFields: {},
-              dateAdded: Date.now()
-            };
+      // 🔍 Detectar delimitador automáticamente (coma, punto y coma o tab)
+      const firstLine = text.split('\n')[0];
+      let delimiter = ';';
+      if ((firstLine.match(/,/g) || []).length > (firstLine.match(/;/g) || []).length) delimiter = ',';
+      if ((firstLine.match(/\t/g) || []).length > (firstLine.match(/;/g) || []).length) delimiter = '\t';
 
-            // Guardar campos extra como personalizados
-            for (const [key, val] of Object.entries(row)) {
-              if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
-                if (val != null && val !== '') {
-                  newProduct.customFields[sanitizeInput(key)] = sanitizeInput(String(val).trim());
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        delimiter: delimiter,
+        complete: (results) => {
+          const imported = [];
+          let errors = 0;
+
+          if (!results.data || results.data.length === 0) {
+            showToast('El archivo está vacío o tiene formato incorrecto.', true);
+            importLoader.classList.add('hidden');
+            importSubmitBtn.disabled = false;
+            return;
+          }
+
+          results.data.forEach((row, idx) => {
+            try {
+              if (!row || Object.values(row).every(v => v === '')) return;
+
+              const newProduct = {
+                id: generateId(),
+                itemNumber: sanitizeInput(String(row['ITEM NUMBER'] || '').trim()),
+                description: sanitizeInput(String(row['DESCRIPTION'] || '').trim()),
+                upc: sanitizeInput(String(row['UPC'] || '').trim()),
+                nombre: sanitizeInput(String(row['NOMBRE'] || '').trim()),
+                size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null,
+                qty: row['QTY'] && !isNaN(row['QTY']) ? parseInt(row['QTY']) : 0,
+                costo: row['COSTO'] && !isNaN(parseFloat(String(row['COSTO']).replace(',', '.')))
+                  ? parseFloat(String(row['COSTO']).replace(',', '.'))
+                  : 0,
+                url: row['URL'] ? sanitizeInput(String(row['URL']).trim()) : '',
+                proveedor: row['PALIMEX'] ? sanitizeInput(String(row['PALIMEX']).trim()) : '',
+                customFields: {},
+                dateAdded: Date.now()
+              };
+
+              // Campos extra → personalizados
+              for (const [key, val] of Object.entries(row)) {
+                if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
+                  if (val != null && val !== '') {
+                    newProduct.customFields[sanitizeInput(key)] = sanitizeInput(String(val).trim());
+                  }
                 }
               }
+
+              // Actualizar o agregar
+              const existing = products.find(p =>
+                (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
+                (p.upc && p.upc === newProduct.upc)
+              );
+
+              if (existing) {
+                Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
+              } else {
+                imported.push(newProduct);
+              }
+
+            } catch (e) {
+              console.error(`Error en fila ${idx + 1}:`, e);
+              errors++;
             }
+          });
 
-            // Si ya existe, actualiza; si no, agrega
-            const existing = products.find(p =>
-              (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
-              (p.upc && p.upc === newProduct.upc)
-            );
+          products = [...products, ...imported];
+          saveData();
+          renderAdminProducts();
+          renderPublicTabs();
 
-            if (existing) {
-              Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
-            } else {
-              imported.push(newProduct);
-            }
+          const msg = errors > 0
+            ? `Importados ${imported.length} productos, ${errors} errores.`
+            : `Importados ${imported.length} productos correctamente.`;
+          showToast(msg, errors > 0);
 
-          } catch (e) {
-            console.error(`Error en fila ${idx + 1}:`, e);
-            errors++;
-          }
-        });
+          importModal.classList.add('hidden');
+          importLoader.classList.add('hidden');
+          importSubmitBtn.disabled = false;
+        },
+        error: (err) => {
+          console.error('CSV parse error:', err);
+          showToast('Error al procesar el CSV.', true);
+          importLoader.classList.add('hidden');
+          importSubmitBtn.disabled = false;
+        }
+      });
+    };
 
-        products = [...products, ...imported];
-        saveData();
-        renderAdminProducts();
-        renderPublicTabs();
-
-        const msg = errors > 0
-          ? `Importados ${imported.length} productos, ${errors} errores.`
-          : `Importados ${imported.length} productos correctamente.`;
-        showToast(msg, errors > 0);
-
-        importModal.classList.add('hidden');
-        importLoader.classList.add('hidden');
-        importSubmitBtn.disabled = false;
-      },
-      error: (err) => {
-        console.error('CSV parse error:', err);
-        showToast('Error al procesar el CSV.', true);
-        importLoader.classList.add('hidden');
-        importSubmitBtn.disabled = false;
-      }
-    });
+    reader.readAsText(file, 'UTF-8');
   } catch (e) {
     console.error('Import error:', e);
     showToast('Error al importar CSV.', true);
