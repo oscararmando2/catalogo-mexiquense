@@ -515,7 +515,13 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+<img 
+  src="https://wsrv.nl/?url=${encodeURIComponent(product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen')}&w=500&h=500&fit=cover&we"
+  loading="lazy"
+  alt="${sanitizeInput(product.nombre || 'Producto')}"
+  class="w-full h-48 object-cover rounded-xl bg-gray-100 transition-opacity duration-500 opacity-0"
+  onload="this.classList.remove('opacity-0')"
+  onerror="this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
