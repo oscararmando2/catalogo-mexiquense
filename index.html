@@ -567,12 +567,10 @@ function importFromCSV(file) {
     reader.onload = function(e) {
       let text = e.target.result;
 
-      // 💡 Elimina BOM si viene de Numbers
-      if (text.charCodeAt(0) === 0xFEFF) {
-        text = text.slice(1);
-      }
+      // 💡 Eliminar BOM si viene de Numbers
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
-      // 🔍 Detectar delimitador automáticamente (coma, punto y coma o tab)
+      // 🔍 Detectar delimitador automáticamente
       const firstLine = text.split('\n')[0];
       let delimiter = ';';
       if ((firstLine.match(/,/g) || []).length > (firstLine.match(/;/g) || []).length) delimiter = ',';
@@ -583,6 +581,7 @@ function importFromCSV(file) {
         skipEmptyLines: true,
         dynamicTyping: false,
         delimiter: delimiter,
+        transformHeader: (header) => header.trim().replace(/["']/g, '').toUpperCase(), // 💪 Limpieza total de encabezados
         complete: (results) => {
           const imported = [];
           let errors = 0;
@@ -598,25 +597,36 @@ function importFromCSV(file) {
             try {
               if (!row || Object.values(row).every(v => v === '')) return;
 
+              // Normalizamos las claves del objeto row
+              const cleanRow = {};
+              for (const [key, val] of Object.entries(row)) {
+                cleanRow[key.trim().toUpperCase()] = val;
+              }
+
               const newProduct = {
                 id: generateId(),
-                itemNumber: sanitizeInput(String(row['ITEM NUMBER'] || '').trim()),
-                description: sanitizeInput(String(row['DESCRIPTION'] || '').trim()),
-                upc: sanitizeInput(String(row['UPC'] || '').trim()),
-                nombre: sanitizeInput(String(row['NOMBRE'] || '').trim()),
-                size: row['SIZE'] ? sanitizeInput(String(row['SIZE']).trim()) : null,
-                qty: row['QTY'] && !isNaN(row['QTY']) ? parseInt(row['QTY']) : 0,
-                costo: row['COSTO'] && !isNaN(parseFloat(String(row['COSTO']).replace(',', '.')))
-                  ? parseFloat(String(row['COSTO']).replace(',', '.'))
+                itemNumber: sanitizeInput(String(cleanRow['ITEM NUMBER'] || '').trim()),
+                description: sanitizeInput(String(cleanRow['DESCRIPTION'] || '').trim()),
+                upc: sanitizeInput(String(cleanRow['UPC'] || '').trim()),
+                nombre: sanitizeInput(String(cleanRow['NOMBRE'] || '').trim()),
+                size: cleanRow['SIZE'] ? sanitizeInput(String(cleanRow['SIZE']).trim()) : null,
+                qty: cleanRow['QTY'] && !isNaN(cleanRow['QTY']) ? parseInt(cleanRow['QTY']) : 0,
+                costo: cleanRow['COSTO'] && !isNaN(parseFloat(String(cleanRow['COSTO']).replace(',', '.')))
+                  ? parseFloat(String(cleanRow['COSTO']).replace(',', '.'))
                   : 0,
-                url: row['URL'] ? sanitizeInput(String(row['URL']).trim()) : '',
-                proveedor: row['PALIMEX'] ? sanitizeInput(String(row['PALIMEX']).trim()) : '',
+                url: cleanRow['URL'] ? sanitizeInput(String(cleanRow['URL']).trim()) : '',
+                proveedor: cleanRow['PALIMEX'] ? sanitizeInput(String(cleanRow['PALIMEX']).trim()) : '',
                 customFields: {},
                 dateAdded: Date.now()
               };
 
-              // Campos extra → personalizados
-              for (const [key, val] of Object.entries(row)) {
+              // Guarda PALIMEX también como customField si existe
+              if (cleanRow['PALIMEX']) {
+                newProduct.customFields['PALIMEX'] = sanitizeInput(String(cleanRow['PALIMEX']).trim());
+              }
+
+              // Guardar campos extra como personalizados
+              for (const [key, val] of Object.entries(cleanRow)) {
                 if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
                   if (val != null && val !== '') {
                     newProduct.customFields[sanitizeInput(key)] = sanitizeInput(String(val).trim());
@@ -624,7 +634,7 @@ function importFromCSV(file) {
                 }
               }
 
-              // Actualizar o agregar
+              // Actualizar o agregar producto
               const existing = products.find(p =>
                 (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
                 (p.upc && p.upc === newProduct.upc)
@@ -673,7 +683,6 @@ function importFromCSV(file) {
     importSubmitBtn.disabled = false;
   }
 }
-
         // ==== Validación + libs + vistas ====
         function validateForm(_, fields){
             let ok=true;
