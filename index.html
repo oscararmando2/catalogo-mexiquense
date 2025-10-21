@@ -116,6 +116,7 @@
                 </div>
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+                <div id="publicPagination" class="mt-6 flex justify-center items-center gap-3 hidden"></div>
             </div>
         </section>
 
@@ -139,7 +140,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden">
-                                <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+                                <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
                             <div class="space-y-2" id="productFields">
@@ -187,7 +188,7 @@
             <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
                     <h3 id="formTitle" class="text-xl font-bold">Nuevo Producto</h3>
-                    <button id="closeFormModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    <button id="closeFormModal" class="text-white hover-text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
                 <div class="p-6 overflow-y-auto custom-scrollbar">
                     <form id="productForm" class="space-y-4">
@@ -212,7 +213,7 @@
                             </div>
                             <div>
                                 <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Tamaño*</label>
-                                <input type="text" id="size" name="size" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="text" id="size" name="size" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus-outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                                 <p id="sizeError" class="error-message hidden"></p>
                             </div>
                         </div>
@@ -234,7 +235,7 @@
                         </div>
                         <div>
                             <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción*</label>
-                            <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                            <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus-border-transparent"></textarea>
                             <p id="descriptionError" class="error-message hidden"></p>
                         </div>
                         <div class="pt-4 flex justify-end space-x-2">
@@ -305,6 +306,10 @@
         const adminPassword = 'admin123';
         let products = [];
         const selection = new Set();
+        const PUBLIC_PAGE_SIZE = 20;
+        let currentPublicPage = 1;
+        let lastPublicSearchTerm = '';
+        let lastPublicTotalPages = 1;
         let currentView = 'public';
 
         // ==== DOM ====
@@ -317,6 +322,7 @@
         const publicViewBtn = document.getElementById('publicViewBtn');
         const publicTabs = document.getElementById('publicTabs');
         const publicTabContent = document.getElementById('publicTabContent');
+        const publicPagination = document.getElementById('publicPagination');
         const adminButtons = document.getElementById('adminButtons');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
@@ -351,7 +357,7 @@
         // Campos del modal de detalles
         const modalProductTitle = document.getElementById('modalProductTitle');
         const productItemNumber = document.getElementById('productItemNumber');
-        const productUpc = document.getElementById('productUpc');
+        the productUpc = document.getElementById('productUpc');
         const productSize = document.getElementById('productSize');
         const productQty = document.getElementById('productQty');
         const productDescription = document.getElementById('productDescription');
@@ -449,7 +455,7 @@
                 if(selection.has(product.id)) card.classList.add('selected-card');
                 card.innerHTML = `
                     <div class='product-image-container relative'>
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' loading='lazy' decoding='async' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -467,10 +473,15 @@
         }
 
         // ==== Render PUBLIC (NEW solo aquí) ====
-        function renderPublicTabs(searchTerm=''){
+        function renderPublicTabs(searchTerm = lastPublicSearchTerm, resetPage = false){
             publicTabs.innerHTML = '';
             publicTabContent.innerHTML = '';
             publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+
+            if(typeof searchTerm !== 'string') searchTerm = '';
+            searchTerm = searchTerm.trim();
+            lastPublicSearchTerm = searchTerm;
+            if(resetPage) currentPublicPage = 1;
 
             let filtered = [...products];
             if(searchTerm){
@@ -478,7 +489,13 @@
                 filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
             }
             if(filtered.length===0){
+                currentPublicPage = 1;
+                lastPublicTotalPages = 1;
                 publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                if(publicPagination){
+                    publicPagination.innerHTML = '';
+                    publicPagination.classList.add('hidden');
+                }
                 return;
             }
             // Orden: nuevos primero, viejos aleatorios
@@ -487,7 +504,30 @@
             for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
             const ordered = [...newOnes, ...oldOnes];
 
-            renderPublicProducts(ordered, publicTabContent);
+            const totalPages = Math.max(1, Math.ceil(ordered.length / PUBLIC_PAGE_SIZE));
+            lastPublicTotalPages = totalPages;
+            if(currentPublicPage > totalPages) currentPublicPage = totalPages;
+
+            const startIndex = (currentPublicPage - 1) * PUBLIC_PAGE_SIZE;
+            const pageItems = ordered.slice(startIndex, startIndex + PUBLIC_PAGE_SIZE);
+
+            renderPublicProducts(pageItems, publicTabContent);
+            renderPaginationControls(totalPages);
+        }
+
+        function renderPaginationControls(totalPages){
+            if(!publicPagination) return;
+            if(totalPages <= 1){
+                publicPagination.innerHTML = '';
+                publicPagination.classList.add('hidden');
+                return;
+            }
+            publicPagination.classList.remove('hidden');
+            publicPagination.innerHTML = `
+                <button data-action="prev" class="px-3 py-1 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed" ${currentPublicPage === 1 ? 'disabled' : ''}>Anterior</button>
+                <span class="text-sm text-gray-600">Página ${currentPublicPage} de ${totalPages}</span>
+                <button data-action="next" class="px-3 py-1 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed" ${currentPublicPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+            `;
         }
 
         function renderPublicProducts(list, container){
@@ -498,7 +538,7 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' loading='lazy' decoding='async' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -722,7 +762,7 @@ function importFromCSV(file) {
         // ==== Toast ====
         function showToast(message, isError=false){
             toastMessage.textContent = message;
-            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 ${isError ? 'bg-red-600' : 'bg-gray-800'} text-white`;
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duración-300 flex items-center z-50 ${isError ? 'bg-red-600' : 'bg-gray-800'} text-white`;
             toast.classList.remove('translate-y-20','opacity-0');
             setTimeout(()=> toast.classList.add('translate-y-20','opacity-0'), 3000);
         }
@@ -731,7 +771,7 @@ function importFromCSV(file) {
         function setupEventListeners(){
             // Búsquedas
             if(searchInput) searchInput.addEventListener('input', debounce(renderAdminProducts, 300));
-            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(sanitizeInput(publicSearchInput.value)), 300));
+            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(publicSearchInput.value, true), 300));
 
             // Cierre modales
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
@@ -753,6 +793,20 @@ function importFromCSV(file) {
             // Delegación ver detalles
             productsContainer.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
             publicTabContent.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
+            if(publicPagination){
+                publicPagination.addEventListener('click', (e)=>{
+                    const btn = e.target.closest('button[data-action]');
+                    if(!btn) return;
+                    e.preventDefault();
+                    if(btn.dataset.action==='prev' && currentPublicPage>1){
+                        currentPublicPage--;
+                        renderPublicTabs();
+                    } else if(btn.dataset.action==='next' && currentPublicPage<lastPublicTotalPages){
+                        currentPublicPage++;
+                        renderPublicTabs();
+                    }
+                });
+            }
 
             // Eliminar individual desde modal
             deleteProductBtn.addEventListener('click', ()=>{
@@ -770,7 +824,7 @@ function importFromCSV(file) {
             function updateSaveCustomButton(){ saveCustomField.disabled = !(customKey.value.trim() && customValue.value.trim()); }
             customKey.addEventListener('input', updateSaveCustomButton); customValue.addEventListener('input', updateSaveCustomButton);
             saveCustomField.addEventListener('click', ()=>{
-                const key=sanitizeInput(customKey.value.trim()); const value=sanitizeInput(customValue.value.trim()); if(!key){ showToast('La clave es obligatoria.', true); return; }
+                const key=sanitizeInput(customKey.value.trim()); const value=sanitizeInput(customValue.value.trim()); if(!key){showToast('La clave es obligatoria.', true); return; }
                 const id=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===id);
                 if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(); }
             });
