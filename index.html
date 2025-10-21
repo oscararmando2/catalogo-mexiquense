@@ -22,45 +22,22 @@
     <!-- Apple Touch Icon (opcional) -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180x180.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<style>
-    body { font-family: 'Poppins', sans-serif; background-color: #fefce8; }
-    .header-bg { background: linear-gradient(to right, #dc2626, #b91c1c); }
-    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f5f5f5; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b91c1c; }
-    .error-message { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
-    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #dc2626; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .product-image-container {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 1 / 1; /* Fuerza un contenedor cuadrado */
-        max-width: 250px; /* Tamaño máximo para e-commerce */
-        margin: 0 auto; /* Centrado */
-    }
-    .product-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Llena el contenedor, recortando si es necesario */
-        border-radius: 8px;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-    }
-    .selected-card { outline: 2px solid #dc2626; background: #fef2f2; }
-    .btn-primary { background-color: #dc2626; color: white; transition: background-color 0.2s ease; }
-    .btn-primary:hover { background-color: #b91c1c; }
-    .btn-secondary { background-color: #fefce8; color: #dc2626; border: 1px solid #dc2626; transition: background-color 0.2s ease; }
-    .btn-secondary:hover { background-color: #fee2e2; }
-    @media (max-width: 640px) {
-        .product-image-container { max-width: 150px; } /* Más pequeño en móviles */
-        .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); } /* Grid más compacto */
-    }
-</style>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a5b4fc; }
+        .error-message { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+        .product-image-container { position: relative; width: 100%; padding-top: 100%; }
+        .product-image { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; border-radius:8px; background:#f9f9f9; }
+        /* Selección múltiple (admin) */
+        .selected-card { outline: 2px solid rgb(59 130 246); background: rgb(239 246 255); }
+    </style>
 </head>
 <body>
     <div class="min-h-screen flex flex-col">
@@ -165,23 +142,6 @@
                                 <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
-                            <!-- Botón para cambiar imagen (solo admin) -->
-<div class="mt-2 admin-only text-center">
-    <button id="changeImageBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all">
-        Cambiar imagen 🔄
-    </button>
-</div>
-
-<!-- Formulario oculto para nueva URL -->
-<div id="changeImageForm" class="hidden mt-4 admin-only">
-    <label for="newImageUrl" class="block text-sm font-medium text-gray-700 mb-1">Nueva URL de imagen:</label>
-    <input type="url" id="newImageUrl" placeholder="https://..." class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-    <div class="flex justify-end space-x-2 mt-2">
-        <button id="cancelImageChange" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-        <button id="saveImageChange" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Guardar</button>
-    </div>
-</div>
-
                             <div class="space-y-2" id="productFields">
                                 <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
                                 <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
@@ -538,13 +498,7 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-<img 
-  src="https://wsrv.nl/?url=${encodeURIComponent(product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen')}&w=500&h=500&fit=cover&we"
-  loading="lazy"
-  alt="${sanitizeInput(product.nombre || 'Producto')}"
-  class="w-full h-48 object-cover rounded-xl bg-gray-100 transition-opacity duration-500 opacity-0"
-  onload="this.classList.remove('opacity-0')"
-  onerror="this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -913,48 +867,7 @@ function importFromCSV(file) {
                 input.addEventListener('blur', saveChange); input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
             });
         })();
-// ==== CAMBIAR IMAGEN MANUALMENTE ====
-const changeImageBtn = document.getElementById('changeImageBtn');
-const changeImageForm = document.getElementById('changeImageForm');
-const newImageUrl = document.getElementById('newImageUrl');
-const cancelImageChange = document.getElementById('cancelImageChange');
-const saveImageChange = document.getElementById('saveImageChange');
 
-if (changeImageBtn && changeImageForm) {
-  changeImageBtn.addEventListener('click', () => {
-    changeImageBtn.classList.add('hidden');
-    changeImageForm.classList.remove('hidden');
-    newImageUrl.value = '';
-  });
-
-  cancelImageChange.addEventListener('click', () => {
-    changeImageForm.classList.add('hidden');
-    changeImageBtn.classList.remove('hidden');
-  });
-
-  saveImageChange.addEventListener('click', () => {
-    const url = newImageUrl.value.trim();
-    if (!url) {
-      showToast('Por favor ingresa una URL válida.', true);
-      return;
-    }
-
-    const id = deleteProductBtn.dataset.id;
-    const product = products.find(p => p.id === id);
-    if (!product) {
-      showToast('No se encontró el producto.', true);
-      return;
-    }
-
-    product.url = sanitizeInput(url);
-    saveData();
-    showProductDetails(id);
-    showToast('Imagen actualizada correctamente.');
-
-    changeImageForm.classList.add('hidden');
-    changeImageBtn.classList.remove('hidden');
-  });
-}
         // ==== Init ====
         function init(){ loadData(); setupEventListeners(); checkLibraries(); showView('public'); }
         document.addEventListener('DOMContentLoaded', init);
