@@ -116,18 +116,6 @@
                 </div>
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
-                <!-- Controles de paginación -->
-<div id="paginationControls" class="mt-6 flex justify-center items-center space-x-4">
-    <button id="prevPageBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-        Anterior
-    </button>
-    <span class="text-gray-700">
-        Página <span id="currentPageDisplay">1</span> de <span id="totalPagesDisplay">1</span>
-    </span>
-    <button id="nextPageBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-        Siguiente
-    </button>
-</div>
             </div>
         </section>
 
@@ -307,10 +295,6 @@
             databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
             projectId: "catalogomexiquense",
             storageBucket: "catalogomexiquense.appspot.com",
-            // Variables de paginación
-const ITEMS_PER_PAGE = 20;
-let currentPage = 1;
-let filteredProducts = [];
             messagingSenderId: "TU_SENDER_ID_AQUI",
             appId: "TU_APP_ID_AQUI"
         };
@@ -484,84 +468,47 @@ let filteredProducts = [];
 
         // ==== Render PUBLIC (NEW solo aquí) ====
         function renderPublicTabs(searchTerm=''){
-    publicTabs.innerHTML = '';
-    publicTabContent.innerHTML = '';
-    publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+            publicTabs.innerHTML = '';
+            publicTabContent.innerHTML = '';
+            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
-    let filtered = [...products];
-    if(searchTerm){
-        const s = searchTerm.toLowerCase();
-        filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
-    }
-    if(filtered.length===0){
-        publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0[...]
-        return;
-    }
-    // Orden: nuevos primero, viejos aleatorios
-    const newOnes = filtered.filter(isNewProduct);
-    const oldOnes = filtered.filter(p=> !isNewProduct(p));
-    for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
-    const ordered = [...newOnes, ...oldOnes];
+            let filtered = [...products];
+            if(searchTerm){
+                const s = searchTerm.toLowerCase();
+                filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
+            }
+            if(filtered.length===0){
+                publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                return;
+            }
+            // Orden: nuevos primero, viejos aleatorios
+            const newOnes = filtered.filter(isNewProduct);
+            const oldOnes = filtered.filter(p=> !isNewProduct(p));
+            for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
+            const ordered = [...newOnes, ...oldOnes];
 
-    renderPublicProducts(ordered, publicTabContent);
-}
+            renderPublicProducts(ordered, publicTabContent);
+        }
 
-        function renderPublicProducts(list, container) {
-    // Guardar lista completa para paginación
-    filteredProducts = list;
-    
-    // Calcular paginación
-    const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const pageItems = list.slice(startIndex, endIndex);
-    
-    // Actualizar controles de paginación
-    document.getElementById('currentPageDisplay').textContent = currentPage;
-    document.getElementById('totalPagesDisplay').textContent = totalPages;
-    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
-    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
-    
-    // Limpiar contenedor
-    container.innerHTML = '';
-    
-    // Mostrar mensaje si no hay productos
-    if (pageItems.length === 0) {
-        container.innerHTML = `
-            <div class="col-span-full text-center py-12">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron productos</h3>
-                <p class="mt-1 text-gray-500">Intenta con otra búsqueda.</p>
-            </div>`;
-        return;
-    }
-    
-    // Renderizar productos de la página actual
-    pageItems.forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
-        card.innerHTML = `
-            <div class="product-image-container relative">
-                ${isNewProduct(product) ? `<span class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse">NEW</span>` : ''}
-                <img loading="lazy" 
-                     src="${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}" 
-                     alt="${sanitizeInput(product.nombre || 'Producto')}" 
-                     class="product-image" 
-                     onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
-            </div>
-            <div class="p-5">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
-                <div class="flex justify-center">
-                    <button class="view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${product.id}">
-                        Ver detalles
-                    </button>
-                </div>
-            </div>`;
-        container.appendChild(card);
-    });
-}
+        function renderPublicProducts(list, container){
+            container.innerHTML = '';
+            list.forEach(product=>{
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+                card.innerHTML = `
+                    <div class='product-image-container relative'>
+                        ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                    </div>
+                    <div class='p-5'>
+                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
+                        <div class='flex justify-center'>
+                            <button class='view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
 
         // ==== Selección (admin) ====
         function toggleSelection(id, cardEl){ if(selection.has(id)) selection.delete(id); else selection.add(id); if(cardEl) cardEl.classList.toggle('selected-card'); updateDeleteButton(); }
@@ -816,30 +763,6 @@ function importFromCSV(file) {
                     if(selection.has(id)) selection.delete(id); updateDeleteButton();
                 }
             });
-            // Agregar después de los event listeners existentes
-// Paginación
-document.getElementById('prevPage').addEventListener('click', () => {
-    if (currentPage > 1) {
-        currentPage--;
-        renderPublicProducts(filteredProducts, publicTabContent);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-});
-
-document.getElementById('nextPage').addEventListener('click', () => {
-    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-    if (currentPage < totalPages) {
-        currentPage++;
-        renderPublicProducts(filteredProducts, publicTabContent);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-});
-
-// Resetear paginación en búsqueda
-publicSearchInput.addEventListener('input', debounce(() => {
-    currentPage = 1; // Resetear a la primera página cuando se busca
-    renderPublicTabs(sanitizeInput(publicSearchInput.value));
-}, 300));
 
             // Custom fields
             addCustomFieldBtn.addEventListener('click', ()=>{ customFieldForm.classList.remove('hidden'); addCustomFieldBtn.classList.add('hidden'); customKey.value=''; customValue.value=''; saveCustomField.disabled=true; });
