@@ -633,21 +633,17 @@ function importFromCSV(file) {
                   }
                 }
               }
-             // ✅ Arreglo: no sobrescribir productos ni fusionar por error
-if (
-  newProduct.itemNumber &&
-  products.some(p => p.itemNumber === newProduct.itemNumber)
-) {
-  // Ya existe un producto con ese itemNumber: solo lo actualizamos si el UPC también coincide
-  const existing = products.find(p =>
-    p.itemNumber === newProduct.itemNumber && p.upc === newProduct.upc
-  );
-  if (existing) Object.assign(existing, newProduct);
-  else imported.push(newProduct);
-} else {
-  // Si el itemNumber está vacío o es nuevo, se agrega sin tocar los demás
-  imported.push(newProduct);
-}
+
+              // Actualizar o agregar producto
+              const existing = products.find(p =>
+                (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
+                (p.upc && p.upc === newProduct.upc)
+              );
+
+              if (existing) {
+                Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
+              } else {
+                imported.push(newProduct);
               }
 
             } catch (e) {
