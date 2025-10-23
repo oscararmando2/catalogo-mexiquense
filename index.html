@@ -633,17 +633,17 @@ function importFromCSV(file) {
                   }
                 }
               }
-
               // Actualizar o agregar producto
-              const existing = products.find(p =>
-                (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
-                (p.upc && p.upc === newProduct.upc)
-              );
-
-              if (existing) {
-                Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
-              } else {
-                imported.push(newProduct);
+             const existing = products.find(p => 
+  (newProduct.itemNumber && p.itemNumber === newProduct.itemNumber) || 
+  (newProduct.upc && p.upc === newProduct.upc)
+);
+if (existing) {
+  // Solo actualiza si los dos códigos existen y coinciden
+  Object.assign(existing, newProduct);
+} else {
+  imported.push(newProduct);
+}
               }
 
             } catch (e) {
