@@ -1,272 +1,876 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="El Mexiquense Market: Supermercado latino con frescura diaria, precios justos y calidad garantizada. Ofertas exclusivas, remesas, tienda en línea y más en Missouri.">
-    <title>El Mexiquense Market | Sabor Latino en Cada Compra</title>
-    <!-- Tailwind CSS CDN para diseño rápido y responsive -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome para icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SEO Schema para productos -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "GroceryStore",
-      "name": "El Mexiquense Market",
-      "address": [{"@type": "PostalAddress", "addressLocality": "Overland, Missouri"}, {"@type": "PostalAddress", "addressLocality": "St. Charles, Missouri"}],
-      "openingHours": "Mo-Su 09:00-21:00"
-    }
-    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MEXIQUENSE - Catálogo de Productos (V4)</title>
+
+    <!-- Tailwind + fuentes -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- jsPDF / html2canvas / PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+    <!-- Apple Touch Icon (opcional) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
     <style>
-        /* Custom styles si Tailwind no basta */
-        .countdown { font-weight: bold; color: red; }
-        .badge-discount { @apply bg-red-600 text-white px-2 py-1 rounded text-xs; }
-        img { @apply lazy; } /* Lazy loading nativo */
+        body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a5b4fc; }
+        .error-message { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+        .product-image-container { position: relative; width: 100%; padding-top: 100%; }
+        .product-image { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; border-radius:8px; background:#f9f9f9; }
+        /* Selección múltiple (admin) */
+        .selected-card { outline: 2px solid rgb(59 130 246); background: rgb(239 246 255); }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
-
-    <!-- Header con menú fijo -->
-    <header class="bg-green-700 text-white sticky top-0 z-50 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center p-4">
-            <h1 class="text-2xl font-bold">El Mexiquense</h1>
-            <nav class="hidden md:flex space-x-4">
-                <a href="#inicio" class="hover:underline">Inicio</a>
-                <a href="#ofertas" class="hover:underline">Ofertas</a>
-                <a href="#tienda" class="hover:underline">Tienda Online</a>
-                <a href="#servicios" class="hover:underline">Servicios</a>
-                <a href="#recetas" class="hover:underline">Recetas</a>
-                <a href="#loteria" class="hover:underline">Lotería</a>
-                <a href="#rewards" class="hover:underline">Rewards</a>
-                <a href="#contacto" class="hover:underline">Contacto</a>
-            </nav>
-            <div class="flex items-center space-x-4">
-                <button id="lang-toggle" class="bg-white text-green-700 px-3 py-1 rounded">EN</button>
-                <div class="relative">
-                    <i class="fas fa-shopping-cart text-xl cursor-pointer" id="cart-icon"></i>
-                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2 py-1 hidden">0</span>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                        </svg>
+                        <h1 class="text-2xl md:text-3xl font-bold">MEXIQUENSE</h1>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
+                        <button id="publicViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
+                        <div id="adminButtons" class="flex flex-wrap gap-2">
+                            <button id="importBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                                Importar CSV
+                            </button>
+                            <button id="exportBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                Exportar PDF
+                            </button>
+                            <button id="addProductBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                                Nuevo Producto
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button class="md:hidden" id="menu-toggle"><i class="fas fa-bars"></i></button>
+            </div>
+        </header>
+
+        <!-- Admin View -->
+        <section id="adminView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center md:space-x-4 gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="selectAll" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="selectAll" class="text-gray-700 font-medium">Seleccionar Todos</label>
+                </div>
+                <button id="deleteSelected" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Eliminar Seleccionados
+                </button>
+                <div class="text-sm text-gray-600">Mantén <b>Ctrl</b> (Windows) o <b>Cmd</b> (Mac) y haz clic en los productos para seleccionar varios. También puedes arrastrar para seleccionar.</div>
+            </div>
+
+            <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+        </section>
+
+        <!-- Public View -->
+        <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
+            <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
+                <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+                    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="flex-grow">
+                            <div class="relative">
+                                <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
+                <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-6">
+            <div class="container mx-auto px-4 text-center">
+                <p>© 2025 MEXIQUENSE - Sistema de Catálogo</p>
+            </div>
+        </footer>
+
+        <!-- Modal Detalle -->
+        <div id="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 id="modalProductTitle" class="text-xl font-bold">Detalles del Producto</h3>
+                    <button id="closeDetailModal" class="text-white hover:text-indigo-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto custom-scrollbar flex-grow">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden">
+                                <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+                                <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div class="space-y-2" id="productFields">
+                                <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
+                                <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
+                                <p><strong>Tamaño:</strong> <span id="productSize" class="text-gray-700"></span></p>
+                                <p><strong>Cantidad:</strong> <span id="productQty" class="text-gray-700"></span></p>
+                            </div>
+                            <div id="customFields" class="space-y-2 mt-4"></div>
+                            <div class="mt-4 admin-only">
+                                <button id="addCustomFieldBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Agregar Campo Personalizado</button>
+                            </div>
+                            <div id="customFieldForm" class="hidden mt-4 space-y-4 admin-only">
+                                <div>
+                                    <label for="customKey" class="block text-sm font-medium text-gray-700 mb-1">Clave (ej. Palimex):</label>
+                                    <input type="text" id="customKey" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                    <p id="customKeyError" class="error-message hidden"></p>
+                                </div>
+                                <div>
+                                    <label for="customValue" class="block text-sm font-medium text-gray-700 mb-1">Valor (ej. $3.80):</label>
+                                    <input type="text" id="customValue" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                </div>
+                                <div class="flex justify-end space-x-2">
+                                    <button id="cancelCustomField" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                                    <button id="saveCustomField" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50" disabled>Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-semibold mb-2">Descripción</h4>
+                            <p id="productDescription" class="text-gray-700 mb-4"></p>
+                            <h4 class="text-lg font-semibold mb-2">Costo</h4>
+                            <p id="productCosto" class="text-2xl font-bold text-indigo-600 mb-4"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end p-6 pt-0 admin-only">
+                    <button id="deleteProductBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Eliminar</button>
+                </div>
             </div>
         </div>
-        <!-- Mobile menu -->
-        <nav class="md:hidden hidden" id="mobile-menu">
-            <ul class="flex flex-col space-y-2 p-4 bg-green-600">
-                <li><a href="#inicio" class="block hover:underline">Inicio</a></li>
-                <!-- ... repetir links ... -->
-            </ul>
-        </nav>
-    </header>
 
-    <!-- Hero Banner con Countdown Miercolazo -->
-    <section id="inicio" class="bg-gradient-to-r from-yellow-400 to-green-600 text-white py-16 text-center">
-        <div class="container mx-auto">
-            <h2 class="text-4xl font-bold mb-4">¡El Sabor de Latino en Cada Compra!</h2>
-            <p class="text-xl mb-6">Frescura diaria • Precios justos • Calidad garantizada</p>
-            <div class="bg-white text-green-700 p-6 rounded-lg inline-block">
-                <h3 class="text-2xl font-bold">¡Miercolazo de Descuento!</h3>
-                <p id="countdown-text" class="countdown text-3xl"></p>
-                <p>Promociones válidas solo los miércoles. ¡Se renuevan cada semana!</p>
+        <!-- Modal Formulario Producto -->
+        <div id="productFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 id="formTitle" class="text-xl font-bold">Nuevo Producto</h3>
+                    <button id="closeFormModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                </div>
+                <div class="p-6 overflow-y-auto custom-scrollbar">
+                    <form id="productForm" class="space-y-4">
+                        <input type="hidden" id="productId" />
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="itemNumber" class="block text-sm font-medium text-gray-700 mb-1">Número de Ítem*</label>
+                                <input type="text" id="itemNumber" name="itemNumber" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="itemNumberError" class="error-message hidden"></p>
+                            </div>
+                            <div>
+                                <label for="upc" class="block text-sm font-medium text-gray-700 mb-1">UPC*</label>
+                                <input type="text" id="upc" name="upc" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="upcError" class="error-message hidden"></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre*</label>
+                                <input type="text" id="nombre" name="nombre" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="nombreError" class="error-message hidden"></p>
+                            </div>
+                            <div>
+                                <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Tamaño*</label>
+                                <input type="text" id="size" name="size" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="sizeError" class="error-message hidden"></p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="qty" class="block text-sm font-medium text-gray-700 mb-1">Cantidad*</label>
+                                <input type="number" id="qty" name="qty" required min="0" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="qtyError" class="error-message hidden"></p>
+                            </div>
+                            <div>
+                                <label for="costo" class="block text-sm font-medium text-gray-700 mb-1">Costo*</label>
+                                <input type="number" id="costo" name="costo" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <p id="costoError" class="error-message hidden"></p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="url" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen (opcional)</label>
+                            <input type="url" id="url" name="url" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción*</label>
+                            <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                            <p id="descriptionError" class="error-message hidden"></p>
+                        </div>
+                        <div class="pt-4 flex justify-end space-x-2">
+                            <button type="button" id="cancelProductBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar Producto</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </section>
 
-    <!-- Ofertas Exclusivas -->
-    <section id="ofertas" class="py-12 bg-white">
-        <div class="container mx-auto">
-            <h2 class="text-3xl font-bold text-center mb-8">Ofertas del Miercolazo</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- Card ejemplo: repite para cada oferta -->
-                <div class="border rounded-lg p-4 shadow hover:shadow-lg">
-                    <img src="https://source.unsplash.com/random/300x200/?tomate" alt="Tomate Roma Fresco" loading="lazy" class="w-full h-40 object-cover rounded">
-                    <h4 class="font-semibold mt-2">Tomate Roma Fresco</h4>
-                    <p class="text-sm text-gray-600">Antes: <s>$0.79/lb</s></p>
-                    <p class="text-lg font-bold text-red-600">Ahora: $0.40/lb <span class="badge-discount">-49%</span></p>
-                    <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded mt-2 w-full" data-name="Tomate Roma" data-price="0.40">Agregar al Carrito</button>
+        <!-- Modal Import CSV -->
+        <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-xl font-bold">Importar Productos desde CSV</h3>
+                    <button id="closeImportModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
-                <!-- Repite para: Aguacate ($1.29), Pechuga Pollo ($2.79/lb), Queso Fresco ($4.25), etc. Usa los precios del doc -->
-                <!-- ... Agrega todas las 13 ofertas aquí con datos exactos ... -->
-            </div>
-            <p class="text-center mt-8"><a href="https://wa.me/1234567890" target="_blank" class="bg-green-600 text-white px-6 py-3 rounded">Únete a WhatsApp para más ofertas</a></p>
-        </div>
-    </section>
-
-    <!-- Productos Destacados -->
-    <section class="py-12 bg-gray-100">
-        <div class="container mx-auto">
-            <h2 class="text-3xl font-bold text-center mb-8">Productos Exclusivos</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- Ejemplo: Huevo -->
-                <div class="border rounded-lg p-4 shadow">
-                    <img src="https://source.unsplash.com/random/300x200/?huevos" alt="Huevo Best Choice 12 pack" loading="lazy" class="w-full h-40 object-cover">
-                    <h4 class="font-semibold">Huevo Best Choice 12 pack</h4>
-                    <p class="text-sm">Docena fresca para desayunos llenos de energía.</p>
-                    <p class="text-lg font-bold">$1.99</p>
-                    <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded mt-2 w-full" data-name="Huevo 12pk" data-price="1.99">Agregar</button>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">Sube un archivo CSV con los siguientes encabezados: ITEM NUMBER, DESCRIPTION, UPC, NOMBRE, SIZE, QTY, COSTO, URL (URL es opcional). Usa comas como separador.</p>
+                    <form id="importForm" class="space-y-4">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input type="file" id="csvFile" name="csvFile" accept=".csv" class="hidden" />
+                            <label for="csvFile" class="cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                                <span class="mt-2 block text-sm font-medium text-indigo-600">Haz clic para seleccionar archivo</span>
+                                <span id="fileName" class="mt-1 block text-sm text-gray-500">Ningún archivo seleccionado</span>
+                            </label>
+                        </div>
+                        <div id="importLoader" class="hidden"><div class="loader"></div><p class="text-gray-600 mt-2">Importando...</p></div>
+                        <div class="pt-4 flex justify-end"><button type="submit" id="importSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Importar</button></div>
+                    </form>
                 </div>
-                <!-- Repite para todos: Leche $2.79, Pan dulce $4.25, Tortillas $2.49, Frijoles $1.89, Arroz $2.29, Aceite $4.99, Queso Panela $5.49, Crema $3.19, Salsa $1.59, Jalapeños $2.39, Café $6.99 -->
             </div>
         </div>
-    </section>
 
-    <!-- Tienda Online -->
-    <section id="tienda" class="py-12 bg-white">
-        <div class="container mx-auto">
-            <h2 class="text-3xl font-bold text-center mb-8">Tienda en Línea</h2>
-            <p class="text-center mb-6">Compra desde casa • Envíos a todo EE.UU. • Pagos seguros</p>
-            <input type="text" id="search" placeholder="Buscar productos..." class="w-full max-w-md mx-auto p-3 border rounded mb-6">
-            <!-- Los grids de arriba se filtran con JS -->
-            <p class="text-center"><a href="#" class="bg-green-600 text-white px-6 py-3 rounded">Ver Carrito</a></p>
-        </div>
-    </section>
+        <!-- Toast -->
+        <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50"><span id="toastMessage">Operación completada con éxito</span></div>
 
-    <!-- Servicios Unificados -->
-    <section id="servicios" class="py-12 bg-gray-100">
-        <div class="container mx-auto">
-            <h2 class="text-3xl font-bold text-center mb-8">Servicios</h2>
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="text-center p-6 border rounded">
-                    <i class="fas fa-paper-plane text-4xl text-green-600 mb-4"></i>
-                    <h3 class="font-bold">Envía Remesas</h3>
-                    <p>Fácil, rápido y seguro a Latinoamérica (México, Colombia, Venezuela, Honduras, El Salvador, Guatemala).</p>
-                    <a href="#" class="text-green-600">Más detalles</a>
+        <!-- Modal Password Admin -->
+        <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold text-indigo-600 mb-4">Ingresar Contraseña para Administración</h3>
+                <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4" />
+                <div class="flex justify-end space-x-2">
+                    <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
                 </div>
-                <div class="text-center p-6 border rounded">
-                    <i class="fas fa-money-check text-4xl text-green-600 mb-4"></i>
-                    <h3 class="font-bold">Cambio de Cheques</h3>
-                    <p>Trae ID oficial, tarifas bajas (sujeto a disponibilidad).</p>
-                    <a href="#" class="text-green-600">Saber más</a>
-                </div>
-                <!-- Agrega WhatsApp si quieres -->
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Recetas, Lotería, Rewards -->
-    <section id="recetas" class="py-12 bg-white"> <!-- Similar grid para recetas placeholder --> </section>
-    <section id="loteria" class="py-12 bg-gray-100">
-        <div class="container mx-auto text-center">
-            <h2 class="text-3xl font-bold mb-8">Lotería El Mexiquense</h2>
-            <p>¡Juega con familia! Descarga app o juega aquí.</p>
-            <div id="loteria-board" class="grid grid-cols-4 gap-2 max-w-md mx-auto my-8"><!-- 16 cards clickable con JS --></div>
-            <button class="bg-green-600 text-white px-6 py-3 rounded">Jugar Ahora</button>
-        </div>
-    </section>
-    <section id="rewards" class="py-12 bg-white">
-        <div class="container mx-auto text-center">
-            <h2 class="text-3xl font-bold mb-8">Programa de Lealtad</h2>
-            <p>Acumula puntos y canjea descuentos.</p>
-            <form class="max-w-md mx-auto">
-                <input type="email" placeholder="Tu email" class="w-full p-3 border mb-4 rounded">
-                <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded w-full">Inscribirme</button>
-            </form>
-        </div>
-    </section>
-
-    <!-- Contacto y Footer -->
-    <section id="contacto" class="py-12 bg-gray-100">
-        <div class="container mx-auto">
-            <h2 class="text-3xl font-bold text-center mb-8">Contáctanos</h2>
-            <p class="text-center">Horarios: Todos los días 9:00 a.m. – 9:00 p.m.</p>
-            <p class="text-center">Tiendas: Overland | St. Charles</p>
-            <form class="max-w-md mx-auto mt-8">
-                <!-- Campos nombre, email, mensaje -->
-            </form>
-        </div>
-    </section>
-
-    <footer class="bg-green-700 text-white py-6 text-center">
-        <p>&copy; 2025 El Mexiquense Market. Todos los derechos reservados.</p>
-        <div class="flex justify-center space-x-4 mt-4">
-            <a href="#"><i class="fab fa-facebook"></i></a>
-            <a href="#"><i class="fab fa-instagram"></i></a>
-        </div>
-    </footer>
-
-    <!-- WhatsApp Widget Flotante -->
-    <a href="https://wa.me/1234567890" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-full shadow-lg"><i class="fab fa-whatsapp text-2xl"></i></a>
-
-    <!-- JS: Countdown, Carrito, Búsqueda, Lotería, Lang, Mobile Menu -->
     <script>
-        // Countdown Miercolazo
-        function updateCountdown() {
-            const now = new Date();
-            const day = now.getDay(); // 0=Dom, 3=Mier
-            const target = new Date(now);
-            if (day === 3) {
-                target.setHours(23, 59, 59, 999); // Fin del día
-            } else {
-                const daysToWed = (3 - day + 7) % 7 || 7;
-                target.setDate(now.getDate() + daysToWed);
-                target.setHours(0, 0, 0, 0);
+        // ==== Firebase (reemplaza con tus credenciales reales) ====
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI",
+            authDomain: "catalogomexiquense.firebaseapp.com",
+            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+            projectId: "catalogomexiquense",
+            storageBucket: "catalogomexiquense.appspot.com",
+            messagingSenderId: "TU_SENDER_ID_AQUI",
+            appId: "TU_APP_ID_AQUI"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ==== Estado ====
+        const adminPassword = 'admin123';
+        let products = [];
+        const selection = new Set();
+        let currentView = 'public';
+
+        // ==== DOM ====
+        const productsContainer = document.getElementById('productsContainer');
+        const searchInput = document.getElementById('searchInput');
+        const publicSearchInput = document.getElementById('publicSearchInput');
+        const adminView = document.getElementById('adminView');
+        const publicView = document.getElementById('publicView');
+        const adminViewBtn = document.getElementById('adminViewBtn');
+        const publicViewBtn = document.getElementById('publicViewBtn');
+        const publicTabs = document.getElementById('publicTabs');
+        const publicTabContent = document.getElementById('publicTabContent');
+        const adminButtons = document.getElementById('adminButtons');
+        const importBtn = document.getElementById('importBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const passwordModal = document.getElementById('passwordModal');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const cancelPassword = document.getElementById('cancelPassword');
+
+        // Modales
+        const productDetailModal = document.getElementById('productDetailModal');
+        const productFormModal = document.getElementById('productFormModal');
+        const importModal = document.getElementById('importModal');
+
+        // Botones/controles admin
+        const selectAll = document.getElementById('selectAll');
+        const deleteSelected = document.getElementById('deleteSelected');
+        const deleteProductBtn = document.getElementById('deleteProductBtn');
+
+        // Campos personalizados
+        const addCustomFieldBtn = document.getElementById('addCustomFieldBtn');
+        const cancelCustomField = document.getElementById('cancelCustomField');
+        const saveCustomField = document.getElementById('saveCustomField');
+
+        // Formularios
+        const productForm = document.getElementById('productForm');
+        const importForm = document.getElementById('importForm');
+        const customFieldForm = document.getElementById('customFieldForm');
+        const customKey = document.getElementById('customKey');
+        const customValue = document.getElementById('customValue');
+
+        // Campos del modal de detalles
+        const modalProductTitle = document.getElementById('modalProductTitle');
+        const productItemNumber = document.getElementById('productItemNumber');
+        const productUpc = document.getElementById('productUpc');
+        const productSize = document.getElementById('productSize');
+        const productQty = document.getElementById('productQty');
+        const productDescription = document.getElementById('productDescription');
+        const productCosto = document.getElementById('productCosto');
+        const productImageSrc = document.getElementById('productImageSrc');
+        const productImagePlaceholder = document.getElementById('productImagePlaceholder');
+
+        // Formulario agregar/editar
+        const productIdInput = document.getElementById('productId');
+        const itemNumberInput = document.getElementById('itemNumber');
+        const upcInput = document.getElementById('upc');
+        const nombreInput = document.getElementById('nombre');
+        const sizeInput = document.getElementById('size');
+        const qtyInput = document.getElementById('qty');
+        const costoInput = document.getElementById('costo');
+        const urlInput = document.getElementById('url');
+        const descriptionInput = document.getElementById('description');
+        const formTitle = document.getElementById('formTitle');
+
+        // Import CSV
+        const csvFileInput = document.getElementById('csvFile');
+        const fileNameText = document.getElementById('fileName');
+        const importLoader = document.getElementById('importLoader');
+        const importSubmitBtn = document.getElementById('importSubmitBtn');
+
+        // Toast
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // ==== Utils ====
+        function generateId(){ return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        function sanitizeInput(input){ if (!input) return ''; const div=document.createElement('div'); div.textContent=input; return div.innerHTML; }
+        function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
+        function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
+        function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
+
+        // === NUEVO: ¿producto es "NEW"? (7 días) ===
+        function isNewProduct(product){
+            if(!product || !product.dateAdded) return false;
+            const sevenDays = 7*24*60*60*1000;
+            return (Date.now() - product.dateAdded) < sevenDays;
+        }
+
+        // ==== Load & Save ====
+        function loadData(){
+            try{
+                database.ref('products').on('value', (snapshot)=>{
+                    products = snapshot.val() || [];
+                    renderAdminProducts();
+                    renderPublicTabs();
+                    showToast('Datos sincronizados desde Firebase.');
+                });
+            }catch(err){
+                console.error('Firebase load error:', err);
+                showToast('Error al cargar desde Firebase. Usando localStorage.', true);
+                if(isLocalStorageAvailable()){
+                    const stored = localStorage.getItem('products');
+                    products = stored ? JSON.parse(stored) : [];
+                    renderAdminProducts();
+                    renderPublicTabs();
+                } else { products = []; }
             }
-            const diff = target - now;
-            if (diff > 0) {
-                const d = Math.floor(diff / 86400000);
-                const h = Math.floor((diff % 86400000) / 3600000);
-                const m = Math.floor((diff % 3600000) / 60000);
-                const s = Math.floor((diff % 60000) / 1000);
-                document.getElementById('countdown-text').innerText = `${d}d ${h}h ${m}m ${s}s`;
-            } else {
-                document.getElementById('countdown-text').innerText = '¡Ofertas terminadas! Próximo miércoles.';
+        }
+        function saveData(){
+            try{ database.ref('products').set(products); }
+            catch(err){
+                console.error('Firebase save error:', err);
+                showToast('Error al guardar en Firebase. Guardando en localStorage.', true);
+                if(isLocalStorageAvailable()) localStorage.setItem('products', JSON.stringify(products));
             }
         }
-        setInterval(updateCountdown, 1000);
-        updateCountdown();
 
-        // Carrito con localStorage
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        updateCartCount();
-        document.querySelectorAll('.add-to-cart').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const name = btn.dataset.name;
-                const price = parseFloat(btn.dataset.price);
-                cart.push({name, price});
-                localStorage.setItem('cart', JSON.stringify(cart));
-                updateCartCount();
+        // ==== Render ADMIN (con selección Ctrl/Cmd + drag) ====
+        function renderAdminProducts(){
+            if(!productsContainer) return;
+            productsContainer.innerHTML = '';
+            const q = (searchInput?.value || '').toLowerCase();
+            let filtered = [...products];
+            if(q){
+                filtered = filtered.filter(p=>{
+                    try{
+                        return p?.nombre?.toLowerCase().includes(q) || p?.itemNumber?.toLowerCase().includes(q) || p?.description?.toLowerCase().includes(q);
+                    }catch{ return false; }
+                });
+            }
+            if(filtered.length===0){
+                productsContainer.innerHTML = `<div class="col-span-full text-center py-12"><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda o agrega nuevos productos.</p></div>`;
+                updateDeleteButton();
+                return;
+            }
+            filtered.forEach(product=>{
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover relative';
+                card.dataset.id = product.id;
+                if(selection.has(product.id)) card.classList.add('selected-card');
+                card.innerHTML = `
+                    <div class='product-image-container relative'>
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                    </div>
+                    <div class='p-5'>
+                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
+                        <div class='flex justify-center'>
+                            <button class='view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                        </div>
+                    </div>`;
+                // Selección Ctrl/Cmd
+                card.addEventListener('click', (e)=>{
+                    if(e.ctrlKey || e.metaKey){ e.preventDefault(); e.stopPropagation(); toggleSelection(product.id, card); return; }
+                });
+                productsContainer.appendChild(card);
             });
-        });
-        function updateCartCount() {
-            const count = cart.length;
-            const el = document.getElementById('cart-count');
-            el.textContent = count;
-            el.classList.toggle('hidden', count === 0);
+            updateDeleteButton();
         }
 
-        // Búsqueda simple
-        document.getElementById('search').addEventListener('input', e => {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('.border').forEach(card => {
-                const text = card.textContent.toLowerCase();
-                card.style.display = text.includes(term) ? '' : 'none';
-            });
-        });
+        // ==== Render PUBLIC (NEW solo aquí) ====
+        function renderPublicTabs(searchTerm=''){
+            publicTabs.innerHTML = '';
+            publicTabContent.innerHTML = '';
+            publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
-        // Lotería básica: genera 4x4 board con icons random
-        const icons = ['🌮','🍺','🥑','🌶️','🍞','🥚','🧀','🍚']; // Duplica para 16
-        const board = document.getElementById('loteria-board');
-        for (let i = 0; i < 16; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'bg-white border p-4 text-3xl cursor-pointer text-center';
-            cell.textContent = icons[i % 8];
-            cell.onclick = () => cell.classList.toggle('bg-yellow-300');
-            board.appendChild(cell);
+            let filtered = [...products];
+            if(searchTerm){
+                const s = searchTerm.toLowerCase();
+                filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
+            }
+            if(filtered.length===0){
+                publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                return;
+            }
+            // Orden: nuevos primero, viejos aleatorios
+            const newOnes = filtered.filter(isNewProduct);
+            const oldOnes = filtered.filter(p=> !isNewProduct(p));
+            for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
+            const ordered = [...newOnes, ...oldOnes];
+
+            renderPublicProducts(ordered, publicTabContent);
         }
 
-        // Toggle idioma (simulado: cambia textos clave)
-        document.getElementById('lang-toggle').addEventListener('click', () => {
-            // Implementa swap de textos con data-en attributes si expandes
-            alert('Idioma cambiado a inglés (simulado)');
-        });
+        function renderPublicProducts(list, container){
+            container.innerHTML = '';
+            list.forEach(product=>{
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+                card.innerHTML = `
+                    <div class='product-image-container relative'>
+                        ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                    </div>
+                    <div class='p-5'>
+                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
+                        <div class='flex justify-center'>
+                            <button class='view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
 
-        // Mobile menu
-        document.getElementById('menu-toggle').addEventListener('click', () => {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-        });
+        // ==== Selección (admin) ====
+        function toggleSelection(id, cardEl){ if(selection.has(id)) selection.delete(id); else selection.add(id); if(cardEl) cardEl.classList.toggle('selected-card'); updateDeleteButton(); }
+        function clearSelection(){ selection.clear(); document.querySelectorAll('#productsContainer [data-id]').forEach(c=>c.classList.remove('selected-card')); updateDeleteButton(); }
+        function updateDeleteButton(){ deleteSelected.disabled = selection.size===0; const total=document.querySelectorAll('#productsContainer [data-id]').length; const selected=document.querySelectorAll('#productsContainer .selected-card').length; selectAll.checked = total>0 && selected===total; }
 
-        // Lazy loading nativo con attribute
+        // ==== Detalles ====
+        function showProductDetails(productId){
+            const product = products.find(p=> p.id===productId);
+            if(!product){ showToast('Producto no encontrado.', true); return; }
+            try{
+                modalProductTitle.textContent = sanitizeInput(product.nombre || 'Sin nombre');
+                productItemNumber.textContent = sanitizeInput(product.itemNumber || 'N/A');
+                productUpc.textContent = sanitizeInput(product.upc || 'N/A');
+                productSize.textContent = sanitizeInput(product.size || 'N/A');
+                productQty.textContent = sanitizeInput(String(product.qty ?? 'N/A'));
+                productDescription.textContent = sanitizeInput(product.description || 'Sin descripción');
+                productCosto.textContent = formatCurrency(product.costo || 0);
+
+                if(product.url){
+                    productImageSrc.src = product.url;
+                    productImageSrc.onerror = ()=>{ productImageSrc.classList.add('hidden'); productImagePlaceholder.classList.remove('hidden'); };
+                    productImageSrc.classList.remove('hidden');
+                    productImagePlaceholder.classList.add('hidden');
+                }else{
+                    productImageSrc.classList.add('hidden');
+                    productImagePlaceholder.classList.remove('hidden');
+                }
+                // Custom fields
+                const customFieldsContainer = document.getElementById('customFields');
+                customFieldsContainer.innerHTML = '';
+                const customFields = product.customFields || {};
+                Object.entries(customFields).forEach(([k,v])=>{
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${sanitizeInput(k)}:</strong> <span class='text-gray-700'>${sanitizeInput(v)}</span>`;
+                    customFieldsContainer.appendChild(p);
+                });
+                deleteProductBtn.dataset.id = product.id;
+                document.querySelectorAll('.admin-only').forEach(el=> el.style.display = currentView==='admin' ? '' : 'none');
+                productDetailModal.classList.remove('hidden');
+            }catch(e){ console.error('Error mostrando detalles:', e); showToast('Error al mostrar detalles.', true); }
+        }
+// ==== Import CSV ====
+function importFromCSV(file) {
+  try {
+    if (!window.Papa) {
+      showToast('Error: PapaParse no se cargó.', true);
+      return;
+    }
+
+    importLoader.classList.remove('hidden');
+    importSubmitBtn.disabled = true;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      let text = e.target.result;
+
+      // 💡 Eliminar BOM si viene de Numbers
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+      // 🔍 Detectar delimitador automáticamente
+      const firstLine = text.split('\n')[0];
+      let delimiter = ';';
+      if ((firstLine.match(/,/g) || []).length > (firstLine.match(/;/g) || []).length) delimiter = ',';
+      if ((firstLine.match(/\t/g) || []).length > (firstLine.match(/;/g) || []).length) delimiter = '\t';
+
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        delimiter: delimiter,
+        transformHeader: (header) => header.trim().replace(/["']/g, '').toUpperCase(), // 💪 Limpieza total de encabezados
+        complete: (results) => {
+          const imported = [];
+          let errors = 0;
+
+          if (!results.data || results.data.length === 0) {
+            showToast('El archivo está vacío o tiene formato incorrecto.', true);
+            importLoader.classList.add('hidden');
+            importSubmitBtn.disabled = false;
+            return;
+          }
+
+          results.data.forEach((row, idx) => {
+            try {
+              if (!row || Object.values(row).every(v => v === '')) return;
+
+              // Normalizamos las claves del objeto row
+              const cleanRow = {};
+              for (const [key, val] of Object.entries(row)) {
+                cleanRow[key.trim().toUpperCase()] = val;
+              }
+
+              const newProduct = {
+                id: generateId(),
+                itemNumber: sanitizeInput(String(cleanRow['ITEM NUMBER'] || '').trim()),
+                description: sanitizeInput(String(cleanRow['DESCRIPTION'] || '').trim()),
+                upc: sanitizeInput(String(cleanRow['UPC'] || '').trim()),
+                nombre: sanitizeInput(String(cleanRow['NOMBRE'] || '').trim()),
+                size: cleanRow['SIZE'] ? sanitizeInput(String(cleanRow['SIZE']).trim()) : null,
+                qty: cleanRow['QTY'] && !isNaN(cleanRow['QTY']) ? parseInt(cleanRow['QTY']) : 0,
+                costo: cleanRow['COSTO'] && !isNaN(parseFloat(String(cleanRow['COSTO']).replace(',', '.')))
+                  ? parseFloat(String(cleanRow['COSTO']).replace(',', '.'))
+                  : 0,
+                url: cleanRow['URL'] ? sanitizeInput(String(cleanRow['URL']).trim()) : '',
+                proveedor: cleanRow['PALIMEX'] ? sanitizeInput(String(cleanRow['PALIMEX']).trim()) : '',
+                customFields: {},
+                dateAdded: Date.now()
+              };
+
+              // Guarda PALIMEX también como customField si existe
+              if (cleanRow['PALIMEX']) {
+                newProduct.customFields['PALIMEX'] = sanitizeInput(String(cleanRow['PALIMEX']).trim());
+              }
+
+              // Guardar campos extra como personalizados
+              for (const [key, val] of Object.entries(cleanRow)) {
+                if (!['ITEM NUMBER','DESCRIPTION','UPC','NOMBRE','SIZE','QTY','COSTO','URL','PALIMEX'].includes(key)) {
+                  if (val != null && val !== '') {
+                    newProduct.customFields[sanitizeInput(key)] = sanitizeInput(String(val).trim());
+                  }
+                }
+              }
+
+              // Actualizar o agregar producto
+              const existing = products.find(p =>
+                (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
+                (p.upc && p.upc === newProduct.upc)
+              );
+
+              if (existing) {
+                Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
+              } else {
+                imported.push(newProduct);
+              }
+
+            } catch (e) {
+              console.error(`Error en fila ${idx + 1}:`, e);
+              errors++;
+            }
+          });
+
+          products = [...products, ...imported];
+          saveData();
+          renderAdminProducts();
+          renderPublicTabs();
+
+          const msg = errors > 0
+            ? `Importados ${imported.length} productos, ${errors} errores.`
+            : `Importados ${imported.length} productos correctamente.`;
+          showToast(msg, errors > 0);
+
+          importModal.classList.add('hidden');
+          importLoader.classList.add('hidden');
+          importSubmitBtn.disabled = false;
+        },
+        error: (err) => {
+          console.error('CSV parse error:', err);
+          showToast('Error al procesar el CSV.', true);
+          importLoader.classList.add('hidden');
+          importSubmitBtn.disabled = false;
+        }
+      });
+    };
+
+    reader.readAsText(file, 'UTF-8');
+  } catch (e) {
+    console.error('Import error:', e);
+    showToast('Error al importar CSV.', true);
+    importLoader.classList.add('hidden');
+    importSubmitBtn.disabled = false;
+  }
+}
+        // ==== Validación + libs + vistas ====
+        function validateForm(_, fields){
+            let ok=true;
+            fields.forEach(f=>{
+                const el=document.getElementById(f.id); const errEl=document.getElementById(`${f.id}Error`);
+                if(!el||!errEl) return; errEl.classList.add('hidden'); errEl.textContent='';
+                if(f.required && !el.value.trim()){ errEl.textContent=`${f.label} es obligatorio.`; errEl.classList.remove('hidden'); ok=false; }
+                else if(f.type==='number' && el.value && isNaN(parseFloat(el.value))){ errEl.textContent=`Ingresa un número válido para ${f.label}.`; errEl.classList.remove('hidden'); ok=false; }
+                else if(f.type==='int' && el.value && !Number.isInteger(parseFloat(el.value))){ errEl.textContent=`${f.label} debe ser entero.`; errEl.classList.remove('hidden'); ok=false; }
+                else if(f.min!=null && parseFloat(el.value)<f.min){ errEl.textContent=`${f.label} debe ser ≥ ${f.min}.`; errEl.classList.remove('hidden'); ok=false; }
+            });
+            return ok;
+        }
+        function checkLibraries(){ if(!window.Papa) showToast('Error: PapaParse no se cargó.', true); if(!window.jspdf || !window.html2canvas) showToast('Error: librerías PDF no cargadas.', true); }
+        function showView(view){ currentView=view; if(view==='admin'){ adminView.classList.remove('hidden'); publicView.classList.add('hidden'); adminViewBtn.classList.add('bg-indigo-100'); publicViewBtn.classList.remove('bg-indigo-100'); adminButtons.style.display='flex'; } else { adminView.classList.add('hidden'); publicView.classList.remove('hidden'); adminViewBtn.classList.remove('bg-indigo-100'); publicViewBtn.classList.add('bg-indigo-100'); adminButtons.style.display='none'; } }
+
+        // ==== Export PDF ====
+        function exportToPDF(){
+            try{
+                if(!window.jspdf){ showToast('No se pudo cargar jsPDF.', true); return; }
+                const { jsPDF } = window.jspdf;
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<div class="loader inline-block"></div> Exportando...';
+                const doc = new jsPDF();
+                doc.autoTable({
+                    head: [[ 'Nombre','Descripción','Número de Ítem','UPC','Tamaño','Cantidad','Costo' ]],
+                    body: products.map(p=> [ sanitizeInput(p.nombre||'N/A'), sanitizeInput(p.description||'N/A'), sanitizeInput(p.itemNumber||'N/A'), sanitizeInput(p.upc||'N/A'), sanitizeInput(p.size||'N/A'), sanitizeInput(p.qty||'N/A'), formatCurrency(p.costo||0) ]),
+                    theme: 'grid', headStyles:{ fillColor:[99,102,241] }, styles:{ font:'helvetica', fontSize:10 }, margin:{ top:20 },
+                    didDrawPage: (data)=>{ if(data.pageNumber===1){ doc.setFontSize(18); doc.text('Catálogo de Productos', data.settings.margin.left, 10); doc.setFontSize(10); doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, data.settings.margin.left, 15); } }
+                });
+                doc.save('catalogo-productos.pdf');
+                showToast('Catálogo exportado correctamente a PDF.');
+            }catch(e){ console.error('PDF error:', e); showToast('Error al generar el PDF.', true); }
+            finally{ exportBtn.disabled=false; exportBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar PDF`; }
+        }
+
+        // ==== Toast ====
+        function showToast(message, isError=false){
+            toastMessage.textContent = message;
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50 ${isError ? 'bg-red-600' : 'bg-gray-800'} text-white`;
+            toast.classList.remove('translate-y-20','opacity-0');
+            setTimeout(()=> toast.classList.add('translate-y-20','opacity-0'), 3000);
+        }
+
+        // ==== Eventos ====
+        function setupEventListeners(){
+            // Búsquedas
+            if(searchInput) searchInput.addEventListener('input', debounce(renderAdminProducts, 300));
+            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(sanitizeInput(publicSearchInput.value)), 300));
+
+            // Cierre modales
+            document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
+            document.getElementById('closeFormModal').addEventListener('click', ()=> productFormModal.classList.add('hidden'));
+            document.getElementById('cancelProductBtn').addEventListener('click', ()=> productFormModal.classList.add('hidden'));
+            document.getElementById('closeImportModal').addEventListener('click', ()=> importModal.classList.add('hidden'));
+
+            // Nuevo producto
+            addProductBtn.addEventListener('click', ()=>{ productForm.reset(); productIdInput.value=''; formTitle.textContent='Nuevo Producto'; productFormModal.classList.remove('hidden'); });
+
+            // Import CSV
+            importBtn.addEventListener('click', ()=>{ importForm.reset(); fileNameText.textContent='Ningún archivo seleccionado'; importModal.classList.remove('hidden'); });
+            importForm.addEventListener('submit', (e)=>{ e.preventDefault(); const f=csvFileInput.files?.[0]; if(f) importFromCSV(f); else showToast('Selecciona un archivo CSV.', true); });
+            csvFileInput.addEventListener('change', (e)=>{ fileNameText.textContent = sanitizeInput(e.target.files[0]?.name || 'Ningún archivo seleccionado'); });
+
+            // Export PDF
+            exportBtn.addEventListener('click', exportToPDF);
+
+            // Delegación ver detalles
+            productsContainer.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
+            publicTabContent.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
+
+            // Eliminar individual desde modal
+            deleteProductBtn.addEventListener('click', ()=>{
+                const id = deleteProductBtn.dataset.id;
+                if(confirm('¿Eliminar este producto?')){
+                    products = products.filter(p=> p.id!==id);
+                    saveData(); renderAdminProducts(); renderPublicTabs(); productDetailModal.classList.add('hidden'); showToast('Producto eliminado correctamente.');
+                    if(selection.has(id)) selection.delete(id); updateDeleteButton();
+                }
+            });
+
+            // Custom fields
+            addCustomFieldBtn.addEventListener('click', ()=>{ customFieldForm.classList.remove('hidden'); addCustomFieldBtn.classList.add('hidden'); customKey.value=''; customValue.value=''; saveCustomField.disabled=true; });
+            cancelCustomField.addEventListener('click', ()=>{ customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); });
+            function updateSaveCustomButton(){ saveCustomField.disabled = !(customKey.value.trim() && customValue.value.trim()); }
+            customKey.addEventListener('input', updateSaveCustomButton); customValue.addEventListener('input', updateSaveCustomButton);
+            saveCustomField.addEventListener('click', ()=>{
+                const key=sanitizeInput(customKey.value.trim()); const value=sanitizeInput(customValue.value.trim()); if(!key){ showToast('La clave es obligatoria.', true); return; }
+                const id=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===id);
+                if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(); }
+            });
+
+            // Vista admin/public
+            adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); });
+            publicViewBtn.addEventListener('click', ()=> showView('public'));
+            confirmPassword.addEventListener('click', ()=>{ if(adminPasswordInput.value===adminPassword){ passwordModal.classList.add('hidden'); showView('admin'); } else showToast('Contraseña incorrecta.', true); adminPasswordInput.value=''; });
+            cancelPassword.addEventListener('click', ()=>{ passwordModal.classList.add('hidden'); adminPasswordInput.value=''; });
+            adminPasswordInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') confirmPassword.click(); });
+
+            // Seleccionar todos
+            selectAll.addEventListener('change', (e)=>{
+                const cards=document.querySelectorAll('#productsContainer [data-id]');
+                if(e.target.checked){ cards.forEach(card=>{ const id=card.dataset.id; if(!selection.has(id)) selection.add(id); card.classList.add('selected-card'); }); }
+                else { clearSelection(); }
+                updateDeleteButton();
+            });
+            // Eliminar seleccionados
+            deleteSelected.addEventListener('click', ()=>{ if(selection.size===0) return; if(!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return; const ids=new Set(selection); products = products.filter(p=> !ids.has(p.id)); saveData(); renderAdminProducts(); renderPublicTabs(); clearSelection(); showToast('Productos eliminados correctamente.'); });
+
+            // Cerrar modales clic fuera
+            window.addEventListener('click', (e)=>{ if(e.target===productDetailModal) productDetailModal.classList.add('hidden'); if(e.target===productFormModal) productFormModal.classList.add('hidden'); if(e.target===importModal) importModal.classList.add('hidden'); if(e.target===passwordModal) passwordModal.classList.add('hidden'); });
+
+            // Guardar producto (alta/edición)
+            productForm.addEventListener('submit', (e)=>{
+                e.preventDefault();
+                const fields=[
+                    { id:'itemNumber', label:'Número de Ítem', required:true },
+                    { id:'upc', label:'UPC', required:true },
+                    { id:'nombre', label:'Nombre', required:true },
+                    { id:'size', label:'Tamaño', required:true },
+                    { id:'qty', label:'Cantidad', required:true, type:'int', min:0 },
+                    { id:'costo', label:'Costo', required:true, type:'number', min:0 },
+                    { id:'description', label:'Descripción', required:true }
+                ];
+                if(!validateForm('productForm', fields)) return;
+                const productId=productIdInput.value;
+                const newProduct={
+                    id: productId || generateId(),
+                    itemNumber: sanitizeInput(itemNumberInput.value),
+                    description: sanitizeInput(descriptionInput.value),
+                    upc: sanitizeInput(upcInput.value),
+                    nombre: sanitizeInput(nombreInput.value),
+                    size: sanitizeInput(sizeInput.value),
+                    qty: parseInt(qtyInput.value),
+                    costo: parseFloat(costoInput.value),
+                    url: urlInput.value || '',
+                    customFields: {},
+                    dateAdded: Date.now() // NUEVO: necesario para badge "NEW"
+                };
+                if(productId){
+                    const p = products.find(x=> x.id===productId);
+                    if(p){ newProduct.customFields = p.customFields || {}; newProduct.dateAdded = p.dateAdded || newProduct.dateAdded; Object.assign(p, newProduct); }
+                } else { products.push(newProduct); }
+                saveData(); renderAdminProducts(); renderPublicTabs(); showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.'); productFormModal.classList.add('hidden');
+            });
+        }
+
+        // ==== Drag selection (admin) ====
+        (function enableDragSelection(){
+            let isDragging=false, startX=0, startY=0, selectionBox=null;
+            const container = document.getElementById('productsContainer');
+            if(!container) return;
+            container.addEventListener('mousedown', (e)=>{
+                if(e.target.closest('button') || e.target.closest('input') || e.target.closest('svg')) return;
+                isDragging=true; startX=e.pageX; startY=e.pageY;
+                selectionBox=document.createElement('div');
+                Object.assign(selectionBox.style,{ position:'absolute', border:'2px solid rgba(59,130,246,0.7)', background:'rgba(59,130,246,0.2)', pointerEvents:'none', zIndex:'9999' });
+                document.body.appendChild(selectionBox);
+            });
+            document.addEventListener('mousemove', (e)=>{
+                if(!isDragging||!selectionBox) return; const x1=Math.min(e.pageX,startX), y1=Math.min(e.pageY,startY), x2=Math.max(e.pageX,startX), y2=Math.max(e.pageY,startY);
+                selectionBox.style.left=`${x1}px`; selectionBox.style.top=`${y1}px`; selectionBox.style.width=`${x2-x1}px`; selectionBox.style.height=`${y2-y1}px`;
+            });
+            document.addEventListener('mouseup', ()=>{
+                if(!isDragging) return; isDragging=false; if(selectionBox){ const rect=selectionBox.getBoundingClientRect(); document.querySelectorAll('#productsContainer [data-id]').forEach(card=>{ const cr=card.getBoundingClientRect(); const overlap = !(rect.right<cr.left || rect.left>cr.right || rect.bottom<cr.top || rect.top>cr.bottom); if(overlap){ const id=card.dataset.id; selection.add(id); card.classList.add('selected-card'); } }); updateDeleteButton(); document.body.removeChild(selectionBox); selectionBox=null; }
+            });
+            document.addEventListener('mouseleave', ()=>{ if(isDragging){ isDragging=false; if(selectionBox){ document.body.removeChild(selectionBox); selectionBox=null; } } });
+            document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && selectionBox){ isDragging=false; document.body.removeChild(selectionBox); selectionBox=null; } });
+        })();
+
+        // ==== Edición inline del Item Code (solo admin) ====
+        (function enableInlineItemEdit(){
+            const itemSpan = document.getElementById('productItemNumber'); if(!itemSpan) return;
+            itemSpan.addEventListener('click', ()=>{
+                if(currentView!=='admin') return;
+                const currentValue=itemSpan.textContent.trim();
+                const input=document.createElement('input'); input.type='text'; input.value=currentValue==='N/A' ? '' : currentValue; input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'; input.style.width='100px';
+                itemSpan.replaceWith(input); input.focus();
+                const saveChange=()=>{
+                    const newValue=input.value.trim()||'N/A'; const productId=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===productId); if(!product) return; product.itemNumber=newValue; saveData(); const newSpan=document.createElement('span'); newSpan.id='productItemNumber'; newSpan.className='text-gray-700 cursor-pointer'; newSpan.textContent=newValue; input.replaceWith(newSpan); showToast('Item Code actualizado correctamente.'); renderAdminProducts(); renderPublicTabs(); enableInlineItemEdit();
+                };
+                input.addEventListener('blur', saveChange); input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
+            });
+        })();
+
+        // ==== Init ====
+        function init(){ loadData(); setupEventListeners(); checkLibraries(); showView('public'); }
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
