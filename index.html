@@ -116,6 +116,7 @@
                 </div>
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+                <div id="publicPagination" class="flex justify-center items-center gap-2 mt-6 hidden"></div>
             </div>
         </section>
 
@@ -139,7 +140,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden">
-                                <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+                                <img id="productImageSrc" loading="lazy" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
                             <div class="space-y-2" id="productFields">
@@ -306,6 +307,8 @@
         let products = [];
         const selection = new Set();
         let currentView = 'public';
+        const PAGE_SIZE = 20;
+        let publicCurrentPage = 1;
 
         // ==== DOM ====
         const productsContainer = document.getElementById('productsContainer');
@@ -317,6 +320,7 @@
         const publicViewBtn = document.getElementById('publicViewBtn');
         const publicTabs = document.getElementById('publicTabs');
         const publicTabContent = document.getElementById('publicTabContent');
+        const publicPagination = document.getElementById('publicPagination');
         const adminButtons = document.getElementById('adminButtons');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
@@ -387,6 +391,37 @@
         function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
         function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
+        function paginate(items, page, pageSize = PAGE_SIZE){ const start = (Math.max(page,1)-1)*pageSize; return items.slice(start, start+pageSize); }
+        function renderPagination(container, currentPage, totalPages){
+            if(!container) return;
+            container.innerHTML = '';
+            if(totalPages <= 1){ container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+
+            const createButton = (label, page, disabled=false, isActive=false)=>{
+                const button = document.createElement('button');
+                button.textContent = label;
+                button.className = 'px-3 py-1 rounded-md border border-gray-300 text-sm font-medium transition-colors';
+                if(isActive){ button.classList.add('bg-indigo-600','text-white','border-indigo-600'); }
+                else { button.classList.add('bg-white','text-gray-700','hover:bg-indigo-50'); }
+                if(disabled){ button.classList.add('opacity-50','cursor-not-allowed'); button.disabled = true; }
+                else { button.dataset.page = page; }
+                return button;
+            };
+
+            container.appendChild(createButton('Anterior', currentPage-1, currentPage===1));
+
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow/2));
+            let endPage = startPage + maxPagesToShow - 1;
+            if(endPage > totalPages){ endPage = totalPages; startPage = Math.max(1, endPage - maxPagesToShow + 1); }
+
+            for(let page=startPage; page<=endPage; page++){
+                container.appendChild(createButton(String(page), page, false, page===currentPage));
+            }
+
+            container.appendChild(createButton('Siguiente', currentPage+1, currentPage===totalPages));
+        }
 
         // === NUEVO: ¿producto es "NEW"? (7 días) ===
         function isNewProduct(product){
@@ -449,7 +484,7 @@
                 if(selection.has(product.id)) card.classList.add('selected-card');
                 card.innerHTML = `
                     <div class='product-image-container relative'>
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img loading='lazy' src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -479,6 +514,7 @@
             }
             if(filtered.length===0){
                 publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                if(publicPagination){ publicPagination.innerHTML=''; publicPagination.classList.add('hidden'); }
                 return;
             }
             // Orden: nuevos primero, viejos aleatorios
@@ -487,7 +523,12 @@
             for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
             const ordered = [...newOnes, ...oldOnes];
 
-            renderPublicProducts(ordered, publicTabContent);
+            const totalPages = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+            if(publicCurrentPage > totalPages) publicCurrentPage = totalPages;
+            if(publicCurrentPage < 1) publicCurrentPage = 1;
+            const paginated = paginate(ordered, publicCurrentPage);
+            renderPublicProducts(paginated, publicTabContent);
+            renderPagination(publicPagination, publicCurrentPage, totalPages);
         }
 
         function renderPublicProducts(list, container){
@@ -498,7 +539,7 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img loading='lazy' src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -730,8 +771,18 @@ function importFromCSV(file) {
         // ==== Eventos ====
         function setupEventListeners(){
             // Búsquedas
-            if(searchInput) searchInput.addEventListener('input', debounce(renderAdminProducts, 300));
-            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(sanitizeInput(publicSearchInput.value)), 300));
+            if(searchInput) searchInput.addEventListener('input', debounce(()=>{ renderAdminProducts(); }, 300));
+            publicSearchInput.addEventListener('input', debounce(()=>{ publicCurrentPage = 1; renderPublicTabs(sanitizeInput(publicSearchInput.value)); }, 300));
+
+            // Paginación
+            if(publicPagination){
+                publicPagination.addEventListener('click', (e)=>{
+                    const btn = e.target.closest('button[data-page]');
+                    if(!btn) return;
+                    publicCurrentPage = parseInt(btn.dataset.page, 10) || 1;
+                    renderPublicTabs(sanitizeInput(publicSearchInput.value));
+                });
+            }
 
             // Cierre modales
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
