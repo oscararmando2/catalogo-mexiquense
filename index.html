@@ -309,7 +309,6 @@
         const selection = new Set();
         let currentView = 'public';
         const PAGE_SIZE = 20;
-        let adminCurrentPage = 1;
         let publicCurrentPage = 1;
 
         // ==== DOM ====
@@ -322,7 +321,6 @@
         const publicViewBtn = document.getElementById('publicViewBtn');
         const publicTabs = document.getElementById('publicTabs');
         const publicTabContent = document.getElementById('publicTabContent');
-        const adminPagination = document.getElementById('adminPagination');
         const publicPagination = document.getElementById('publicPagination');
         const adminButtons = document.getElementById('adminButtons');
         const importBtn = document.getElementById('importBtn');
@@ -780,18 +778,10 @@ function importFromCSV(file) {
         // ==== Eventos ====
         function setupEventListeners(){
             // Búsquedas
-            if(searchInput) searchInput.addEventListener('input', debounce(()=>{ adminCurrentPage = 1; renderAdminProducts(); }, 300));
+            if(searchInput) searchInput.addEventListener('input', debounce(()=>{ renderAdminProducts(); }, 300));
             publicSearchInput.addEventListener('input', debounce(()=>{ publicCurrentPage = 1; renderPublicTabs(sanitizeInput(publicSearchInput.value)); }, 300));
 
             // Paginación
-            if(adminPagination){
-                adminPagination.addEventListener('click', (e)=>{
-                    const btn = e.target.closest('button[data-page]');
-                    if(!btn) return;
-                    adminCurrentPage = parseInt(btn.dataset.page, 10) || 1;
-                    renderAdminProducts();
-                });
-            }
             if(publicPagination){
                 publicPagination.addEventListener('click', (e)=>{
                     const btn = e.target.closest('button[data-page]');
