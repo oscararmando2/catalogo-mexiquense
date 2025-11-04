@@ -49,13 +49,10 @@
         .credit-warning { border-left: 4px solid #fde047; }
         .credit-urgent { border-left: 4px solid #ef4444; }
         /* Hamburger menu */
-        .hamburger-menu { display: none; }
+        .hamburger-menu { display: block; }
+        .desktop-menu { display: none; }
         #mobileMenu { display: none; }
-        @media (max-width: 768px) {
-            .hamburger-menu { display: block; }
-            .desktop-menu { display: none; }
-            #mobileMenu.mobile-menu-open { display: flex; flex-direction: column; }
-        }
+        #mobileMenu.mobile-menu-open { display: flex; flex-direction: column; }
         /* Photo preview */
         .photo-preview { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 8px; }
         .photo-thumbnail { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; }
@@ -73,8 +70,8 @@
                         </svg>
                         <h1 class="text-2xl md:text-3xl font-bold text-mexican-green">MEXIQUENSE</h1>
                     </div>
-                    <!-- Mobile hamburger menu -->
-                    <button id="mobileMenuBtn" class="hamburger-menu md:hidden bg-mexican-green text-white px-4 py-2 rounded-lg">
+                    <!-- Hamburger menu (always visible) -->
+                    <button id="mobileMenuBtn" class="hamburger-menu bg-mexican-green text-white px-4 py-2 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
