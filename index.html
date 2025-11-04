@@ -1347,8 +1347,8 @@ function importFromCSV(file) {
                         <input type="text" pattern="[0-9]{4}" class="product-digits w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="4" placeholder="0000" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto* (JPG/PNG, máx 5MB)</label>
-                        <input type="file" accept="image/jpeg,image/png" class="product-photo w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required />
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto (Opcional - JPG/PNG, máx 5MB)</label>
+                        <input type="file" accept="image/jpeg,image/png" class="product-photo w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" />
                         <div class="product-photo-preview mt-2"></div>
                     </div>
                 </div>
@@ -1479,7 +1479,16 @@ function importFromCSV(file) {
             container.querySelectorAll('.mark-delivered').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const creditId = e.target.dataset.creditId;
-                    showDeliverForm(creditId);
+                    const credit = credits.find(c => c.id === creditId);
+                    if (!credit) return;
+                    
+                    // Show confirmation dialog
+                    const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+                    const confirmMsg = `¿Deseas marcar como entregado el crédito?\n\nID: ${credit.id}\nProveedor: ${credit.provider || 'Sin proveedor'}\nTotal Productos: ${totalProducts}\n\nPresiona "Aceptar" para continuar o "Cancelar" para volver.`;
+                    
+                    if (confirm(confirmMsg)) {
+                        showDeliverForm(creditId);
+                    }
                 });
             });
             
@@ -1760,12 +1769,15 @@ function importFromCSV(file) {
                         const digits = field.querySelector('.product-digits').value.trim();
                         const photoInput = field.querySelector('.product-photo');
                         
-                        if (!qty || !desc || !digits || !photoInput.files[0]) {
-                            showToast('Completa todos los campos del producto', true);
+                        if (!qty || !desc || !digits) {
+                            showToast('Completa todos los campos obligatorios del producto', true);
                             return;
                         }
                         
-                        const photo = await imageToBase64(photoInput.files[0]);
+                        let photo = null;
+                        if (photoInput.files[0]) {
+                            photo = await imageToBase64(photoInput.files[0]);
+                        }
                         
                         products.push({
                             qty: parseInt(qty),
