@@ -1403,7 +1403,12 @@ function importFromCSV(file) {
             // Setup delete button event listeners
             container.querySelectorAll('.delete-especial').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const especialId = parseInt(e.currentTarget.dataset.id);
+                    const especialId = parseInt(e.currentTarget.dataset.id, 10);
+                    // Validate that the parse was successful
+                    if (isNaN(especialId)) {
+                        showToast('Error: ID de especial inválido', true);
+                        return;
+                    }
                     deleteEspecial(especialId);
                 });
             });
@@ -1411,8 +1416,12 @@ function importFromCSV(file) {
 
         // Add new especial
         function addEspecial(provider, product, price) {
-            const newId = especiales.length > 0 ? Math.max(...especiales.map(e => e.id_price)) + 1 : 1;
-            const newProviderId = especiales.length > 0 ? Math.max(...especiales.map(e => e.id_provider)) + 1 : 101;
+            // Use safer ID generation - filter out invalid IDs and use fallback
+            const validIds = especiales.filter(e => typeof e.id_price === 'number' && !isNaN(e.id_price)).map(e => e.id_price);
+            const newId = validIds.length > 0 ? Math.max(...validIds) + 1 : 1;
+            
+            const validProviderIds = especiales.filter(e => typeof e.id_provider === 'number' && !isNaN(e.id_provider)).map(e => e.id_provider);
+            const newProviderId = validProviderIds.length > 0 ? Math.max(...validProviderIds) + 1 : 101;
             
             const newEspecial = {
                 id_price: newId,
@@ -1430,8 +1439,17 @@ function importFromCSV(file) {
         
         // Delete especial
         function deleteEspecial(especialId) {
+            // Validate that especialId is a valid number
+            if (typeof especialId !== 'number' || isNaN(especialId)) {
+                showToast('Error: ID de especial inválido', true);
+                return;
+            }
+            
             const especial = especiales.find(e => e.id_price === especialId);
-            if (!especial) return;
+            if (!especial) {
+                showToast('Error: Especial no encontrado', true);
+                return;
+            }
             
             if (!confirm(`¿Estás seguro de eliminar el especial "${especial.product}" de ${especial.provider}?`)) {
                 return;
@@ -1500,8 +1518,16 @@ function importFromCSV(file) {
                     const product = document.getElementById('especialProduct').value.trim();
                     const price = document.getElementById('especialPrice').value;
                     
-                    if (!provider || !product || !price || parseFloat(price) < 0) {
-                        showToast('Por favor completa todos los campos correctamente', true);
+                    // Validate all required fields
+                    if (!provider || !product || !price) {
+                        showToast('Por favor completa todos los campos obligatorios', true);
+                        return;
+                    }
+                    
+                    // Validate price is a valid positive number
+                    const priceNum = parseFloat(price);
+                    if (isNaN(priceNum) || priceNum < 0) {
+                        showToast('Por favor ingresa un precio válido (mayor o igual a 0)', true);
                         return;
                     }
                     
