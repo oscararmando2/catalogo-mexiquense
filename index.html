@@ -1686,20 +1686,12 @@ function importFromCSV(file) {
         // Setup credits event listeners
         function setupCreditsEventListeners() {
             // Navigation buttons
-            const creditosViewBtn = document.getElementById('creditosViewBtn');
             const creditosViewBtnMobile = document.getElementById('creditosViewBtnMobile');
             const newCreditBtn = document.getElementById('newCreditBtn');
             const cancelNewCredit = document.getElementById('cancelNewCredit');
             const cancelDelivery = document.getElementById('cancelDelivery');
             const backToPendingBtn = document.getElementById('backToPendingBtn');
             const exportHistoryBtn = document.getElementById('exportHistoryBtn');
-            
-            if (creditosViewBtn) {
-                creditosViewBtn.addEventListener('click', () => {
-                    showCreditsView('pending');
-                    closeMobileMenu();
-                });
-            }
             
             if (creditosViewBtnMobile) {
                 creditosViewBtnMobile.addEventListener('click', () => {
