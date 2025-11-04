@@ -116,6 +116,16 @@
                 </div>
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+                <!-- Pagination Controls -->
+                <div id="paginationControls" class="mt-8 flex justify-center items-center gap-2">
+                    <button id="prevPage" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Anterior
+                    </button>
+                    <div id="pageNumbers" class="flex gap-2"></div>
+                    <button id="nextPage" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Siguiente
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -306,6 +316,8 @@
         let products = [];
         const selection = new Set();
         let currentView = 'public';
+        let currentPage = 1;
+        const itemsPerPage = 20;
 
         // ==== DOM ====
         const productsContainer = document.getElementById('productsContainer');
@@ -380,6 +392,12 @@
         // Toast
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toastMessage');
+
+        // Pagination
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const pageNumbers = document.getElementById('pageNumbers');
+        const paginationControls = document.getElementById('paginationControls');
 
         // ==== Utils ====
         function generateId(){ return Date.now().toString(36) + Math.random().toString(36).substr(2); }
@@ -479,6 +497,7 @@
             }
             if(filtered.length===0){
                 publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                paginationControls.style.display = 'none';
                 return;
             }
             // Orden: nuevos primero, viejos aleatorios
@@ -487,7 +506,21 @@
             for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
             const ordered = [...newOnes, ...oldOnes];
 
-            renderPublicProducts(ordered, publicTabContent);
+            // Pagination logic
+            const totalPages = Math.ceil(ordered.length / itemsPerPage);
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = totalPages;
+            }
+            if (currentPage < 1) {
+                currentPage = 1;
+            }
+            
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedProducts = ordered.slice(startIndex, endIndex);
+
+            renderPublicProducts(paginatedProducts, publicTabContent);
+            renderPagination(totalPages, ordered.length);
         }
 
         function renderPublicProducts(list, container){
@@ -508,6 +541,82 @@
                     </div>`;
                 container.appendChild(card);
             });
+        }
+
+        function renderPagination(totalPages, totalItems){
+            if (totalPages <= 1) {
+                paginationControls.style.display = 'none';
+                return;
+            }
+            
+            paginationControls.style.display = 'flex';
+            
+            // Update prev/next buttons
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages;
+            
+            // Render page numbers
+            pageNumbers.innerHTML = '';
+            
+            // Show page info
+            const pageInfo = document.createElement('div');
+            pageInfo.className = 'flex items-center gap-2 px-4 py-2 text-gray-700 font-medium';
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${totalItems} productos)`;
+            pageNumbers.appendChild(pageInfo);
+            
+            // Show max 5 page numbers around current page
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Adjust start if we're near the end
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // Add first page and ellipsis if needed
+            if (startPage > 1) {
+                addPageButton(1);
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-2 text-gray-500';
+                    ellipsis.textContent = '...';
+                    pageNumbers.appendChild(ellipsis);
+                }
+            }
+            
+            // Add visible page numbers
+            for (let i = startPage; i <= endPage; i++) {
+                addPageButton(i);
+            }
+            
+            // Add last page and ellipsis if needed
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-2 text-gray-500';
+                    ellipsis.textContent = '...';
+                    pageNumbers.appendChild(ellipsis);
+                }
+                addPageButton(totalPages);
+            }
+        }
+        
+        function addPageButton(pageNum) {
+            const btn = document.createElement('button');
+            btn.className = `px-4 py-2 rounded-lg font-medium transition-all ${
+                pageNum === currentPage 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-white text-indigo-600 hover:bg-indigo-100 border border-indigo-300'
+            }`;
+            btn.textContent = pageNum;
+            btn.addEventListener('click', () => {
+                currentPage = pageNum;
+                renderPublicTabs(publicSearchInput?.value || '');
+                // Scroll to top of products
+                publicView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            pageNumbers.appendChild(btn);
         }
 
         // ==== Selección (admin) ====
@@ -731,7 +840,28 @@ function importFromCSV(file) {
         function setupEventListeners(){
             // Búsquedas
             if(searchInput) searchInput.addEventListener('input', debounce(renderAdminProducts, 300));
-            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(sanitizeInput(publicSearchInput.value)), 300));
+            publicSearchInput.addEventListener('input', debounce(()=> {
+                currentPage = 1; // Reset to first page on new search
+                renderPublicTabs(sanitizeInput(publicSearchInput.value));
+            }, 300));
+
+            // Pagination
+            if(prevPageBtn) {
+                prevPageBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderPublicTabs(publicSearchInput?.value || '');
+                        publicView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+            if(nextPageBtn) {
+                nextPageBtn.addEventListener('click', () => {
+                    currentPage++;
+                    renderPublicTabs(publicSearchInput?.value || '');
+                    publicView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
 
             // Cierre modales
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
