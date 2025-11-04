@@ -58,6 +58,11 @@
         /* Photo preview */
         .photo-preview { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 8px; }
         .photo-thumbnail { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+        /* Especiales section styles */
+        .especiales-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 1.5rem; transition: all 0.3s ease; }
+        .especiales-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+        .price-indicator { width: 16px; height: 16px; border-radius: 50%; background-color: #ef4444; display: inline-block; margin-left: 8px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -81,6 +86,7 @@
                     <!-- Hamburger dropdown menu -->
                     <div id="mobileMenu" class="hidden w-full mt-4 flex-col gap-2">
                         <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
+                        <button id="especialesViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Especiales</button>
                         <button id="creditosViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Créditos</button>
                         <button id="adminViewBtnMobile" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Panel de Administración</button>
                     </div>
@@ -156,6 +162,22 @@
                     </button>
                 </div>
             </div>
+        </section>
+
+        <!-- Especiales View -->
+        <section id="especialesView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-2xl font-bold text-mexican-green mb-4">Próximos Precios de Productos</h2>
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <input id="especialesSearchInput" type="text" placeholder="Buscar por proveedor o producto..." aria-label="Buscar precios especiales" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="especialesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <!-- Créditos View -->
@@ -984,6 +1006,7 @@ function importFromCSV(file) {
         function showView(view){ 
             currentView=view; 
             document.getElementById('creditosView').classList.add('hidden');
+            document.getElementById('especialesView').classList.add('hidden');
             if(view==='admin'){ 
                 adminView.classList.remove('hidden'); 
                 publicView.classList.add('hidden'); 
@@ -1186,6 +1209,176 @@ function importFromCSV(file) {
             });
         })();
 
+        // ==== ESPECIALES FUNCTIONALITY ====
+        let especiales = [];
+
+        // Load especiales from localStorage
+        function loadEspeciales() {
+            if (isLocalStorageAvailable()) {
+                const stored = localStorage.getItem('especiales');
+                if (stored) {
+                    especiales = JSON.parse(stored);
+                } else {
+                    // Initialize with simulated data
+                    especiales = [
+                        {
+                            id_price: 1,
+                            id_provider: 101,
+                            provider: 'Avocado',
+                            product: 'Pozole Juanitas',
+                            price: 5.99
+                        },
+                        {
+                            id_price: 2,
+                            id_provider: 102,
+                            provider: 'La Costeña',
+                            product: 'Frijoles Negros Refritos',
+                            price: 3.50
+                        },
+                        {
+                            id_price: 3,
+                            id_provider: 103,
+                            provider: 'Herdez',
+                            product: 'Salsa Verde 7oz',
+                            price: 2.99
+                        },
+                        {
+                            id_price: 4,
+                            id_provider: 101,
+                            provider: 'Avocado',
+                            product: 'Aguacate Fresco Orgánico',
+                            price: 4.25
+                        },
+                        {
+                            id_price: 5,
+                            id_provider: 104,
+                            provider: 'Maseca',
+                            product: 'Harina de Maíz 2kg',
+                            price: 6.99
+                        },
+                        {
+                            id_price: 6,
+                            id_provider: 105,
+                            provider: 'Bimbo',
+                            product: 'Pan Blanco Grande',
+                            price: 3.75
+                        },
+                        {
+                            id_price: 7,
+                            id_provider: 102,
+                            provider: 'La Costeña',
+                            product: 'Jalapeños en Rajas',
+                            price: 2.49
+                        },
+                        {
+                            id_price: 8,
+                            id_provider: 106,
+                            provider: 'Jumex',
+                            product: 'Néctar de Mango 1L',
+                            price: 1.99
+                        }
+                    ];
+                    saveEspeciales();
+                }
+            }
+        }
+
+        // Save especiales to localStorage
+        function saveEspeciales() {
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('especiales', JSON.stringify(especiales));
+            }
+        }
+
+        // Show especiales view
+        function showEspecialesView() {
+            currentView = 'especiales';
+            
+            // Hide all main sections
+            adminView.classList.add('hidden');
+            publicView.classList.add('hidden');
+            document.getElementById('creditosView').classList.add('hidden');
+            document.getElementById('especialesView').classList.remove('hidden');
+            
+            renderEspeciales();
+            updateHeaderButtons();
+        }
+
+        // Render especiales
+        function renderEspeciales(searchTerm = '') {
+            const container = document.getElementById('especialesContainer');
+            container.innerHTML = '';
+            
+            let filtered = [...especiales];
+            
+            // Apply search filter
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(e => 
+                    e.provider.toLowerCase().includes(term) ||
+                    e.product.toLowerCase().includes(term)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron precios especiales</h3>
+                        <p class="mt-1 text-gray-500">Intenta con otra búsqueda.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(especial => {
+                const card = document.createElement('div');
+                card.className = 'especiales-card';
+                card.innerHTML = `
+                    <div class="mb-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="text-xs text-gray-500">ID Proveedor: ${especial.id_provider}</p>
+                                <p class="text-xs text-gray-500">ID Precio: ${especial.id_price}</p>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.provider)}</h3>
+                        <p class="text-gray-700 font-medium mb-3">${sanitizeInput(especial.product)}</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div class="flex items-center">
+                            <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
+                            <span class="price-indicator" title="Precio especial próximo"></span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        // Setup especiales event listeners
+        function setupEspecialesEventListeners() {
+            // Navigation button
+            const especialesViewBtnMobile = document.getElementById('especialesViewBtnMobile');
+            if (especialesViewBtnMobile) {
+                especialesViewBtnMobile.addEventListener('click', () => {
+                    showEspecialesView();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Search functionality
+            const especialesSearchInput = document.getElementById('especialesSearchInput');
+            if (especialesSearchInput) {
+                especialesSearchInput.addEventListener('input', debounce(() => {
+                    renderEspeciales(especialesSearchInput.value);
+                }, 300));
+            }
+        }
+
         // ==== CRÉDITOS FUNCTIONALITY ====
         let credits = [];
         let currentCreditView = 'pending';
@@ -1282,22 +1475,28 @@ function importFromCSV(file) {
         // Update header button styles (mobile menu only)
         function updateHeaderButtons() {
             const publicBtn = document.getElementById('publicViewBtnMobile');
+            const especialesBtn = document.getElementById('especialesViewBtnMobile');
             const creditosBtn = document.getElementById('creditosViewBtnMobile');
             const adminBtn = document.getElementById('adminViewBtnMobile');
             
-            if (!publicBtn || !creditosBtn || !adminBtn) return;
+            if (!publicBtn || !especialesBtn || !creditosBtn || !adminBtn) return;
             
             publicBtn.classList.remove('bg-mexican-green', 'text-white');
+            especialesBtn.classList.remove('bg-mexican-green', 'text-white');
             creditosBtn.classList.remove('bg-mexican-green', 'text-white');
             adminBtn.classList.remove('bg-mexican-green', 'text-white', 'bg-mexican-red');
             
             publicBtn.classList.add('bg-white', 'text-mexican-green');
+            especialesBtn.classList.add('bg-white', 'text-mexican-green');
             creditosBtn.classList.add('bg-white', 'text-mexican-green');
             adminBtn.classList.add('bg-white', 'text-mexican-green');
             
             if (currentView === 'public') {
                 publicBtn.classList.remove('bg-white', 'text-mexican-green');
                 publicBtn.classList.add('bg-mexican-green', 'text-white');
+            } else if (currentView === 'especiales') {
+                especialesBtn.classList.remove('bg-white', 'text-mexican-green');
+                especialesBtn.classList.add('bg-mexican-green', 'text-white');
             } else if (currentView === 'creditos') {
                 creditosBtn.classList.remove('bg-white', 'text-mexican-green');
                 creditosBtn.classList.add('bg-mexican-green', 'text-white');
@@ -1945,8 +2144,10 @@ function importFromCSV(file) {
         // ==== Init ====
         function init(){ 
             loadData(); 
+            loadEspeciales();
             loadCredits();
             setupEventListeners(); 
+            setupEspecialesEventListeners();
             setupCreditsEventListeners();
             checkLibraries(); 
             showView('public');
