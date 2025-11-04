@@ -201,7 +201,7 @@
                     <div class="flex flex-col md:flex-row gap-4 mb-4">
                         <div class="flex-grow">
                             <div class="relative">
-                                <input id="creditSearchInput" type="text" placeholder="Buscar por proveedor, descripción, dígitos o notas..." aria-label="Buscar créditos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                                <input id="creditSearchInput" type="text" placeholder="Buscar por proveedor, descripción, UPC o notas..." aria-label="Buscar créditos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                             </div>
                         </div>
@@ -295,7 +295,7 @@
                     <div class="flex flex-col md:flex-row gap-4 mb-4">
                         <div class="flex-grow">
                             <div class="relative">
-                                <input id="historySearchInput" type="text" placeholder="Buscar por proveedor, descripción o dígitos..." aria-label="Buscar historial" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                                <input id="historySearchInput" type="text" placeholder="Buscar por proveedor, descripción o UPC..." aria-label="Buscar historial" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                             </div>
                         </div>
@@ -541,6 +541,11 @@
             console.warn('Firebase not available, using localStorage only', err);
         }
 
+        // ==== Catálogo de productos para búsqueda por UPC ====
+        // Este array se utilizará para buscar productos por su código UPC completo
+        // y auto-llenar los campos del formulario de créditos
+        let catalogo = [];
+
         // ==== Estado ====
         const adminPassword = 'admin123';
         let products = [];
@@ -643,12 +648,29 @@
             return (Date.now() - product.dateAdded) < sevenDays;
         }
 
+        // ==== Sincronizar catálogo de UPC desde productos ====
+        // Esta función actualiza el catálogo con los UPCs de los productos actuales
+        function syncCatalogo() {
+            catalogo = products
+                .filter(p => p.upc) // Solo productos con UPC definido
+                .map(p => ({
+                    upc: p.upc,
+                    nombre: p.nombre || 'Sin nombre',
+                    itemNumber: p.itemNumber || '',
+                    description: p.description || '',
+                    size: p.size || '',
+                    costo: p.costo || 0
+                }));
+            console.log(`Catálogo sincronizado con ${catalogo.length} productos`);
+        }
+
         // ==== Load & Save ====
         function loadData(){
             try{
                 if(database){
                     database.ref('products').on('value', (snapshot)=>{
                         products = snapshot.val() || [];
+                        syncCatalogo(); // Sincronizar catálogo después de cargar productos
                         renderAdminProducts();
                         renderPublicTabs();
                         showToast('Datos sincronizados desde Firebase.');
@@ -661,6 +683,7 @@
                 if(isLocalStorageAvailable()){
                     const stored = localStorage.getItem('products');
                     products = stored ? JSON.parse(stored) : [];
+                    syncCatalogo(); // Sincronizar catálogo después de cargar productos
                     renderAdminProducts();
                     renderPublicTabs();
                 } else { products = []; }
@@ -673,6 +696,7 @@
                         database.ref('products').set(products)
                             .then(() => {
                                 console.log('Products saved to Firebase successfully');
+                                syncCatalogo(); // Sincronizar catálogo después de guardar productos
                                 if(isLocalStorageAvailable()) {
                                     localStorage.setItem('products', JSON.stringify(products));
                                 }
@@ -680,12 +704,14 @@
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error, using localStorage as fallback', err);
+                                syncCatalogo(); // Sincronizar catálogo incluso con fallback
                                 if(isLocalStorageAvailable()) {
                                     localStorage.setItem('products', JSON.stringify(products));
                                 }
                                 resolve(); // Resolve with localStorage fallback instead of rejecting
                             });
                     } else {
+                        syncCatalogo(); // Sincronizar catálogo
                         if(isLocalStorageAvailable()) {
                             localStorage.setItem('products', JSON.stringify(products));
                         }
@@ -694,6 +720,7 @@
                 }
                 catch(err){
                     console.error('Error saving products:', err);
+                    syncCatalogo(); // Intentar sincronizar catálogo incluso con error
                     if(isLocalStorageAvailable()) {
                         localStorage.setItem('products', JSON.stringify(products));
                     }
@@ -1904,12 +1931,32 @@ function importFromCSV(file) {
                         <input type="number" class="product-qty w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required min="1" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción* (máx 100 caracteres)</label>
-                        <input type="text" class="product-desc w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="100" />
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Código UPC Completo* (12-13 dígitos)
+                            <button type="button" class="scan-upc-btn ml-2 bg-mexican-green text-white px-3 py-1 rounded text-xs hover:bg-opacity-90" aria-label="Activar escáner de código de barras">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd" />
+                                </svg>
+                                Escanear
+                            </button>
+                        </label>
+                        <input 
+                            type="text" 
+                            class="product-upc w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" 
+                            required 
+                            pattern="[0-9]{12,13}" 
+                            placeholder="012345678901" 
+                            maxlength="13"
+                            autocomplete="off"
+                            autocorrect="off"
+                            inputmode="numeric"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Ingresa manualmente o escanea con pistola Zebra</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Últimos 4 Dígitos UPC* (solo números)</label>
-                        <input type="text" pattern="[0-9]{4}" class="product-digits w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="4" placeholder="0000" />
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción / Nombre del Producto* (máx 100 caracteres)</label>
+                        <input type="text" class="product-desc w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="100" placeholder="Se auto-llenará si el UPC existe en catálogo" />
+                        <p class="text-xs text-gray-500 mt-1">Se completa automáticamente si el UPC se encuentra en el catálogo</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Foto (Opcional - JPG/PNG, máx 5MB)</label>
@@ -1920,6 +1967,43 @@ function importFromCSV(file) {
             `;
             
             productsList.appendChild(fieldDiv);
+            
+            // Setup UPC input handler with debouncing
+            const upcInput = fieldDiv.querySelector('.product-upc');
+            const descInput = fieldDiv.querySelector('.product-desc');
+            
+            // Almacenar el timer de debounce como propiedad del elemento para evitar conflictos entre múltiples campos
+            upcInput.upcDebounceTimer = null;
+            
+            // Debounced UPC lookup para evitar búsquedas excesivas mientras se escribe
+            upcInput.addEventListener('input', (e) => {
+                clearTimeout(upcInput.upcDebounceTimer);
+                upcInput.upcDebounceTimer = setTimeout(() => {
+                    handleUPCInput(upcInput, descInput, fieldDiv);
+                }, 500); // Esperar 500ms después de que el usuario deje de escribir
+            });
+            
+            // También procesar cuando el usuario presiona Enter o pierde el foco
+            upcInput.addEventListener('blur', () => {
+                clearTimeout(upcInput.upcDebounceTimer);
+                handleUPCInput(upcInput, descInput, fieldDiv);
+            });
+            
+            upcInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(upcInput.upcDebounceTimer);
+                    handleUPCInput(upcInput, descInput, fieldDiv);
+                }
+            });
+            
+            // Setup scan button to focus UPC field
+            const scanBtn = fieldDiv.querySelector('.scan-upc-btn');
+            scanBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                upcInput.focus();
+                showToast('Listo para escanear. Usa la pistola Zebra ahora.', false);
+            });
             
             // Setup photo preview
             const photoInput = fieldDiv.querySelector('.product-photo');
@@ -1956,6 +2040,91 @@ function importFromCSV(file) {
             });
         }
 
+        /**
+         * Valida si un UPC tiene el formato correcto (12-13 dígitos numéricos)
+         * @param {string} upc - El código UPC a validar
+         * @returns {boolean} - True si el UPC es válido, false en caso contrario
+         */
+        function isValidUPC(upc) {
+            // El UPC debe ser una cadena de 12 o 13 dígitos numéricos
+            return /^\d{12,13}$/.test(upc);
+        }
+
+        /**
+         * Busca un producto en el catálogo por su código UPC
+         * @param {string} upc - El código UPC a buscar
+         * @returns {object|null} - El producto encontrado o null si no existe
+         */
+        function buscarProductoPorUPC(upc) {
+            // Normalizar el UPC (eliminar espacios y convertir a string)
+            const upcNormalizado = String(upc).trim();
+            
+            // Buscar en el catálogo
+            const productoEncontrado = catalogo.find(p => p.upc === upcNormalizado);
+            
+            if (productoEncontrado) {
+                console.log('Producto encontrado en catálogo:', productoEncontrado);
+            } else {
+                console.log('Producto no encontrado para UPC:', upcNormalizado);
+            }
+            
+            return productoEncontrado || null;
+        }
+
+        /**
+         * Maneja el evento de entrada de UPC en el campo de texto
+         * Busca el producto y auto-llena los campos si se encuentra
+         * @param {HTMLInputElement} upcInput - El campo de entrada de UPC
+         * @param {HTMLInputElement} descInput - El campo de descripción
+         * @param {HTMLElement} fieldDiv - El contenedor del campo de producto
+         */
+        function handleUPCInput(upcInput, descInput, fieldDiv) {
+            const upcValue = upcInput.value.trim();
+            
+            // Restablecer estilos si el campo está vacío
+            if (!upcValue) {
+                upcInput.style.border = '';
+                descInput.readOnly = false;
+                descInput.value = '';
+                descInput.style.backgroundColor = '';
+                descInput.style.cursor = '';
+                return;
+            }
+            
+            // Validar formato de UPC
+            if (isValidUPC(upcValue)) {
+                // Buscar producto en el catálogo
+                const producto = buscarProductoPorUPC(upcValue);
+                
+                if (producto) {
+                    // Producto encontrado - Aplicar borde verde y auto-llenar
+                    upcInput.style.border = '2px solid #10b981'; // Verde Tailwind green-500
+                    descInput.value = producto.nombre;
+                    descInput.readOnly = true; // Hacer solo lectura cuando se auto-llena (permite copiar pero no editar)
+                    descInput.style.backgroundColor = '#f0fdf4'; // Verde claro Tailwind green-50
+                    descInput.style.cursor = 'not-allowed'; // Indicador visual de que no se puede editar
+                    showToast(`Producto encontrado: ${producto.nombre}`, false);
+                } else {
+                    // UPC válido pero producto no encontrado
+                    upcInput.style.border = '2px solid #f97316'; // Naranja Tailwind orange-500
+                    descInput.value = '';
+                    descInput.readOnly = false; // Habilitar entrada manual
+                    descInput.style.backgroundColor = '';
+                    descInput.style.cursor = '';
+                    showToast('UPC no encontrado en el catálogo. Por favor, ingresa el nombre del producto manualmente.', true);
+                    // Enfocar el campo de descripción para entrada manual
+                    descInput.focus();
+                }
+            } else {
+                // UPC inválido (no cumple con 12-13 dígitos)
+                upcInput.style.border = '2px solid #ef4444'; // Rojo Tailwind red-500
+                descInput.readOnly = false;
+                descInput.value = '';
+                descInput.style.backgroundColor = '';
+                descInput.style.cursor = '';
+            }
+        }
+
         // Render pending credits
         function renderPendingCredits(searchTerm = '', filter = 'all') {
             const container = document.getElementById('pendingCreditsContainer');
@@ -1970,7 +2139,8 @@ function importFromCSV(file) {
                     (c.provider || '').toLowerCase().includes(term) ||
                     c.products.some(p => 
                         p.desc.toLowerCase().includes(term) || 
-                        p.digits.includes(term)
+                        (p.upc || '').includes(term) ||
+                        (p.digits || '').includes(term)
                     ) ||
                     (c.notes || '').toLowerCase().includes(term)
                 );
@@ -2011,7 +2181,7 @@ function importFromCSV(file) {
                 const productsListHTML = credit.products.map(p => `
                     <li class="text-sm bg-gray-50 p-2 rounded">
                         <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
-                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                        <br/><span class="text-gray-600">UPC: ${sanitizeInput(p.upc || p.digits || 'N/A')}</span>
                         ${p.photo ? `<br/><img src="${p.photo}" class="photo-thumbnail mt-1 view-photo-modal" alt="Producto" data-photo="${p.photo}" />` : ''}
                     </li>
                 `).join('');
@@ -2100,7 +2270,7 @@ function importFromCSV(file) {
                 <li class="bg-gray-50 p-3 rounded mb-2">
                     <div class="text-sm">
                         <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
-                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                        <br/><span class="text-gray-600">UPC: ${sanitizeInput(p.upc || p.digits || 'N/A')}</span>
                     </div>
                     ${p.photo ? `
                         <div class="mt-2">
@@ -2162,7 +2332,8 @@ function importFromCSV(file) {
                     (c.provider || '').toLowerCase().includes(term) ||
                     c.products.some(p => 
                         p.desc.toLowerCase().includes(term) || 
-                        p.digits.includes(term)
+                        (p.upc || '').includes(term) ||
+                        (p.digits || '').includes(term)
                     )
                 );
             }
@@ -2184,7 +2355,7 @@ function importFromCSV(file) {
                 const productsListHTML = credit.products.map(p => `
                     <li class="text-sm bg-gray-50 p-2 rounded">
                         <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
-                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                        <br/><span class="text-gray-600">UPC: ${sanitizeInput(p.upc || p.digits || 'N/A')}</span>
                         ${p.photo ? `<br/><img src="${p.photo}" class="photo-thumbnail mt-1 view-photo-modal" alt="Producto" data-photo="${p.photo}" />` : ''}
                     </li>
                 `).join('');
@@ -2295,7 +2466,7 @@ function importFromCSV(file) {
             let csv = 'ID,Proveedor,Fecha Registro,Fecha Entrega,Productos,Notas Entrega\n';
             
             delivered.forEach(credit => {
-                const products = credit.products.map(p => `${p.qty}x ${p.desc} (${p.digits})`).join('; ');
+                const products = credit.products.map(p => `${p.qty}x ${p.desc} (UPC: ${p.upc || p.digits || 'N/A'})`).join('; ');
                 csv += `"${credit.id}","${credit.provider || ''}","${credit.date}","${credit.deliveryDate}","${products}","${credit.deliveryNotes || ''}"\n`;
             });
             
@@ -2383,11 +2554,22 @@ function importFromCSV(file) {
                         for (const field of productFields) {
                             const qty = field.querySelector('.product-qty').value;
                             const desc = field.querySelector('.product-desc').value.trim();
-                            const digits = field.querySelector('.product-digits').value.trim();
+                            const upcInput = field.querySelector('.product-upc');
+                            const upc = upcInput.value.trim();
                             const photoInput = field.querySelector('.product-photo');
                             
-                            if (!qty || !desc || !digits) {
+                            // Validar que todos los campos requeridos estén completos
+                            if (!qty || !desc || !upc) {
                                 showToast('Completa todos los campos obligatorios del producto', true);
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                                return;
+                            }
+                            
+                            // Validar formato de UPC
+                            if (!isValidUPC(upc)) {
+                                showToast('El UPC debe contener 12 o 13 dígitos numéricos', true);
+                                upcInput.focus();
                                 submitBtn.disabled = false;
                                 submitBtn.textContent = originalText;
                                 return;
@@ -2398,10 +2580,12 @@ function importFromCSV(file) {
                                 photo = await imageToBase64(photoInput.files[0]);
                             }
                             
+                            // Guardar producto con UPC completo y últimos 4 dígitos para compatibilidad
                             products.push({
                                 qty: parseInt(qty),
                                 desc,
-                                digits,
+                                upc: upc, // UPC completo
+                                digits: upc.slice(-4), // Últimos 4 dígitos para compatibilidad con vistas existentes
                                 photo
                             });
                         }
