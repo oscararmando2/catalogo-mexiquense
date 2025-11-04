@@ -1933,8 +1933,11 @@ function importFromCSV(file) {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">
                             Código UPC Completo* (12-13 dígitos)
-                            <button type="button" class="scan-upc-btn ml-2 bg-mexican-green text-white px-3 py-1 rounded text-xs hover:bg-opacity-90">
-                                📷 Escanear
+                            <button type="button" class="scan-upc-btn ml-2 bg-mexican-green text-white px-3 py-1 rounded text-xs hover:bg-opacity-90" aria-label="Activar escáner de código de barras">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd" />
+                                </svg>
+                                Escanear
                             </button>
                         </label>
                         <input 
@@ -1969,25 +1972,27 @@ function importFromCSV(file) {
             const upcInput = fieldDiv.querySelector('.product-upc');
             const descInput = fieldDiv.querySelector('.product-desc');
             
+            // Almacenar el timer de debounce como propiedad del elemento para evitar conflictos entre múltiples campos
+            upcInput.upcDebounceTimer = null;
+            
             // Debounced UPC lookup para evitar búsquedas excesivas mientras se escribe
-            let upcDebounceTimer;
             upcInput.addEventListener('input', (e) => {
-                clearTimeout(upcDebounceTimer);
-                upcDebounceTimer = setTimeout(() => {
+                clearTimeout(upcInput.upcDebounceTimer);
+                upcInput.upcDebounceTimer = setTimeout(() => {
                     handleUPCInput(upcInput, descInput, fieldDiv);
                 }, 500); // Esperar 500ms después de que el usuario deje de escribir
             });
             
             // También procesar cuando el usuario presiona Enter o pierde el foco
             upcInput.addEventListener('blur', () => {
-                clearTimeout(upcDebounceTimer);
+                clearTimeout(upcInput.upcDebounceTimer);
                 handleUPCInput(upcInput, descInput, fieldDiv);
             });
             
             upcInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    clearTimeout(upcDebounceTimer);
+                    clearTimeout(upcInput.upcDebounceTimer);
                     handleUPCInput(upcInput, descInput, fieldDiv);
                 }
             });
@@ -2079,9 +2084,10 @@ function importFromCSV(file) {
             // Restablecer estilos si el campo está vacío
             if (!upcValue) {
                 upcInput.style.border = '';
-                descInput.disabled = false;
+                descInput.readOnly = false;
                 descInput.value = '';
                 descInput.style.backgroundColor = '';
+                descInput.style.cursor = '';
                 return;
             }
             
@@ -2094,25 +2100,28 @@ function importFromCSV(file) {
                     // Producto encontrado - Aplicar borde verde y auto-llenar
                     upcInput.style.border = '2px solid green';
                     descInput.value = producto.nombre;
-                    descInput.disabled = true; // Deshabilitar edición cuando se auto-llena
+                    descInput.readOnly = true; // Hacer solo lectura cuando se auto-llena (permite copiar pero no editar)
                     descInput.style.backgroundColor = '#f0f9f0'; // Fondo verde claro
+                    descInput.style.cursor = 'not-allowed'; // Indicador visual de que no se puede editar
                     showToast(`Producto encontrado: ${producto.nombre}`, false);
                 } else {
                     // UPC válido pero producto no encontrado
                     upcInput.style.border = '2px solid orange';
                     descInput.value = '';
-                    descInput.disabled = false; // Habilitar entrada manual
+                    descInput.readOnly = false; // Habilitar entrada manual
                     descInput.style.backgroundColor = '';
-                    alert('UPC no encontrado en el catálogo.\nPor favor, ingresa el nombre del producto manualmente.');
+                    descInput.style.cursor = '';
+                    showToast('UPC no encontrado en el catálogo. Por favor, ingresa el nombre del producto manualmente.', true);
                     // Enfocar el campo de descripción para entrada manual
                     descInput.focus();
                 }
             } else {
                 // UPC inválido (no cumple con 12-13 dígitos)
                 upcInput.style.border = '2px solid red';
-                descInput.disabled = false;
+                descInput.readOnly = false;
                 descInput.value = '';
                 descInput.style.backgroundColor = '';
+                descInput.style.cursor = '';
             }
         }
 
