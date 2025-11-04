@@ -1439,7 +1439,7 @@ function importFromCSV(file) {
                 const days = getDaysElapsed(credit.date);
                 const urgencyClass = getUrgencyClass(days);
                 const timeText = getTimeElapsedText(days);
-                const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+                const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
                 const firstPhoto = credit.products[0].photo;
                 
                 const card = document.createElement('div');
@@ -1483,7 +1483,7 @@ function importFromCSV(file) {
                     if (!credit) return;
                     
                     // Show confirmation dialog
-                    const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+                    const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
                     const confirmMsg = `¿Deseas marcar como entregado el crédito?\n\nID: ${credit.id}\nProveedor: ${credit.provider || 'Sin proveedor'}\nTotal Productos: ${totalProducts}\n\nPresiona "Aceptar" para continuar o "Cancelar" para volver.`;
                     
                     if (confirm(confirmMsg)) {
@@ -1512,7 +1512,7 @@ function importFromCSV(file) {
             document.getElementById('deliveryPhotoPreview').innerHTML = '';
             
             // Show credit summary
-            const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+            const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
             const summaryDiv = document.getElementById('creditSummary');
             summaryDiv.innerHTML = `
                 <h3 class="text-lg font-bold mb-4">Resumen del Crédito</h3>
