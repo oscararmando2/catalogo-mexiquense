@@ -1251,79 +1251,166 @@ function importFromCSV(file) {
         // ==== ESPECIALES FUNCTIONALITY ====
         let especiales = [];
 
-        // Load especiales from localStorage
+        // Load especiales from Firebase with localStorage fallback
         function loadEspeciales() {
-            if (isLocalStorageAvailable()) {
-                const stored = localStorage.getItem('especiales');
-                if (stored) {
-                    especiales = JSON.parse(stored);
-                } else {
-                    // Initialize with simulated data
-                    especiales = [
-                        {
-                            id_price: 1,
-                            id_provider: 101,
-                            provider: 'Avocado',
-                            product: 'Pozole Juanitas',
-                            price: 5.99
-                        },
-                        {
-                            id_price: 2,
-                            id_provider: 102,
-                            provider: 'La Costeña',
-                            product: 'Frijoles Negros Refritos',
-                            price: 3.50
-                        },
-                        {
-                            id_price: 3,
-                            id_provider: 103,
-                            provider: 'Herdez',
-                            product: 'Salsa Verde 7oz',
-                            price: 2.99
-                        },
-                        {
-                            id_price: 4,
-                            id_provider: 101,
-                            provider: 'Avocado',
-                            product: 'Aguacate Fresco Orgánico',
-                            price: 4.25
-                        },
-                        {
-                            id_price: 5,
-                            id_provider: 104,
-                            provider: 'Maseca',
-                            product: 'Harina de Maíz 2kg',
-                            price: 6.99
-                        },
-                        {
-                            id_price: 6,
-                            id_provider: 105,
-                            provider: 'Bimbo',
-                            product: 'Pan Blanco Grande',
-                            price: 3.75
-                        },
-                        {
-                            id_price: 7,
-                            id_provider: 102,
-                            provider: 'La Costeña',
-                            product: 'Jalapeños en Rajas',
-                            price: 2.49
-                        },
-                        {
-                            id_price: 8,
-                            id_provider: 106,
-                            provider: 'Jumex',
-                            product: 'Néctar de Mango 1L',
-                            price: 1.99
+            try {
+                if (database) {
+                    database.ref('especiales').on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data && Array.isArray(data) && data.length > 0) {
+                            especiales = data;
+                        } else {
+                            // Initialize with simulated data
+                            especiales = [
+                                {
+                                    id_price: 1,
+                                    id_provider: 101,
+                                    provider: 'Avocado',
+                                    product: 'Pozole Juanitas',
+                                    price: 5.99
+                                },
+                                {
+                                    id_price: 2,
+                                    id_provider: 102,
+                                    provider: 'La Costeña',
+                                    product: 'Frijoles Negros Refritos',
+                                    price: 3.50
+                                },
+                                {
+                                    id_price: 3,
+                                    id_provider: 103,
+                                    provider: 'Herdez',
+                                    product: 'Salsa Verde 7oz',
+                                    price: 2.99
+                                },
+                                {
+                                    id_price: 4,
+                                    id_provider: 101,
+                                    provider: 'Avocado',
+                                    product: 'Aguacate Fresco Orgánico',
+                                    price: 4.25
+                                },
+                                {
+                                    id_price: 5,
+                                    id_provider: 104,
+                                    provider: 'Maseca',
+                                    product: 'Harina de Maíz 2kg',
+                                    price: 6.99
+                                },
+                                {
+                                    id_price: 6,
+                                    id_provider: 105,
+                                    provider: 'Bimbo',
+                                    product: 'Pan Blanco Grande',
+                                    price: 3.75
+                                },
+                                {
+                                    id_price: 7,
+                                    id_provider: 102,
+                                    provider: 'La Costeña',
+                                    product: 'Jalapeños en Rajas',
+                                    price: 2.49
+                                },
+                                {
+                                    id_price: 8,
+                                    id_provider: 106,
+                                    provider: 'Jumex',
+                                    product: 'Néctar de Mango 1L',
+                                    price: 1.99
+                                }
+                            ];
+                            saveEspeciales();
                         }
-                    ];
-                    saveEspeciales();
+                        // Render if we're in especiales view
+                        if (currentView === 'especiales') {
+                            renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+                        }
+                        console.log('Especiales synchronized from Firebase.');
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
+            } catch (err) {
+                console.warn('Using localStorage for especiales', err);
+                if (isLocalStorageAvailable()) {
+                    const stored = localStorage.getItem('especiales');
+                    if (stored) {
+                        especiales = JSON.parse(stored);
+                    } else {
+                        // Initialize with simulated data
+                        especiales = [
+                            {
+                                id_price: 1,
+                                id_provider: 101,
+                                provider: 'Avocado',
+                                product: 'Pozole Juanitas',
+                                price: 5.99
+                            },
+                            {
+                                id_price: 2,
+                                id_provider: 102,
+                                provider: 'La Costeña',
+                                product: 'Frijoles Negros Refritos',
+                                price: 3.50
+                            },
+                            {
+                                id_price: 3,
+                                id_provider: 103,
+                                provider: 'Herdez',
+                                product: 'Salsa Verde 7oz',
+                                price: 2.99
+                            },
+                            {
+                                id_price: 4,
+                                id_provider: 101,
+                                provider: 'Avocado',
+                                product: 'Aguacate Fresco Orgánico',
+                                price: 4.25
+                            },
+                            {
+                                id_price: 5,
+                                id_provider: 104,
+                                provider: 'Maseca',
+                                product: 'Harina de Maíz 2kg',
+                                price: 6.99
+                            },
+                            {
+                                id_price: 6,
+                                id_provider: 105,
+                                provider: 'Bimbo',
+                                product: 'Pan Blanco Grande',
+                                price: 3.75
+                            },
+                            {
+                                id_price: 7,
+                                id_provider: 102,
+                                provider: 'La Costeña',
+                                product: 'Jalapeños en Rajas',
+                                price: 2.49
+                            },
+                            {
+                                id_price: 8,
+                                id_provider: 106,
+                                provider: 'Jumex',
+                                product: 'Néctar de Mango 1L',
+                                price: 1.99
+                            }
+                        ];
+                        saveEspeciales();
+                    }
                 }
             }
         }
 
-        // Save especiales to localStorage
+        // Save especiales to Firebase and localStorage
         function saveEspeciales() {
+            try {
+                if (database) {
+                    database.ref('especiales').set(especiales);
+                }
+            } catch (err) {
+                console.warn('Firebase save error for especiales, using localStorage', err);
+            }
             if (isLocalStorageAvailable()) {
                 localStorage.setItem('especiales', JSON.stringify(especiales));
             }
@@ -1550,16 +1637,43 @@ function importFromCSV(file) {
         let currentCreditView = 'pending';
         let creditNotificationInterval = null;
 
-        // Load credits from localStorage
+        // Load credits from Firebase with localStorage fallback
         function loadCredits() {
-            if (isLocalStorageAvailable()) {
-                const stored = localStorage.getItem('credits');
-                credits = stored ? JSON.parse(stored) : [];
+            try {
+                if (database) {
+                    database.ref('credits').on('value', (snapshot) => {
+                        credits = snapshot.val() || [];
+                        // Render current view if we're in credits section
+                        if (currentView === 'creditos') {
+                            if (currentCreditView === 'pending') {
+                                renderPendingCredits();
+                            } else if (currentCreditView === 'history') {
+                                renderHistoryCredits();
+                            }
+                        }
+                        console.log('Credits synchronized from Firebase.');
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
+            } catch (err) {
+                console.warn('Using localStorage for credits', err);
+                if (isLocalStorageAvailable()) {
+                    const stored = localStorage.getItem('credits');
+                    credits = stored ? JSON.parse(stored) : [];
+                }
             }
         }
 
-        // Save credits to localStorage
+        // Save credits to Firebase and localStorage
         function saveCredits() {
+            try {
+                if (database) {
+                    database.ref('credits').set(credits);
+                }
+            } catch (err) {
+                console.warn('Firebase save error for credits, using localStorage', err);
+            }
             if (isLocalStorageAvailable()) {
                 localStorage.setItem('credits', JSON.stringify(credits));
             }
@@ -1798,16 +1912,25 @@ function importFromCSV(file) {
                 const urgencyClass = getUrgencyClass(days);
                 const timeText = getTimeElapsedText(days);
                 const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
-                const firstPhoto = credit.products[0].photo;
+                const firstPhoto = credit.products[0]?.photo;
+                
+                // Build products list HTML
+                const productsListHTML = credit.products.map(p => `
+                    <li class="text-sm bg-gray-50 p-2 rounded">
+                        <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
+                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                        ${p.photo ? `<br/><img src="${p.photo}" class="photo-thumbnail mt-1 view-photo-modal" alt="Producto" data-photo="${p.photo}" />` : ''}
+                    </li>
+                `).join('');
                 
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover ${urgencyClass}`;
                 card.innerHTML = `
                     <div class="p-6">
                         <div class="flex justify-between items-start mb-4">
-                            <div>
+                            <div class="flex-grow">
                                 <p class="text-sm text-gray-500">ID: ${credit.id}</p>
-                                <h3 class="text-lg font-bold text-gray-900">${credit.provider || 'Sin proveedor'}</h3>
+                                <h3 class="text-lg font-bold text-gray-900">${sanitizeInput(credit.provider || 'Sin proveedor')}</h3>
                             </div>
                             <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full">Pendiente</span>
                         </div>
@@ -1818,9 +1941,16 @@ function importFromCSV(file) {
                             <p class="text-sm"><strong>Tiempo:</strong> ${timeText}</p>
                         </div>
                         
-                        ${firstPhoto ? `
-                            <div class="mb-4">
-                                <img src="${firstPhoto}" class="photo-thumbnail mx-auto view-photo-modal" alt="Producto" data-photo="${firstPhoto}" />
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold mb-2">Productos:</p>
+                            <ul class="space-y-2">
+                                ${productsListHTML}
+                            </ul>
+                        </div>
+                        
+                        ${credit.notes ? `
+                            <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                                <p class="text-sm"><strong>Notas:</strong> ${sanitizeInput(credit.notes)}</p>
                             </div>
                         ` : ''}
                         
@@ -1869,33 +1999,50 @@ function importFromCSV(file) {
             document.getElementById('deliveryPhoto').value = '';
             document.getElementById('deliveryPhotoPreview').innerHTML = '';
             
-            // Show credit summary
+            // Show credit summary with all details
             const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
+            
+            // Build products list HTML with all details
+            const productsListHTML = credit.products.map(p => `
+                <li class="bg-gray-50 p-3 rounded mb-2">
+                    <div class="text-sm">
+                        <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
+                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                    </div>
+                    ${p.photo ? `
+                        <div class="mt-2">
+                            <img src="${p.photo}" class="photo-thumbnail view-photo-modal" alt="Producto" data-photo="${p.photo}" />
+                        </div>
+                    ` : ''}
+                </li>
+            `).join('');
+            
             const summaryDiv = document.getElementById('creditSummary');
             summaryDiv.innerHTML = `
                 <h3 class="text-lg font-bold mb-4">Resumen del Crédito</h3>
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <p class="mb-2"><strong>ID:</strong> ${credit.id}</p>
-                        <p class="mb-2"><strong>Proveedor:</strong> ${credit.provider || 'Sin proveedor'}</p>
-                        <p class="mb-2"><strong>Fecha Registro:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
-                        <p class="mb-2"><strong>Total Productos:</strong> ${totalProducts}</p>
+                <div class="space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="mb-2"><strong>ID:</strong> ${credit.id}</p>
+                            <p class="mb-2"><strong>Proveedor:</strong> ${sanitizeInput(credit.provider || 'Sin proveedor')}</p>
+                            <p class="mb-2"><strong>Fecha Registro:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
+                            <p class="mb-2"><strong>Total Productos:</strong> ${totalProducts}</p>
+                        </div>
                     </div>
+                    
+                    ${credit.notes ? `
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <p class="text-sm"><strong>Notas del Crédito:</strong> ${sanitizeInput(credit.notes)}</p>
+                        </div>
+                    ` : ''}
+                    
                     <div>
                         <p class="font-semibold mb-2">Productos:</p>
-                        <ul class="list-disc list-inside space-y-1">
-                            ${credit.products.map(p => `
-                                <li class="text-sm">${p.qty}x ${p.desc} (${p.digits})</li>
-                            `).join('')}
+                        <ul class="space-y-2">
+                            ${productsListHTML}
                         </ul>
                     </div>
                 </div>
-                ${credit.products[0].photo ? `
-                    <div class="mt-4">
-                        <p class="font-semibold mb-2">Foto del primer producto:</p>
-                        <img src="${credit.products[0].photo}" class="photo-thumbnail view-photo-modal" alt="Producto" data-photo="${credit.products[0].photo}" />
-                    </div>
-                ` : ''}
             `;
             
             // Setup photo modal for summary
@@ -1940,14 +2087,23 @@ function importFromCSV(file) {
             }
             
             filtered.forEach(credit => {
+                // Build products list HTML with photos
+                const productsListHTML = credit.products.map(p => `
+                    <li class="text-sm bg-gray-50 p-2 rounded">
+                        <strong>${p.qty}x</strong> ${sanitizeInput(p.desc)}
+                        <br/><span class="text-gray-600">Últimos 4 dígitos: ${sanitizeInput(p.digits)}</span>
+                        ${p.photo ? `<br/><img src="${p.photo}" class="photo-thumbnail mt-1 view-photo-modal" alt="Producto" data-photo="${p.photo}" />` : ''}
+                    </li>
+                `).join('');
+                
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
                 card.innerHTML = `
                     <div class="p-6">
                         <div class="flex justify-between items-start mb-4">
-                            <div>
+                            <div class="flex-grow">
                                 <p class="text-sm text-gray-500">ID: ${credit.id}</p>
-                                <h3 class="text-lg font-bold text-gray-900">${credit.provider || 'Sin proveedor'}</h3>
+                                <h3 class="text-lg font-bold text-gray-900">${sanitizeInput(credit.provider || 'Sin proveedor')}</h3>
                             </div>
                             <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Entregado</span>
                         </div>
@@ -1955,13 +2111,24 @@ function importFromCSV(file) {
                         <div class="space-y-2 mb-4">
                             <p class="text-sm"><strong>Fecha Registro:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
                             <p class="text-sm"><strong>Fecha Entrega:</strong> ${new Date(credit.deliveryDate).toLocaleDateString('es-MX')}</p>
-                            ${credit.deliveryNotes ? `<p class="text-sm"><strong>Notas:</strong> ${credit.deliveryNotes}</p>` : ''}
                         </div>
+                        
+                        ${credit.notes ? `
+                            <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                                <p class="text-sm"><strong>Notas del Crédito:</strong> ${sanitizeInput(credit.notes)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${credit.deliveryNotes ? `
+                            <div class="mb-4 p-3 bg-green-50 rounded-lg">
+                                <p class="text-sm"><strong>Notas de Entrega:</strong> ${sanitizeInput(credit.deliveryNotes)}</p>
+                            </div>
+                        ` : ''}
                         
                         <div class="mb-4">
                             <p class="text-sm font-semibold mb-2">Productos:</p>
-                            <ul class="list-disc list-inside space-y-1 text-sm">
-                                ${credit.products.map(p => `<li>${p.qty}x ${p.desc} (${p.digits})</li>`).join('')}
+                            <ul class="space-y-2">
+                                ${productsListHTML}
                             </ul>
                         </div>
                         
