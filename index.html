@@ -116,6 +116,7 @@
                 </div>
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+                <div id="publicPagination" class="flex justify-center items-center gap-2 mt-6 hidden"></div>
             </div>
         </section>
 
@@ -139,7 +140,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden">
-                                <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+                                <img id="productImageSrc" loading="lazy" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
                             <div class="space-y-2" id="productFields">
@@ -306,6 +307,8 @@
         let products = [];
         const selection = new Set();
         let currentView = 'public';
+        const PAGE_SIZE = 20;
+        let publicCurrentPage = 1;
 
         // ==== DOM ====
         const productsContainer = document.getElementById('productsContainer');
@@ -317,6 +320,7 @@
         const publicViewBtn = document.getElementById('publicViewBtn');
         const publicTabs = document.getElementById('publicTabs');
         const publicTabContent = document.getElementById('publicTabContent');
+        const publicPagination = document.getElementById('publicPagination');
         const adminButtons = document.getElementById('adminButtons');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
@@ -388,6 +392,241 @@
         function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
 
+        function normalizeProducts(raw){
+            if(raw == null) return [];
+
+            const canonicalKey = (key)=> String(key || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]/g, '');
+
+            const aliasGroups = {
+                itemNumber: ['itemnumber','itemcode','codigo','codigoitem','sku','clave','claveproducto'],
+                nombre: ['nombre','name','producto','productoname','productname','titulo','title','nombreproducto'],
+                description: ['description','descripcion','descripcionlarga','detalle','detalles','descripccion'],
+                upc: ['upc','barcode','codigobarras','codbarras','ean','ean13'],
+                size: ['size','tamano','tamanho','tamaño','presentation','presentacion'],
+                qty: ['qty','cantidad','existencia','stock','inventario','cant','existencias'],
+                costo: ['costo','price','precio','precioventa','preciounitario','valor','cost'],
+                url: ['url','imagen','image','img','foto','fotourl','imageurl','picture'],
+                proveedor: ['proveedor','supplier','vendor','palimex'],
+                category: ['categoria','category','departamento','familia','seccion'],
+                dateAdded: ['dateadded','fecha','fechaingreso','fechacreacion','createdat','creadoel','timestamp']
+            };
+
+            const indicativeKeys = new Set([
+                'itemnumber','nombre','description','descripcion','upc','qty','cantidad','costo','price','size','tamano','tamano','url','imagen','customfields','dateadded'
+            ]);
+
+            const hasProductShape = (candidate)=>{
+                if(!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
+                const keys = Object.keys(candidate);
+                if(keys.length === 0) return false;
+                const canonicalKeys = keys.map(canonicalKey);
+                if(canonicalKeys.some((key)=> indicativeKeys.has(key))) return true;
+                const primitiveCount = keys.reduce((count, key)=>{
+                    const value = candidate[key];
+                    return (value == null || typeof value !== 'object') ? count + 1 : count;
+                }, 0);
+                return primitiveCount >= 2;
+            };
+
+            const buildAliasLookup = (item)=>{
+                const lookup = {};
+                Object.entries(item || {}).forEach(([key, value])=>{
+                    const canon = canonicalKey(key);
+                    if(!canon) return;
+                    if(!(canon in lookup)) lookup[canon] = { key, value };
+                });
+                return lookup;
+            };
+
+            const parseNumber = (value, { integer=false }={})=>{
+                if(value == null || value === '') return undefined;
+                if(typeof value === 'number') return integer ? Math.trunc(value) : value;
+                if(typeof value === 'string'){
+                    const cleaned = value.replace(/[^0-9,.-]/g,'').replace(/,/g,'.');
+                    const parsed = cleaned ? Number.parseFloat(cleaned) : Number.NaN;
+                    if(Number.isNaN(parsed)) return undefined;
+                    return integer ? Math.trunc(parsed) : parsed;
+                }
+                return undefined;
+            };
+
+            const coerceItem = (item, fallbackId)=>{
+                if(!item || typeof item !== 'object') return null;
+                const aliasLookup = buildAliasLookup(item);
+                const findAliasValue = (aliases=[])=>{
+                    for(const alias of aliases){
+                        const entry = aliasLookup[alias];
+                        if(entry && entry.value != null && entry.value !== '') return entry.value;
+                    }
+                    return undefined;
+                };
+
+                const normalized = { ...item };
+                const providedId = normalized.id != null ? String(normalized.id) : undefined;
+                normalized.id = providedId || (fallbackId != null ? String(fallbackId) : generateId());
+
+                const assignString = (targetKey, group)=>{
+                    if(normalized[targetKey] != null && String(normalized[targetKey]).trim() !== '') return;
+                    const value = findAliasValue(aliasGroups[group] || []);
+                    if(value != null && value !== '') normalized[targetKey] = String(value).trim();
+                };
+
+                const assignNumber = (targetKey, group, opts)=>{
+                    const existing = parseNumber(normalized[targetKey], opts);
+                    if(existing != null) { normalized[targetKey] = existing; return; }
+                    const value = findAliasValue(aliasGroups[group] || []);
+                    const parsed = parseNumber(value, opts);
+                    if(parsed != null) normalized[targetKey] = parsed;
+                };
+
+                assignString('itemNumber','itemNumber');
+                assignString('nombre','nombre');
+                assignString('description','description');
+                assignString('upc','upc');
+                assignString('size','size');
+                assignString('url','url');
+                assignString('proveedor','proveedor');
+                assignString('category','category');
+                assignNumber('qty','qty',{ integer:true });
+                assignNumber('costo','costo');
+
+                if(!normalized.nombre || String(normalized.nombre).trim() === ''){
+                    const fallbackName = normalized.description || findAliasValue(aliasGroups.description || []) || normalized.itemNumber;
+                    if(fallbackName) normalized.nombre = String(fallbackName).trim();
+                }
+
+                const aliasDate = findAliasValue(aliasGroups.dateAdded || []);
+                if(typeof normalized.dateAdded !== 'number'){
+                    const parsedDate = typeof normalized.dateAdded === 'string' ? Date.parse(normalized.dateAdded) : undefined;
+                    const parsedAliasDate = typeof aliasDate === 'number' ? aliasDate : (typeof aliasDate === 'string' ? Date.parse(aliasDate) : undefined);
+                    normalized.dateAdded = Number.isFinite(parsedDate) ? parsedDate : (Number.isFinite(parsedAliasDate) ? parsedAliasDate : Date.now());
+                }
+
+                normalized.customFields = normalized.customFields && typeof normalized.customFields === 'object' && !Array.isArray(normalized.customFields)
+                    ? { ...normalized.customFields }
+                    : {};
+
+                const recognized = new Set(['id','customfields','dateadded']);
+                Object.values(aliasGroups).forEach((aliases)=> aliases.forEach((alias)=> recognized.add(alias)));
+
+                Object.entries(item).forEach(([key, value])=>{
+                    const canon = canonicalKey(key);
+                    if(recognized.has(canon)) return;
+                    if(value == null) return;
+                    if(typeof value === 'object') return;
+                    const safeKey = String(key).trim();
+                    if(!safeKey) return;
+                    normalized.customFields[safeKey] = String(value).trim();
+                });
+
+                return normalized;
+            };
+
+            if(typeof raw === 'string'){
+                try{ return normalizeProducts(JSON.parse(raw)); }
+                catch{ return []; }
+            }
+
+            const dedupe = (list)=>{
+                const map = new Map();
+                list.forEach((item)=>{ if(item && item.id){ map.set(item.id, item); } });
+                return Array.from(map.values());
+            };
+
+            if(Array.isArray(raw)){
+                const results = [];
+                raw.forEach((item, index)=>{
+                    if(item == null) return;
+                    if(typeof item === 'string'){
+                        results.push(...normalizeProducts(item));
+                        return;
+                    }
+                    if(Array.isArray(item) || (typeof item === 'object' && !hasProductShape(item))){
+                        results.push(...normalizeProducts(item));
+                        return;
+                    }
+                    const normalized = coerceItem(item, index);
+                    if(normalized) results.push(normalized);
+                });
+                return dedupe(results);
+            }
+
+            if(typeof raw === 'object'){
+                const results = [];
+                const containerKeys = ['products','items','data','records','list','entries','children','catalog','productos','articulos'];
+
+                containerKeys.forEach((key)=>{
+                    if(Object.prototype.hasOwnProperty.call(raw, key)){
+                        const value = raw[key];
+                        if(hasProductShape(value)){
+                            const normalized = coerceItem(value, key);
+                            if(normalized) results.push(normalized);
+                        }else{
+                            results.push(...normalizeProducts(value));
+                        }
+                    }
+                });
+
+                Object.entries(raw).forEach(([key, value])=>{
+                    if(value == null || containerKeys.includes(key)) return;
+                    if(typeof value === 'string'){
+                        results.push(...normalizeProducts(value));
+                        return;
+                    }
+                    if(Array.isArray(value) || (typeof value === 'object' && !hasProductShape(value))){
+                        results.push(...normalizeProducts(value));
+                        return;
+                    }
+                    const normalized = coerceItem(value, key);
+                    if(normalized) results.push(normalized);
+                });
+
+                if(results.length === 0 && hasProductShape(raw)){
+                    const normalized = coerceItem(raw);
+                    if(normalized) results.push(normalized);
+                }
+
+                return dedupe(results);
+            }
+
+            return [];
+        }
+        function paginate(items, page, pageSize = PAGE_SIZE){ const start = (Math.max(page,1)-1)*pageSize; return items.slice(start, start+pageSize); }
+        function renderPagination(container, currentPage, totalPages){
+            if(!container) return;
+            container.innerHTML = '';
+            if(totalPages <= 1){ container.classList.add('hidden'); return; }
+            container.classList.remove('hidden');
+
+            const createButton = (label, page, disabled=false, isActive=false)=>{
+                const button = document.createElement('button');
+                button.textContent = label;
+                button.className = 'px-3 py-1 rounded-md border border-gray-300 text-sm font-medium transition-colors';
+                if(isActive){ button.classList.add('bg-indigo-600','text-white','border-indigo-600'); }
+                else { button.classList.add('bg-white','text-gray-700','hover:bg-indigo-50'); }
+                if(disabled){ button.classList.add('opacity-50','cursor-not-allowed'); button.disabled = true; }
+                else { button.dataset.page = page; }
+                return button;
+            };
+
+            container.appendChild(createButton('Anterior', currentPage-1, currentPage===1));
+
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow/2));
+            let endPage = startPage + maxPagesToShow - 1;
+            if(endPage > totalPages){ endPage = totalPages; startPage = Math.max(1, endPage - maxPagesToShow + 1); }
+
+            for(let page=startPage; page<=endPage; page++){
+                container.appendChild(createButton(String(page), page, false, page===currentPage));
+            }
+
+            container.appendChild(createButton('Siguiente', currentPage+1, currentPage===totalPages));
+        }
+
         // === NUEVO: ¿producto es "NEW"? (7 días) ===
         function isNewProduct(product){
             if(!product || !product.dateAdded) return false;
@@ -399,7 +638,7 @@
         function loadData(){
             try{
                 database.ref('products').on('value', (snapshot)=>{
-                    products = snapshot.val() || [];
+                    products = normalizeProducts(snapshot.val());
                     renderAdminProducts();
                     renderPublicTabs();
                     showToast('Datos sincronizados desde Firebase.');
@@ -409,7 +648,7 @@
                 showToast('Error al cargar desde Firebase. Usando localStorage.', true);
                 if(isLocalStorageAvailable()){
                     const stored = localStorage.getItem('products');
-                    products = stored ? JSON.parse(stored) : [];
+                    products = normalizeProducts(stored ? JSON.parse(stored) : []);
                     renderAdminProducts();
                     renderPublicTabs();
                 } else { products = []; }
@@ -449,7 +688,7 @@
                 if(selection.has(product.id)) card.classList.add('selected-card');
                 card.innerHTML = `
                     <div class='product-image-container relative'>
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img loading='lazy' src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -479,6 +718,7 @@
             }
             if(filtered.length===0){
                 publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                if(publicPagination){ publicPagination.innerHTML=''; publicPagination.classList.add('hidden'); }
                 return;
             }
             // Orden: nuevos primero, viejos aleatorios
@@ -487,7 +727,12 @@
             for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
             const ordered = [...newOnes, ...oldOnes];
 
-            renderPublicProducts(ordered, publicTabContent);
+            const totalPages = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+            if(publicCurrentPage > totalPages) publicCurrentPage = totalPages;
+            if(publicCurrentPage < 1) publicCurrentPage = 1;
+            const paginated = paginate(ordered, publicCurrentPage);
+            renderPublicProducts(paginated, publicTabContent);
+            renderPagination(publicPagination, publicCurrentPage, totalPages);
         }
 
         function renderPublicProducts(list, container){
@@ -498,7 +743,7 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img loading='lazy' src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
@@ -730,8 +975,18 @@ function importFromCSV(file) {
         // ==== Eventos ====
         function setupEventListeners(){
             // Búsquedas
-            if(searchInput) searchInput.addEventListener('input', debounce(renderAdminProducts, 300));
-            publicSearchInput.addEventListener('input', debounce(()=> renderPublicTabs(sanitizeInput(publicSearchInput.value)), 300));
+            if(searchInput) searchInput.addEventListener('input', debounce(()=>{ renderAdminProducts(); }, 300));
+            publicSearchInput.addEventListener('input', debounce(()=>{ publicCurrentPage = 1; renderPublicTabs(sanitizeInput(publicSearchInput.value)); }, 300));
+
+            // Paginación
+            if(publicPagination){
+                publicPagination.addEventListener('click', (e)=>{
+                    const btn = e.target.closest('button[data-page]');
+                    if(!btn) return;
+                    publicCurrentPage = parseInt(btn.dataset.page, 10) || 1;
+                    renderPublicTabs(sanitizeInput(publicSearchInput.value));
+                });
+            }
 
             // Cierre modales
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
