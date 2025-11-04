@@ -2098,15 +2098,15 @@ function importFromCSV(file) {
                 
                 if (producto) {
                     // Producto encontrado - Aplicar borde verde y auto-llenar
-                    upcInput.style.border = '2px solid green';
+                    upcInput.style.border = '2px solid #10b981'; // Verde Tailwind green-500
                     descInput.value = producto.nombre;
                     descInput.readOnly = true; // Hacer solo lectura cuando se auto-llena (permite copiar pero no editar)
-                    descInput.style.backgroundColor = '#f0f9f0'; // Fondo verde claro
+                    descInput.style.backgroundColor = '#f0fdf4'; // Verde claro Tailwind green-50
                     descInput.style.cursor = 'not-allowed'; // Indicador visual de que no se puede editar
                     showToast(`Producto encontrado: ${producto.nombre}`, false);
                 } else {
                     // UPC válido pero producto no encontrado
-                    upcInput.style.border = '2px solid orange';
+                    upcInput.style.border = '2px solid #f97316'; // Naranja Tailwind orange-500
                     descInput.value = '';
                     descInput.readOnly = false; // Habilitar entrada manual
                     descInput.style.backgroundColor = '';
@@ -2117,7 +2117,7 @@ function importFromCSV(file) {
                 }
             } else {
                 // UPC inválido (no cumple con 12-13 dígitos)
-                upcInput.style.border = '2px solid red';
+                upcInput.style.border = '2px solid #ef4444'; // Rojo Tailwind red-500
                 descInput.readOnly = false;
                 descInput.value = '';
                 descInput.style.backgroundColor = '';
@@ -2466,7 +2466,7 @@ function importFromCSV(file) {
             let csv = 'ID,Proveedor,Fecha Registro,Fecha Entrega,Productos,Notas Entrega\n';
             
             delivered.forEach(credit => {
-                const products = credit.products.map(p => `${p.qty}x ${p.desc} (${p.digits})`).join('; ');
+                const products = credit.products.map(p => `${p.qty}x ${p.desc} (UPC: ${p.upc || p.digits || 'N/A'})`).join('; ');
                 csv += `"${credit.id}","${credit.provider || ''}","${credit.date}","${credit.deliveryDate}","${products}","${credit.deliveryNotes || ''}"\n`;
             });
             
