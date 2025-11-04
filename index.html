@@ -50,10 +50,11 @@
         .credit-urgent { border-left: 4px solid #ef4444; }
         /* Hamburger menu */
         .hamburger-menu { display: none; }
+        #mobileMenu { display: none; }
         @media (max-width: 768px) {
             .hamburger-menu { display: block; }
             .desktop-menu { display: none; }
-            .mobile-menu-open { display: flex; flex-direction: column; }
+            #mobileMenu.mobile-menu-open { display: flex; flex-direction: column; }
         }
         /* Photo preview */
         .photo-preview { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 8px; }
