@@ -1404,8 +1404,8 @@ function importFromCSV(file) {
             container.querySelectorAll('.delete-especial').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const especialId = parseInt(e.currentTarget.dataset.id, 10);
-                    // Validate that the parse was successful
-                    if (isNaN(especialId)) {
+                    // Validate that the parse was successful and ID is positive
+                    if (isNaN(especialId) || especialId <= 0) {
                         showToast('Error: ID de especial inválido', true);
                         return;
                     }
@@ -1414,18 +1414,17 @@ function importFromCSV(file) {
             });
         }
 
+        // Helper function to get next ID from array
+        function getNextId(array, idField, defaultStart = 1) {
+            const validIds = array.filter(item => typeof item[idField] === 'number' && !isNaN(item[idField])).map(item => item[idField]);
+            return validIds.length > 0 ? Math.max(...validIds) + 1 : defaultStart;
+        }
+        
         // Add new especial
         function addEspecial(provider, product, price) {
-            // Use safer ID generation - filter out invalid IDs and use fallback
-            const validIds = especiales.filter(e => typeof e.id_price === 'number' && !isNaN(e.id_price)).map(e => e.id_price);
-            const newId = validIds.length > 0 ? Math.max(...validIds) + 1 : 1;
-            
-            const validProviderIds = especiales.filter(e => typeof e.id_provider === 'number' && !isNaN(e.id_provider)).map(e => e.id_provider);
-            const newProviderId = validProviderIds.length > 0 ? Math.max(...validProviderIds) + 1 : 101;
-            
             const newEspecial = {
-                id_price: newId,
-                id_provider: newProviderId,
+                id_price: getNextId(especiales, 'id_price', 1),
+                id_provider: getNextId(especiales, 'id_provider', 1),
                 provider: provider,
                 product: product,
                 price: parseFloat(price)
@@ -1439,8 +1438,8 @@ function importFromCSV(file) {
         
         // Delete especial
         function deleteEspecial(especialId) {
-            // Validate that especialId is a valid number
-            if (typeof especialId !== 'number' || isNaN(especialId)) {
+            // Validate that especialId is a valid positive number
+            if (typeof especialId !== 'number' || isNaN(especialId) || especialId <= 0) {
                 showToast('Error: ID de especial inválido', true);
                 return;
             }
