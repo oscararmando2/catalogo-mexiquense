@@ -857,9 +857,11 @@ function importFromCSV(file) {
             }
             if(nextPageBtn) {
                 nextPageBtn.addEventListener('click', () => {
-                    currentPage++;
-                    renderPublicTabs(publicSearchInput?.value || '');
-                    publicView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (!nextPageBtn.disabled) {
+                        currentPage++;
+                        renderPublicTabs(publicSearchInput?.value || '');
+                        publicView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 });
             }
 
