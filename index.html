@@ -48,9 +48,11 @@
         .credit-ok { border-left: 4px solid #86efac; }
         .credit-warning { border-left: 4px solid #fde047; }
         .credit-urgent { border-left: 4px solid #ef4444; }
-        /* Hamburger menu */
+        /* Hamburger menu - always visible */
         .hamburger-menu { display: block; }
-        .desktop-menu { display: none; }
+        /* Hide desktop menu completely */
+        .desktop-menu { display: none !important; }
+        /* Mobile menu styles */
         #mobileMenu { display: none; }
         #mobileMenu.mobile-menu-open { display: flex; flex-direction: column; }
         /* Photo preview */
@@ -76,27 +78,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <!-- Desktop menu -->
-                    <div id="desktopMenu" class="desktop-menu flex flex-wrap gap-2">
-                        <button id="publicViewBtn" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
-                        <button id="creditosViewBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all">Créditos</button>
-                        <button id="adminViewBtn" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
-                        <div id="adminButtons" class="flex flex-wrap gap-2" style="display: none;">
-                            <button id="importBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-                                Importar CSV
-                            </button>
-                            <button id="exportBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                                Exportar PDF
-                            </button>
-                            <button id="addProductBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-                                Nuevo Producto
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Mobile menu -->
+                    <!-- Hamburger dropdown menu -->
                     <div id="mobileMenu" class="hidden w-full mt-4 flex-col gap-2">
                         <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
                         <button id="creditosViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Créditos</button>
@@ -115,6 +97,20 @@
                             <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                         </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="importBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                            Importar CSV
+                        </button>
+                        <button id="exportBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                            Exportar PDF
+                        </button>
+                        <button id="addProductBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                            Nuevo Producto
+                        </button>
                     </div>
                 </div>
             </div>
@@ -498,11 +494,11 @@
         const publicSearchInput = document.getElementById('publicSearchInput');
         const adminView = document.getElementById('adminView');
         const publicView = document.getElementById('publicView');
-        const adminViewBtn = document.getElementById('adminViewBtn');
-        const publicViewBtn = document.getElementById('publicViewBtn');
+        // Mobile menu buttons (now the primary navigation)
+        const adminViewBtn = document.getElementById('adminViewBtnMobile');
+        const publicViewBtn = document.getElementById('publicViewBtnMobile');
         const publicTabs = document.getElementById('publicTabs');
         const publicTabContent = document.getElementById('publicTabContent');
-        const adminButtons = document.getElementById('adminButtons');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
         const addProductBtn = document.getElementById('addProductBtn');
@@ -991,11 +987,9 @@ function importFromCSV(file) {
             if(view==='admin'){ 
                 adminView.classList.remove('hidden'); 
                 publicView.classList.add('hidden'); 
-                adminButtons.style.display='flex'; 
             } else { 
                 adminView.classList.add('hidden'); 
                 publicView.classList.remove('hidden'); 
-                adminButtons.style.display='none'; 
             }
             updateHeaderButtons();
         }
@@ -1285,15 +1279,17 @@ function importFromCSV(file) {
             updateHeaderButtons();
         }
 
-        // Update header button styles
+        // Update header button styles (mobile menu only)
         function updateHeaderButtons() {
-            const publicBtn = document.getElementById('publicViewBtn');
-            const creditosBtn = document.getElementById('creditosViewBtn');
-            const adminBtn = document.getElementById('adminViewBtn');
+            const publicBtn = document.getElementById('publicViewBtnMobile');
+            const creditosBtn = document.getElementById('creditosViewBtnMobile');
+            const adminBtn = document.getElementById('adminViewBtnMobile');
+            
+            if (!publicBtn || !creditosBtn || !adminBtn) return;
             
             publicBtn.classList.remove('bg-mexican-green', 'text-white');
             creditosBtn.classList.remove('bg-mexican-green', 'text-white');
-            adminBtn.classList.remove('bg-mexican-green', 'text-white');
+            adminBtn.classList.remove('bg-mexican-green', 'text-white', 'bg-mexican-red');
             
             publicBtn.classList.add('bg-white', 'text-mexican-green');
             creditosBtn.classList.add('bg-white', 'text-mexican-green');
