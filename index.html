@@ -37,37 +37,72 @@
         .product-image { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: contain; border-radius:8px; background:#f9f9f9; }
         /* Selección múltiple (admin) */
         .selected-card { outline: 2px solid rgb(59 130 246); background: rgb(239 246 255); }
+        /* Mexican colors */
+        .bg-mexican-green { background-color: #006847; }
+        .bg-mexican-red { background-color: #CE1126; }
+        .border-mexican-green { border-color: #006847; }
+        .border-mexican-red { border-color: #CE1126; }
+        .text-mexican-green { color: #006847; }
+        .text-mexican-red { color: #CE1126; }
+        /* Credit urgency borders */
+        .credit-ok { border-left: 4px solid #86efac; }
+        .credit-warning { border-left: 4px solid #fde047; }
+        .credit-urgent { border-left: 4px solid #ef4444; }
+        /* Hamburger menu */
+        .hamburger-menu { display: none; }
+        @media (max-width: 768px) {
+            .hamburger-menu { display: block; }
+            .desktop-menu { display: none; }
+            .mobile-menu-open { display: flex; flex-direction: column; }
+        }
+        /* Photo preview */
+        .photo-preview { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 8px; }
+        .photo-thumbnail { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+        <header class="bg-gradient-to-r from-mexican-green via-white to-mexican-red text-white shadow-lg">
             <div class="container mx-auto px-4 py-6">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <div class="flex items-center mb-4 md:mb-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3 text-mexican-green" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
                         </svg>
-                        <h1 class="text-2xl md:text-3xl font-bold">MEXIQUENSE</h1>
+                        <h1 class="text-2xl md:text-3xl font-bold text-mexican-green">MEXIQUENSE</h1>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="adminViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
-                        <button id="publicViewBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
-                        <div id="adminButtons" class="flex flex-wrap gap-2">
-                            <button id="importBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                    <!-- Mobile hamburger menu -->
+                    <button id="mobileMenuBtn" class="hamburger-menu md:hidden bg-mexican-green text-white px-4 py-2 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <!-- Desktop menu -->
+                    <div id="desktopMenu" class="desktop-menu flex flex-wrap gap-2">
+                        <button id="publicViewBtn" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all">Productos</button>
+                        <button id="creditosViewBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all">Créditos</button>
+                        <button id="adminViewBtn" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all">Panel de Administración</button>
+                        <div id="adminButtons" class="flex flex-wrap gap-2" style="display: none;">
+                            <button id="importBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                                 Importar CSV
                             </button>
-                            <button id="exportBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                            <button id="exportBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                                 Exportar PDF
                             </button>
-                            <button id="addProductBtn" class="bg-white text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                            <button id="addProductBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
                                 Nuevo Producto
                             </button>
                         </div>
+                    </div>
+                    <!-- Mobile menu -->
+                    <div id="mobileMenu" class="hidden w-full mt-4 flex-col gap-2">
+                        <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
+                        <button id="creditosViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Créditos</button>
+                        <button id="adminViewBtnMobile" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Panel de Administración</button>
                     </div>
                 </div>
             </div>
@@ -79,7 +114,7 @@
                 <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
                     <div class="flex-grow">
                         <div class="relative">
-                            <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                            <input id="searchInput" type="text" placeholder="Buscar productos..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                         </div>
                     </div>
@@ -88,7 +123,7 @@
 
             <div class="flex flex-col md:flex-row md:items-center md:space-x-4 gap-3 mb-4">
                 <div class="flex items-center gap-3">
-                    <input type="checkbox" id="selectAll" class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <input type="checkbox" id="selectAll" class="h-5 w-5 text-mexican-green focus:ring-mexican-green border-gray-300 rounded" />
                     <label for="selectAll" class="text-gray-700 font-medium">Seleccionar Todos</label>
                 </div>
                 <button id="deleteSelected" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
@@ -103,12 +138,12 @@
         <!-- Public View -->
         <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
             <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-                <h2 class="text-2xl font-bold text-indigo-600 mb-4">Catálogo de Productos</h2>
+                <h2 class="text-2xl font-bold text-mexican-green mb-4">Catálogo de Productos</h2>
                 <div class="bg-white rounded-xl shadow-md p-4 mb-8">
                     <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
                         <div class="flex-grow">
                             <div class="relative">
-                                <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." aria-label="Buscar productos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                             </div>
                         </div>
@@ -118,14 +153,135 @@
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
                 <!-- Pagination Controls -->
                 <div id="paginationControls" class="mt-8 flex justify-center items-center gap-2">
-                    <button id="prevPage" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <button id="prevPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         Anterior
                     </button>
                     <div id="pageNumbers" class="flex gap-2"></div>
-                    <button id="nextPage" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button id="nextPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         Siguiente
                     </button>
                 </div>
+            </div>
+        </section>
+
+        <!-- Créditos View -->
+        <section id="creditosView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <!-- Pending Credits View -->
+            <div id="creditosPending" class="hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <h2 class="text-2xl font-bold text-mexican-green mb-4 md:mb-0">Créditos Pendientes</h2>
+                        <button id="newCreditBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium flex items-center transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                            Registrar Nuevo Crédito
+                        </button>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <div class="flex-grow">
+                            <div class="relative">
+                                <input id="creditSearchInput" type="text" placeholder="Buscar por proveedor, descripción, dígitos o notas..." aria-label="Buscar créditos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <select id="creditFilterSelect" aria-label="Filtrar créditos por tiempo" class="w-full md:w-auto px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                                <option value="all">Todos</option>
+                                <option value="week1">Menos de 1 semana</option>
+                                <option value="week2">1-2 semanas</option>
+                                <option value="week3">Más de 2 semanas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="pendingCreditsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- Register New Credit View -->
+            <div id="creditosRegister" class="hidden">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-mexican-green mb-6">Registrar Nuevo Crédito</h2>
+                    <form id="newCreditForm" class="space-y-6">
+                        <div>
+                            <label for="creditProvider" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Proveedor (opcional)</label>
+                            <input type="text" id="creditProvider" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                        </div>
+                        
+                        <div id="productsFieldsContainer">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Productos</label>
+                            <div id="productsList"></div>
+                            <button type="button" id="addProductField" class="mt-4 bg-white border-2 border-mexican-green text-mexican-green hover:bg-mexican-green hover:text-white px-4 py-2 rounded-lg font-medium transition-all">
+                                + Agregar Otro Producto
+                            </button>
+                        </div>
+
+                        <div>
+                            <label for="creditDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha del Crédito*</label>
+                            <input type="date" id="creditDate" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                        </div>
+
+                        <div>
+                            <label for="creditNotes" class="block text-sm font-medium text-gray-700 mb-1">Notas Adicionales (opcional, máx 200 caracteres)</label>
+                            <textarea id="creditNotes" maxlength="200" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent"></textarea>
+                            <p class="text-sm text-gray-500 mt-1"><span id="creditNotesCount">0</span>/200 caracteres</p>
+                        </div>
+
+                        <div class="flex gap-4 pt-4">
+                            <button type="button" id="cancelNewCredit" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-all">Cancelar</button>
+                            <button type="submit" class="flex-1 bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium transition-all">Registrar Crédito</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Mark as Delivered View -->
+            <div id="creditosDeliver" class="hidden">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-mexican-green mb-6">Marcar como Entregado</h2>
+                    <div id="creditSummary" class="mb-6 p-4 bg-gray-50 rounded-lg"></div>
+                    <form id="deliverCreditForm" class="space-y-6">
+                        <input type="hidden" id="deliverCreditId" />
+                        
+                        <div>
+                            <label for="deliveryDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Entrega*</label>
+                            <input type="date" id="deliveryDate" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                        </div>
+
+                        <div>
+                            <label for="deliveryNotes" class="block text-sm font-medium text-gray-700 mb-1">Notas de Entrega (opcional, máx 200 caracteres)</label>
+                            <textarea id="deliveryNotes" maxlength="200" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent"></textarea>
+                            <p class="text-sm text-gray-500 mt-1"><span id="deliveryNotesCount">0</span>/200 caracteres</p>
+                        </div>
+
+                        <div>
+                            <label for="deliveryPhoto" class="block text-sm font-medium text-gray-700 mb-1">Subir Foto Opcional (JPG/PNG, máx 5MB)</label>
+                            <input type="file" id="deliveryPhoto" accept="image/jpeg,image/png" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                            <div id="deliveryPhotoPreview" class="mt-2"></div>
+                        </div>
+
+                        <div class="flex gap-4 pt-4">
+                            <button type="button" id="cancelDelivery" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-all">Cancelar</button>
+                            <button type="submit" class="flex-1 bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium transition-all">Confirmar Entrega</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Delivery History View -->
+            <div id="creditosHistory" class="hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-mexican-green mb-4">Historial de Entregas</h2>
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <div class="flex-grow">
+                            <div class="relative">
+                                <input id="historySearchInput" type="text" placeholder="Buscar por proveedor, descripción o dígitos..." aria-label="Buscar historial" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                        <button id="exportHistoryBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium transition-all">Exportar CSV</button>
+                        <button id="backToPendingBtn" class="bg-white border-2 border-mexican-green text-mexican-green hover:bg-mexican-green hover:text-white px-6 py-3 rounded-lg font-medium transition-all">Volver a Pendientes</button>
+                    </div>
+                </div>
+                <div id="historyCreditsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             </div>
         </section>
 
@@ -139,9 +295,9 @@
         <!-- Modal Detalle -->
         <div id="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
                     <h3 id="modalProductTitle" class="text-xl font-bold">Detalles del Producto</h3>
-                    <button id="closeDetailModal" class="text-white hover:text-indigo-200">
+                    <button id="closeDetailModal" class="text-white hover:text-gray-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -165,16 +321,16 @@
                             <div id="customFieldForm" class="hidden mt-4 space-y-4 admin-only">
                                 <div>
                                     <label for="customKey" class="block text-sm font-medium text-gray-700 mb-1">Clave (ej. Palimex):</label>
-                                    <input type="text" id="customKey" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                    <input type="text" id="customKey" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                     <p id="customKeyError" class="error-message hidden"></p>
                                 </div>
                                 <div>
                                     <label for="customValue" class="block text-sm font-medium text-gray-700 mb-1">Valor (ej. $3.80):</label>
-                                    <input type="text" id="customValue" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                    <input type="text" id="customValue" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 </div>
                                 <div class="flex justify-end space-x-2">
                                     <button id="cancelCustomField" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                                    <button id="saveCustomField" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50" disabled>Guardar</button>
+                                    <button id="saveCustomField" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50" disabled>Guardar</button>
                                 </div>
                             </div>
                         </div>
@@ -182,7 +338,7 @@
                             <h4 class="text-lg font-semibold mb-2">Descripción</h4>
                             <p id="productDescription" class="text-gray-700 mb-4"></p>
                             <h4 class="text-lg font-semibold mb-2">Costo</h4>
-                            <p id="productCosto" class="text-2xl font-bold text-indigo-600 mb-4"></p>
+                            <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4"></p>
                         </div>
                     </div>
                 </div>
@@ -195,9 +351,9 @@
         <!-- Modal Formulario Producto -->
         <div id="productFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
                     <h3 id="formTitle" class="text-xl font-bold">Nuevo Producto</h3>
-                    <button id="closeFormModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    <button id="closeFormModal" class="text-white hover:text-gray-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
                 <div class="p-6 overflow-y-auto custom-scrollbar">
                     <form id="productForm" class="space-y-4">
@@ -205,51 +361,51 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="itemNumber" class="block text-sm font-medium text-gray-700 mb-1">Número de Ítem*</label>
-                                <input type="text" id="itemNumber" name="itemNumber" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="text" id="itemNumber" name="itemNumber" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="itemNumberError" class="error-message hidden"></p>
                             </div>
                             <div>
                                 <label for="upc" class="block text-sm font-medium text-gray-700 mb-1">UPC*</label>
-                                <input type="text" id="upc" name="upc" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="text" id="upc" name="upc" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="upcError" class="error-message hidden"></p>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre*</label>
-                                <input type="text" id="nombre" name="nombre" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="text" id="nombre" name="nombre" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="nombreError" class="error-message hidden"></p>
                             </div>
                             <div>
                                 <label for="size" class="block text-sm font-medium text-gray-700 mb-1">Tamaño*</label>
-                                <input type="text" id="size" name="size" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="text" id="size" name="size" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="sizeError" class="error-message hidden"></p>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="qty" class="block text-sm font-medium text-gray-700 mb-1">Cantidad*</label>
-                                <input type="number" id="qty" name="qty" required min="0" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="number" id="qty" name="qty" required min="0" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="qtyError" class="error-message hidden"></p>
                             </div>
                             <div>
                                 <label for="costo" class="block text-sm font-medium text-gray-700 mb-1">Costo*</label>
-                                <input type="number" id="costo" name="costo" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <input type="number" id="costo" name="costo" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                                 <p id="costoError" class="error-message hidden"></p>
                             </div>
                         </div>
                         <div>
                             <label for="url" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen (opcional)</label>
-                            <input type="url" id="url" name="url" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                            <input type="url" id="url" name="url" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                         </div>
                         <div>
                             <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descripción*</label>
-                            <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                            <textarea id="description" name="description" required rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent"></textarea>
                             <p id="descriptionError" class="error-message hidden"></p>
                         </div>
                         <div class="pt-4 flex justify-end space-x-2">
                             <button type="button" id="cancelProductBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar Producto</button>
+                            <button type="submit" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar Producto</button>
                         </div>
                     </form>
                 </div>
@@ -259,7 +415,7 @@
         <!-- Modal Import CSV -->
         <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-                <div class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
                     <h3 class="text-xl font-bold">Importar Productos desde CSV</h3>
                     <button id="closeImportModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
@@ -270,12 +426,12 @@
                             <input type="file" id="csvFile" name="csvFile" accept=".csv" class="hidden" />
                             <label for="csvFile" class="cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                                <span class="mt-2 block text-sm font-medium text-indigo-600">Haz clic para seleccionar archivo</span>
+                                <span class="mt-2 block text-sm font-medium text-mexican-green">Haz clic para seleccionar archivo</span>
                                 <span id="fileName" class="mt-1 block text-sm text-gray-500">Ningún archivo seleccionado</span>
                             </label>
                         </div>
                         <div id="importLoader" class="hidden"><div class="loader"></div><p class="text-gray-600 mt-2">Importando...</p></div>
-                        <div class="pt-4 flex justify-end"><button type="submit" id="importSubmitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Importar</button></div>
+                        <div class="pt-4 flex justify-end"><button type="submit" id="importSubmitBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Importar</button></div>
                     </form>
                 </div>
             </div>
@@ -287,29 +443,48 @@
         <!-- Modal Password Admin -->
         <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-indigo-600 mb-4">Ingresar Contraseña para Administración</h3>
-                <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4" />
+                <h3 class="text-xl font-bold text-mexican-green mb-4">Ingresar Contraseña para Administración</h3>
+                <input type="password" id="adminPasswordInput" placeholder="Contraseña" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent mb-4" />
                 <div class="flex justify-end space-x-2">
                     <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                    <button id="confirmPassword" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
+                    <button id="confirmPassword" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Photo Modal -->
+        <div id="photoModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+            <div class="relative max-w-4xl max-h-[90vh] p-4">
+                <button id="closePhotoModal" class="absolute top-2 right-2 bg-white rounded-full p-2 hover:bg-gray-200 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <img id="photoModalImage" src="" alt="Foto ampliada" class="max-w-full max-h-[85vh] object-contain rounded-lg" />
             </div>
         </div>
     </div>
 
     <script>
         // ==== Firebase (reemplaza con tus credenciales reales) ====
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY_AQUI",
-            authDomain: "catalogomexiquense.firebaseapp.com",
-            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
-            projectId: "catalogomexiquense",
-            storageBucket: "catalogomexiquense.appspot.com",
-            messagingSenderId: "TU_SENDER_ID_AQUI",
-            appId: "TU_APP_ID_AQUI"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        let database = null;
+        try {
+            const firebaseConfig = {
+                apiKey: "TU_API_KEY_AQUI",
+                authDomain: "catalogomexiquense.firebaseapp.com",
+                databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+                projectId: "catalogomexiquense",
+                storageBucket: "catalogomexiquense.appspot.com",
+                messagingSenderId: "TU_SENDER_ID_AQUI",
+                appId: "TU_APP_ID_AQUI"
+            };
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+            }
+        } catch(err) {
+            console.warn('Firebase not available, using localStorage only', err);
+        }
 
         // ==== Estado ====
         const adminPassword = 'admin123';
@@ -416,15 +591,18 @@
         // ==== Load & Save ====
         function loadData(){
             try{
-                database.ref('products').on('value', (snapshot)=>{
-                    products = snapshot.val() || [];
-                    renderAdminProducts();
-                    renderPublicTabs();
-                    showToast('Datos sincronizados desde Firebase.');
-                });
+                if(database){
+                    database.ref('products').on('value', (snapshot)=>{
+                        products = snapshot.val() || [];
+                        renderAdminProducts();
+                        renderPublicTabs();
+                        showToast('Datos sincronizados desde Firebase.');
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
             }catch(err){
-                console.error('Firebase load error:', err);
-                showToast('Error al cargar desde Firebase. Usando localStorage.', true);
+                console.warn('Using localStorage for products', err);
                 if(isLocalStorageAvailable()){
                     const stored = localStorage.getItem('products');
                     products = stored ? JSON.parse(stored) : [];
@@ -434,12 +612,15 @@
             }
         }
         function saveData(){
-            try{ database.ref('products').set(products); }
-            catch(err){
-                console.error('Firebase save error:', err);
-                showToast('Error al guardar en Firebase. Guardando en localStorage.', true);
-                if(isLocalStorageAvailable()) localStorage.setItem('products', JSON.stringify(products));
+            try{ 
+                if(database) {
+                    database.ref('products').set(products);
+                }
             }
+            catch(err){
+                console.warn('Firebase save error, using localStorage', err);
+            }
+            if(isLocalStorageAvailable()) localStorage.setItem('products', JSON.stringify(products));
         }
 
         // ==== Render ADMIN (con selección Ctrl/Cmd + drag) ====
@@ -472,7 +653,7 @@
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
-                            <button class='view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                         </div>
                     </div>`;
                 // Selección Ctrl/Cmd
@@ -530,13 +711,13 @@
                 card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
                 card.innerHTML = `
                     <div class='product-image-container relative'>
-                        ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
+                        ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-mexican-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
                         <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
                         <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
-                            <button class='view-details bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                         </div>
                     </div>`;
                 container.appendChild(card);
@@ -606,8 +787,8 @@
             const btn = document.createElement('button');
             btn.className = `px-4 py-2 rounded-lg font-medium transition-all ${
                 pageNum === currentPage 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-white text-indigo-600 hover:bg-indigo-100 border border-indigo-300'
+                    ? 'bg-mexican-green text-white' 
+                    : 'bg-white text-mexican-green hover:bg-gray-100 border border-mexican-green'
             }`;
             btn.textContent = pageNum;
             btn.addEventListener('click', () => {
@@ -806,7 +987,20 @@ function importFromCSV(file) {
             return ok;
         }
         function checkLibraries(){ if(!window.Papa) showToast('Error: PapaParse no se cargó.', true); if(!window.jspdf || !window.html2canvas) showToast('Error: librerías PDF no cargadas.', true); }
-        function showView(view){ currentView=view; if(view==='admin'){ adminView.classList.remove('hidden'); publicView.classList.add('hidden'); adminViewBtn.classList.add('bg-indigo-100'); publicViewBtn.classList.remove('bg-indigo-100'); adminButtons.style.display='flex'; } else { adminView.classList.add('hidden'); publicView.classList.remove('hidden'); adminViewBtn.classList.remove('bg-indigo-100'); publicViewBtn.classList.add('bg-indigo-100'); adminButtons.style.display='none'; } }
+        function showView(view){ 
+            currentView=view; 
+            document.getElementById('creditosView').classList.add('hidden');
+            if(view==='admin'){ 
+                adminView.classList.remove('hidden'); 
+                publicView.classList.add('hidden'); 
+                adminButtons.style.display='flex'; 
+            } else { 
+                adminView.classList.add('hidden'); 
+                publicView.classList.remove('hidden'); 
+                adminButtons.style.display='none'; 
+            }
+            updateHeaderButtons();
+        }
 
         // ==== Export PDF ====
         function exportToPDF(){
@@ -908,8 +1102,8 @@ function importFromCSV(file) {
             });
 
             // Vista admin/public
-            adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); });
-            publicViewBtn.addEventListener('click', ()=> showView('public'));
+            adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); closeMobileMenu(); });
+            publicViewBtn.addEventListener('click', ()=> { showView('public'); closeMobileMenu(); });
             confirmPassword.addEventListener('click', ()=>{ if(adminPasswordInput.value===adminPassword){ passwordModal.classList.add('hidden'); showView('admin'); } else showToast('Contraseña incorrecta.', true); adminPasswordInput.value=''; });
             cancelPassword.addEventListener('click', ()=>{ passwordModal.classList.add('hidden'); adminPasswordInput.value=''; });
             adminPasswordInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') confirmPassword.click(); });
@@ -991,7 +1185,7 @@ function importFromCSV(file) {
             itemSpan.addEventListener('click', ()=>{
                 if(currentView!=='admin') return;
                 const currentValue=itemSpan.textContent.trim();
-                const input=document.createElement('input'); input.type='text'; input.value=currentValue==='N/A' ? '' : currentValue; input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent'; input.style.width='100px';
+                const input=document.createElement('input'); input.type='text'; input.value=currentValue==='N/A' ? '' : currentValue; input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent'; input.style.width='100px';
                 itemSpan.replaceWith(input); input.focus();
                 const saveChange=()=>{
                     const newValue=input.value.trim()||'N/A'; const productId=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===productId); if(!product) return; product.itemNumber=newValue; saveData(); const newSpan=document.createElement('span'); newSpan.id='productItemNumber'; newSpan.className='text-gray-700 cursor-pointer'; newSpan.textContent=newValue; input.replaceWith(newSpan); showToast('Item Code actualizado correctamente.'); renderAdminProducts(); renderPublicTabs(); enableInlineItemEdit();
@@ -1000,8 +1194,766 @@ function importFromCSV(file) {
             });
         })();
 
+        // ==== CRÉDITOS FUNCTIONALITY ====
+        let credits = [];
+        let currentCreditView = 'pending';
+        let creditNotificationInterval = null;
+
+        // Load credits from localStorage
+        function loadCredits() {
+            if (isLocalStorageAvailable()) {
+                const stored = localStorage.getItem('credits');
+                credits = stored ? JSON.parse(stored) : [];
+            }
+        }
+
+        // Save credits to localStorage
+        function saveCredits() {
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('credits', JSON.stringify(credits));
+            }
+        }
+
+        // Generate unique ID for credits
+        function generateCreditId() {
+            return 'CR-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        // Calculate days elapsed
+        function getDaysElapsed(dateStr) {
+            const creditDate = new Date(dateStr);
+            const now = new Date();
+            const diff = now - creditDate;
+            return Math.floor(diff / (1000 * 60 * 60 * 24));
+        }
+
+        // Get time elapsed text
+        function getTimeElapsedText(days) {
+            if (days === 0) return 'Hoy';
+            if (days === 1) return 'Hace 1 día';
+            if (days < 7) return `Hace ${days} días`;
+            if (days < 14) return `Hace ${Math.floor(days / 7)} semana${Math.floor(days / 7) > 1 ? 's' : ''}`;
+            return `Hace ${Math.floor(days / 7)} semanas`;
+        }
+
+        // Get urgency class
+        function getUrgencyClass(days) {
+            if (days < 7) return 'credit-ok';
+            if (days < 14) return 'credit-warning';
+            return 'credit-urgent';
+        }
+
+        // Convert image to base64
+        function imageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Show credits view
+        function showCreditsView(subView) {
+            currentView = 'creditos';
+            currentCreditView = subView;
+            
+            // Hide all main sections
+            adminView.classList.add('hidden');
+            publicView.classList.add('hidden');
+            document.getElementById('creditosView').classList.remove('hidden');
+            
+            // Hide all credit subsections
+            document.getElementById('creditosPending').classList.add('hidden');
+            document.getElementById('creditosRegister').classList.add('hidden');
+            document.getElementById('creditosDeliver').classList.add('hidden');
+            document.getElementById('creditosHistory').classList.add('hidden');
+            
+            // Show requested subsection
+            if (subView === 'pending') {
+                document.getElementById('creditosPending').classList.remove('hidden');
+                renderPendingCredits();
+            } else if (subView === 'register') {
+                document.getElementById('creditosRegister').classList.remove('hidden');
+                initializeProductFields();
+            } else if (subView === 'deliver') {
+                document.getElementById('creditosDeliver').classList.remove('hidden');
+            } else if (subView === 'history') {
+                document.getElementById('creditosHistory').classList.remove('hidden');
+                renderHistoryCredits();
+            }
+            
+            // Update header buttons
+            updateHeaderButtons();
+        }
+
+        // Update header button styles
+        function updateHeaderButtons() {
+            const publicBtn = document.getElementById('publicViewBtn');
+            const creditosBtn = document.getElementById('creditosViewBtn');
+            const adminBtn = document.getElementById('adminViewBtn');
+            
+            publicBtn.classList.remove('bg-mexican-green', 'text-white');
+            creditosBtn.classList.remove('bg-mexican-green', 'text-white');
+            adminBtn.classList.remove('bg-mexican-green', 'text-white');
+            
+            publicBtn.classList.add('bg-white', 'text-mexican-green');
+            creditosBtn.classList.add('bg-white', 'text-mexican-green');
+            adminBtn.classList.add('bg-white', 'text-mexican-green');
+            
+            if (currentView === 'public') {
+                publicBtn.classList.remove('bg-white', 'text-mexican-green');
+                publicBtn.classList.add('bg-mexican-green', 'text-white');
+            } else if (currentView === 'creditos') {
+                creditosBtn.classList.remove('bg-white', 'text-mexican-green');
+                creditosBtn.classList.add('bg-mexican-green', 'text-white');
+            } else if (currentView === 'admin') {
+                adminBtn.classList.remove('bg-white', 'text-mexican-green');
+                adminBtn.classList.add('bg-mexican-red', 'text-white');
+            }
+        }
+
+        // Initialize product fields
+        function initializeProductFields() {
+            const productsList = document.getElementById('productsList');
+            productsList.innerHTML = '';
+            addProductFieldToForm();
+        }
+
+        // Add product field to form
+        function addProductFieldToForm() {
+            const productsList = document.getElementById('productsList');
+            const fieldIndex = productsList.children.length;
+            
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'product-field p-4 mb-4 border-2 border-gray-200 rounded-lg';
+            fieldDiv.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-semibold text-gray-700">Producto ${fieldIndex + 1}</h4>
+                    ${fieldIndex > 0 ? `<button type="button" class="remove-product-field bg-mexican-red text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90">Eliminar</button>` : ''}
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad*</label>
+                        <input type="number" class="product-qty w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required min="1" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción* (máx 100 caracteres)</label>
+                        <input type="text" class="product-desc w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="100" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Últimos 4 Dígitos UPC* (solo números)</label>
+                        <input type="text" pattern="[0-9]{4}" class="product-digits w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required maxlength="4" placeholder="0000" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto* (JPG/PNG, máx 5MB)</label>
+                        <input type="file" accept="image/jpeg,image/png" class="product-photo w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required />
+                        <div class="product-photo-preview mt-2"></div>
+                    </div>
+                </div>
+            `;
+            
+            productsList.appendChild(fieldDiv);
+            
+            // Setup photo preview
+            const photoInput = fieldDiv.querySelector('.product-photo');
+            const previewDiv = fieldDiv.querySelector('.product-photo-preview');
+            
+            photoInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast('La foto debe ser menor a 5MB', true);
+                        e.target.value = '';
+                        return;
+                    }
+                    const base64 = await imageToBase64(file);
+                    previewDiv.innerHTML = `<img src="${base64}" class="photo-preview" alt="Vista previa" />`;
+                }
+            });
+            
+            // Setup remove button
+            if (fieldIndex > 0) {
+                const removeBtn = fieldDiv.querySelector('.remove-product-field');
+                removeBtn.addEventListener('click', () => {
+                    fieldDiv.remove();
+                    updateProductNumbers();
+                });
+            }
+        }
+
+        // Update product numbers
+        function updateProductNumbers() {
+            const fields = document.querySelectorAll('.product-field');
+            fields.forEach((field, index) => {
+                field.querySelector('h4').textContent = `Producto ${index + 1}`;
+            });
+        }
+
+        // Render pending credits
+        function renderPendingCredits(searchTerm = '', filter = 'all') {
+            const container = document.getElementById('pendingCreditsContainer');
+            container.innerHTML = '';
+            
+            let filtered = credits.filter(c => c.status === 'pending');
+            
+            // Apply search filter
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(c => 
+                    (c.provider || '').toLowerCase().includes(term) ||
+                    c.products.some(p => 
+                        p.desc.toLowerCase().includes(term) || 
+                        p.digits.includes(term)
+                    ) ||
+                    (c.notes || '').toLowerCase().includes(term)
+                );
+            }
+            
+            // Apply time filter
+            if (filter !== 'all') {
+                filtered = filtered.filter(c => {
+                    const days = getDaysElapsed(c.date);
+                    if (filter === 'week1') return days < 7;
+                    if (filter === 'week2') return days >= 7 && days < 14;
+                    if (filter === 'week3') return days >= 14;
+                    return true;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay créditos pendientes</h3>
+                        <p class="mt-1 text-gray-500">Registra un nuevo crédito para comenzar.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(credit => {
+                const days = getDaysElapsed(credit.date);
+                const urgencyClass = getUrgencyClass(days);
+                const timeText = getTimeElapsedText(days);
+                const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+                const firstPhoto = credit.products[0].photo;
+                
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover ${urgencyClass}`;
+                card.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">ID: ${credit.id}</p>
+                                <h3 class="text-lg font-bold text-gray-900">${credit.provider || 'Sin proveedor'}</h3>
+                            </div>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full">Pendiente</span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm"><strong>Total Productos:</strong> ${totalProducts}</p>
+                            <p class="text-sm"><strong>Fecha:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
+                            <p class="text-sm"><strong>Tiempo:</strong> ${timeText}</p>
+                        </div>
+                        
+                        ${firstPhoto ? `
+                            <div class="mb-4">
+                                <img src="${firstPhoto}" class="photo-thumbnail mx-auto view-photo-modal" alt="Producto" data-photo="${firstPhoto}" />
+                            </div>
+                        ` : ''}
+                        
+                        <button class="mark-delivered w-full bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all" data-credit-id="${credit.id}">
+                            Marcar como Entregado
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Setup event listeners for mark delivered buttons
+            container.querySelectorAll('.mark-delivered').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const creditId = e.target.dataset.creditId;
+                    showDeliverForm(creditId);
+                });
+            });
+            
+            // Setup event listeners for photo thumbnails
+            container.querySelectorAll('.view-photo-modal').forEach(img => {
+                img.addEventListener('click', (e) => {
+                    showPhotoModal(e.target.dataset.photo);
+                });
+            });
+        }
+
+        // Show deliver form
+        function showDeliverForm(creditId) {
+            const credit = credits.find(c => c.id === creditId);
+            if (!credit) return;
+            
+            document.getElementById('deliverCreditId').value = creditId;
+            document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('deliveryNotes').value = '';
+            document.getElementById('deliveryPhoto').value = '';
+            document.getElementById('deliveryPhotoPreview').innerHTML = '';
+            
+            // Show credit summary
+            const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty), 0);
+            const summaryDiv = document.getElementById('creditSummary');
+            summaryDiv.innerHTML = `
+                <h3 class="text-lg font-bold mb-4">Resumen del Crédito</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="mb-2"><strong>ID:</strong> ${credit.id}</p>
+                        <p class="mb-2"><strong>Proveedor:</strong> ${credit.provider || 'Sin proveedor'}</p>
+                        <p class="mb-2"><strong>Fecha Registro:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
+                        <p class="mb-2"><strong>Total Productos:</strong> ${totalProducts}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-2">Productos:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            ${credit.products.map(p => `
+                                <li class="text-sm">${p.qty}x ${p.desc} (${p.digits})</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+                ${credit.products[0].photo ? `
+                    <div class="mt-4">
+                        <p class="font-semibold mb-2">Foto del primer producto:</p>
+                        <img src="${credit.products[0].photo}" class="photo-thumbnail view-photo-modal" alt="Producto" data-photo="${credit.products[0].photo}" />
+                    </div>
+                ` : ''}
+            `;
+            
+            // Setup photo modal for summary
+            summaryDiv.querySelectorAll('.view-photo-modal').forEach(img => {
+                img.addEventListener('click', (e) => {
+                    showPhotoModal(e.target.dataset.photo);
+                });
+            });
+            
+            showCreditsView('deliver');
+        }
+
+        // Render history credits
+        function renderHistoryCredits(searchTerm = '') {
+            const container = document.getElementById('historyCreditsContainer');
+            container.innerHTML = '';
+            
+            let filtered = credits.filter(c => c.status === 'delivered');
+            
+            // Apply search filter
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(c => 
+                    (c.provider || '').toLowerCase().includes(term) ||
+                    c.products.some(p => 
+                        p.desc.toLowerCase().includes(term) || 
+                        p.digits.includes(term)
+                    )
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay entregas registradas</h3>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(credit => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+                card.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">ID: ${credit.id}</p>
+                                <h3 class="text-lg font-bold text-gray-900">${credit.provider || 'Sin proveedor'}</h3>
+                            </div>
+                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">Entregado</span>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm"><strong>Fecha Registro:</strong> ${new Date(credit.date).toLocaleDateString('es-MX')}</p>
+                            <p class="text-sm"><strong>Fecha Entrega:</strong> ${new Date(credit.deliveryDate).toLocaleDateString('es-MX')}</p>
+                            ${credit.deliveryNotes ? `<p class="text-sm"><strong>Notas:</strong> ${credit.deliveryNotes}</p>` : ''}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-sm font-semibold mb-2">Productos:</p>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                ${credit.products.map(p => `<li>${p.qty}x ${p.desc} (${p.digits})</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        ${credit.deliveryPhoto ? `
+                            <div class="mt-4">
+                                <p class="text-sm font-semibold mb-2">Foto de entrega:</p>
+                                <img src="${credit.deliveryPhoto}" class="photo-thumbnail mx-auto view-photo-modal" alt="Entrega" data-photo="${credit.deliveryPhoto}" />
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Setup event listeners for photo thumbnails
+            container.querySelectorAll('.view-photo-modal').forEach(img => {
+                img.addEventListener('click', (e) => {
+                    showPhotoModal(e.target.dataset.photo);
+                });
+            });
+        }
+
+        // Show photo modal
+        function showPhotoModal(photoUrl) {
+            const modal = document.getElementById('photoModal');
+            const img = document.getElementById('photoModalImage');
+            img.src = photoUrl;
+            modal.classList.remove('hidden');
+        }
+
+        // Check for overdue credits
+        function checkOverdueCredits() {
+            const overdue = credits.filter(c => {
+                if (c.status !== 'pending') return false;
+                const days = getDaysElapsed(c.date);
+                return days > 7;
+            });
+            
+            if (overdue.length > 0) {
+                alert(`⚠️ Tienes ${overdue.length} crédito${overdue.length > 1 ? 's' : ''} con más de 7 días pendiente${overdue.length > 1 ? 's' : ''}.`);
+            }
+        }
+
+        // Start notification interval
+        function startCreditNotifications() {
+            if (creditNotificationInterval) {
+                clearInterval(creditNotificationInterval);
+            }
+            // Check every minute (60000 ms)
+            creditNotificationInterval = setInterval(checkOverdueCredits, 60000);
+        }
+
+        // Stop notification interval
+        function stopCreditNotifications() {
+            if (creditNotificationInterval) {
+                clearInterval(creditNotificationInterval);
+                creditNotificationInterval = null;
+            }
+        }
+
+        // Export history to CSV
+        function exportHistoryToCSV() {
+            const delivered = credits.filter(c => c.status === 'delivered');
+            
+            if (delivered.length === 0) {
+                showToast('No hay entregas para exportar', true);
+                return;
+            }
+            
+            let csv = 'ID,Proveedor,Fecha Registro,Fecha Entrega,Productos,Notas Entrega\n';
+            
+            delivered.forEach(credit => {
+                const products = credit.products.map(p => `${p.qty}x ${p.desc} (${p.digits})`).join('; ');
+                csv += `"${credit.id}","${credit.provider || ''}","${credit.date}","${credit.deliveryDate}","${products}","${credit.deliveryNotes || ''}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `historial-creditos-${Date.now()}.csv`;
+            link.click();
+            
+            showToast('Historial exportado correctamente');
+        }
+
+        // Setup credits event listeners
+        function setupCreditsEventListeners() {
+            // Navigation buttons
+            const creditosViewBtn = document.getElementById('creditosViewBtn');
+            const creditosViewBtnMobile = document.getElementById('creditosViewBtnMobile');
+            const newCreditBtn = document.getElementById('newCreditBtn');
+            const cancelNewCredit = document.getElementById('cancelNewCredit');
+            const cancelDelivery = document.getElementById('cancelDelivery');
+            const backToPendingBtn = document.getElementById('backToPendingBtn');
+            const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+            
+            if (creditosViewBtn) {
+                creditosViewBtn.addEventListener('click', () => {
+                    showCreditsView('pending');
+                    closeMobileMenu();
+                });
+            }
+            
+            if (creditosViewBtnMobile) {
+                creditosViewBtnMobile.addEventListener('click', () => {
+                    showCreditsView('pending');
+                    closeMobileMenu();
+                });
+            }
+            
+            if (newCreditBtn) {
+                newCreditBtn.addEventListener('click', () => {
+                    showCreditsView('register');
+                });
+            }
+            
+            if (cancelNewCredit) {
+                cancelNewCredit.addEventListener('click', () => {
+                    showCreditsView('pending');
+                });
+            }
+            
+            if (cancelDelivery) {
+                cancelDelivery.addEventListener('click', () => {
+                    showCreditsView('pending');
+                });
+            }
+            
+            if (backToPendingBtn) {
+                backToPendingBtn.addEventListener('click', () => {
+                    showCreditsView('pending');
+                });
+            }
+            
+            if (exportHistoryBtn) {
+                exportHistoryBtn.addEventListener('click', exportHistoryToCSV);
+            }
+            
+            // Add product field button
+            const addProductFieldBtn = document.getElementById('addProductField');
+            if (addProductFieldBtn) {
+                addProductFieldBtn.addEventListener('click', addProductFieldToForm);
+            }
+            
+            // New credit form
+            const newCreditForm = document.getElementById('newCreditForm');
+            if (newCreditForm) {
+                newCreditForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const provider = document.getElementById('creditProvider').value.trim();
+                    const date = document.getElementById('creditDate').value;
+                    const notes = document.getElementById('creditNotes').value.trim();
+                    
+                    // Collect products
+                    const productFields = document.querySelectorAll('.product-field');
+                    const products = [];
+                    
+                    for (const field of productFields) {
+                        const qty = field.querySelector('.product-qty').value;
+                        const desc = field.querySelector('.product-desc').value.trim();
+                        const digits = field.querySelector('.product-digits').value.trim();
+                        const photoInput = field.querySelector('.product-photo');
+                        
+                        if (!qty || !desc || !digits || !photoInput.files[0]) {
+                            showToast('Completa todos los campos del producto', true);
+                            return;
+                        }
+                        
+                        const photo = await imageToBase64(photoInput.files[0]);
+                        
+                        products.push({
+                            qty: parseInt(qty),
+                            desc,
+                            digits,
+                            photo
+                        });
+                    }
+                    
+                    const newCredit = {
+                        id: generateCreditId(),
+                        provider,
+                        products,
+                        date,
+                        notes,
+                        status: 'pending'
+                    };
+                    
+                    credits.push(newCredit);
+                    saveCredits();
+                    
+                    showToast('Crédito registrado correctamente');
+                    showCreditsView('pending');
+                });
+            }
+            
+            // Deliver credit form
+            const deliverCreditForm = document.getElementById('deliverCreditForm');
+            if (deliverCreditForm) {
+                deliverCreditForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const creditId = document.getElementById('deliverCreditId').value;
+                    const deliveryDate = document.getElementById('deliveryDate').value;
+                    const deliveryNotes = document.getElementById('deliveryNotes').value.trim();
+                    const deliveryPhotoInput = document.getElementById('deliveryPhoto');
+                    
+                    const credit = credits.find(c => c.id === creditId);
+                    if (!credit) return;
+                    
+                    credit.status = 'delivered';
+                    credit.deliveryDate = deliveryDate;
+                    credit.deliveryNotes = deliveryNotes;
+                    
+                    if (deliveryPhotoInput.files[0]) {
+                        credit.deliveryPhoto = await imageToBase64(deliveryPhotoInput.files[0]);
+                    }
+                    
+                    saveCredits();
+                    showToast('Crédito marcado como entregado');
+                    showCreditsView('pending');
+                });
+            }
+            
+            // Credit date input - set default to today
+            const creditDateInput = document.getElementById('creditDate');
+            if (creditDateInput) {
+                creditDateInput.value = new Date().toISOString().split('T')[0];
+            }
+            
+            // Search and filter
+            const creditSearchInput = document.getElementById('creditSearchInput');
+            const creditFilterSelect = document.getElementById('creditFilterSelect');
+            const historySearchInput = document.getElementById('historySearchInput');
+            
+            if (creditSearchInput) {
+                creditSearchInput.addEventListener('input', debounce(() => {
+                    renderPendingCredits(creditSearchInput.value, creditFilterSelect?.value || 'all');
+                }, 300));
+            }
+            
+            if (creditFilterSelect) {
+                creditFilterSelect.addEventListener('change', () => {
+                    renderPendingCredits(creditSearchInput?.value || '', creditFilterSelect.value);
+                });
+            }
+            
+            if (historySearchInput) {
+                historySearchInput.addEventListener('input', debounce(() => {
+                    renderHistoryCredits(historySearchInput.value);
+                }, 300));
+            }
+            
+            // Character counters
+            const creditNotesInput = document.getElementById('creditNotes');
+            const deliveryNotesInput = document.getElementById('deliveryNotes');
+            
+            if (creditNotesInput) {
+                creditNotesInput.addEventListener('input', (e) => {
+                    document.getElementById('creditNotesCount').textContent = e.target.value.length;
+                });
+            }
+            
+            if (deliveryNotesInput) {
+                deliveryNotesInput.addEventListener('input', (e) => {
+                    document.getElementById('deliveryNotesCount').textContent = e.target.value.length;
+                });
+            }
+            
+            // Delivery photo preview
+            const deliveryPhotoInput = document.getElementById('deliveryPhoto');
+            if (deliveryPhotoInput) {
+                deliveryPhotoInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    const previewDiv = document.getElementById('deliveryPhotoPreview');
+                    
+                    if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                            showToast('La foto debe ser menor a 5MB', true);
+                            e.target.value = '';
+                            previewDiv.innerHTML = '';
+                            return;
+                        }
+                        const base64 = await imageToBase64(file);
+                        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview" alt="Vista previa" />`;
+                    } else {
+                        previewDiv.innerHTML = '';
+                    }
+                });
+            }
+            
+            // Photo modal
+            const closePhotoModal = document.getElementById('closePhotoModal');
+            const photoModal = document.getElementById('photoModal');
+            
+            if (closePhotoModal) {
+                closePhotoModal.addEventListener('click', () => {
+                    photoModal.classList.add('hidden');
+                });
+            }
+            
+            if (photoModal) {
+                photoModal.addEventListener('click', (e) => {
+                    if (e.target === photoModal) {
+                        photoModal.classList.add('hidden');
+                    }
+                });
+            }
+            
+            // Mobile menu
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    mobileMenu.classList.toggle('mobile-menu-open');
+                });
+            }
+            
+            // Update public view button click handlers
+            const publicViewBtnMobile = document.getElementById('publicViewBtnMobile');
+            if (publicViewBtnMobile) {
+                publicViewBtnMobile.addEventListener('click', () => {
+                    showView('public');
+                    closeMobileMenu();
+                });
+            }
+            
+            // Update admin view button click handlers
+            const adminViewBtnMobile = document.getElementById('adminViewBtnMobile');
+            if (adminViewBtnMobile) {
+                adminViewBtnMobile.addEventListener('click', () => {
+                    passwordModal.classList.remove('hidden');
+                    adminPasswordInput.focus();
+                    closeMobileMenu();
+                });
+            }
+        }
+
+        // Close mobile menu
+        function closeMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu) {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.classList.remove('mobile-menu-open');
+            }
+        }
+
         // ==== Init ====
-        function init(){ loadData(); setupEventListeners(); checkLibraries(); showView('public'); }
+        function init(){ 
+            loadData(); 
+            loadCredits();
+            setupEventListeners(); 
+            setupCreditsEventListeners();
+            checkLibraries(); 
+            showView('public');
+            startCreditNotifications();
+        }
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
