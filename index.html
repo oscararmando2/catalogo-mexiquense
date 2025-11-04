@@ -466,8 +466,11 @@
                 };
 
                 const normalized = { ...item };
-                const providedId = normalized.id != null ? String(normalized.id) : undefined;
+                const providedId = normalized.id != null && String(normalized.id).trim() !== ''
+                    ? String(normalized.id).trim()
+                    : undefined;
                 normalized.id = providedId || (fallbackId != null ? String(fallbackId) : generateId());
+                Object.defineProperty(normalized, '__originalId', { value: providedId, enumerable: false });
 
                 const assignString = (targetKey, group)=>{
                     if(normalized[targetKey] != null && String(normalized[targetKey]).trim() !== '') return;
@@ -532,9 +535,22 @@
             }
 
             const dedupe = (list)=>{
-                const map = new Map();
-                list.forEach((item)=>{ if(item && item.id){ map.set(item.id, item); } });
-                return Array.from(map.values());
+                const seen = new Set();
+                const result = [];
+                list.forEach((item)=>{
+                    if(!item || !item.id){
+                        if(item) result.push(item);
+                        return;
+                    }
+                    if(!item.__originalId){
+                        result.push(item);
+                        return;
+                    }
+                    if(seen.has(item.id)) return;
+                    seen.add(item.id);
+                    result.push(item);
+                });
+                return result;
             };
 
             if(Array.isArray(raw)){
