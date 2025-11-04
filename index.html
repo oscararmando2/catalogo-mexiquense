@@ -323,6 +323,7 @@
         let currentView = 'public';
         const PAGE_SIZE = 20;
         let publicCurrentPage = 1;
+        let hasFirebaseSync = false;
 
         // ==== DOM ====
         const productsContainer = document.getElementById('productsContainer');
@@ -665,23 +666,58 @@
         }
 
         // ==== Load & Save ====
+        function currentPublicQuery(){ return (publicSearchInput?.value || '').trim(); }
+        function currentAdminQuery(){ return (searchInput?.value || '').trim(); }
+
+        function hydrateFromLocalStorage(){
+            if(!isLocalStorageAvailable()) return false;
+            try{
+                const stored = localStorage.getItem('products');
+                if(!stored) return false;
+                const parsed = JSON.parse(stored);
+                const normalized = normalizeProducts(parsed);
+                if(!normalized.length) return false;
+                products = normalized;
+                renderAdminProducts();
+                renderPublicTabs(currentPublicQuery());
+                return true;
+            }catch(err){
+                console.error('LocalStorage parse error:', err);
+            }
+            return false;
+        }
+
         function loadData(){
+            const hadLocal = hydrateFromLocalStorage();
             try{
                 database.ref('products').on('value', (snapshot)=>{
-                    products = normalizeProducts(snapshot.val());
+                    const normalized = normalizeProducts(snapshot.val());
+                    if(!normalized.length){
+                        if(!products.length){
+                            renderAdminProducts();
+                            renderPublicTabs(currentPublicQuery());
+                        }
+                        return;
+                    }
+                    const previous = JSON.stringify(products);
+                    products = normalized;
                     renderAdminProducts();
-                    renderPublicTabs((publicSearchInput?.value || '').trim());
-                    showToast('Datos sincronizados desde Firebase.');
+                    renderPublicTabs(currentPublicQuery());
+                    if(!hasFirebaseSync || previous !== JSON.stringify(products)){
+                        showToast('Datos sincronizados desde Firebase.');
+                    }
+                    hasFirebaseSync = true;
+                    if(isLocalStorageAvailable()){
+                        try{ localStorage.setItem('products', JSON.stringify(products)); }
+                        catch(storageErr){ console.warn('No se pudo guardar respaldo local:', storageErr); }
+                    }
                 });
             }catch(err){
                 console.error('Firebase load error:', err);
-                showToast('Error al cargar desde Firebase. Usando localStorage.', true);
-                if(isLocalStorageAvailable()){
-                    const stored = localStorage.getItem('products');
-                    products = normalizeProducts(stored ? JSON.parse(stored) : []);
-                    renderAdminProducts();
-                    renderPublicTabs((publicSearchInput?.value || '').trim());
-                } else { products = []; }
+                if(!hadLocal){
+                    showToast('Error al cargar desde Firebase. Usando localStorage.', true);
+                    hydrateFromLocalStorage();
+                }
             }
         }
         function saveData(){
@@ -697,7 +733,7 @@
         function renderAdminProducts(){
             if(!productsContainer) return;
             productsContainer.innerHTML = '';
-            const q = (searchInput?.value || '').trim().toLowerCase();
+            const q = currentAdminQuery().toLowerCase();
             let filtered = [...products];
             if(q){
                 filtered = filtered.filter(p=>{
@@ -930,7 +966,7 @@ function importFromCSV(file) {
           products = [...products, ...imported];
           saveData();
           renderAdminProducts();
-          renderPublicTabs((publicSearchInput?.value || '').trim());
+          renderPublicTabs(currentPublicQuery());
 
           const msg = errors > 0
             ? `Importados ${imported.length} productos, ${errors} errores.`
@@ -992,7 +1028,7 @@ function importFromCSV(file) {
                 adminView.classList.add('hidden');
                 publicView.classList.remove('hidden');
                 adminButtons.style.display='none';
-                renderPublicTabs((publicSearchInput?.value || '').trim());
+                renderPublicTabs(currentPublicQuery());
             }
             setToggleButtonState(adminViewBtn, isAdmin);
             setToggleButtonState(publicViewBtn, !isAdmin);
@@ -1030,7 +1066,7 @@ function importFromCSV(file) {
         function setupEventListeners(){
             // Búsquedas
             if(searchInput) searchInput.addEventListener('input', debounce(()=>{ renderAdminProducts(); }, 300));
-            publicSearchInput.addEventListener('input', debounce(()=>{ publicCurrentPage = 1; renderPublicTabs((publicSearchInput.value || '').trim()); }, 300));
+            publicSearchInput.addEventListener('input', debounce(()=>{ publicCurrentPage = 1; renderPublicTabs(currentPublicQuery()); }, 300));
 
             // Paginación
             if(publicPagination){
@@ -1038,7 +1074,7 @@ function importFromCSV(file) {
                     const btn = e.target.closest('button[data-page]');
                     if(!btn) return;
                     publicCurrentPage = parseInt(btn.dataset.page, 10) || 1;
-                    renderPublicTabs((publicSearchInput.value || '').trim());
+                    renderPublicTabs(currentPublicQuery());
                 });
             }
 
@@ -1068,7 +1104,7 @@ function importFromCSV(file) {
                 const id = deleteProductBtn.dataset.id;
                 if(confirm('¿Eliminar este producto?')){
                     products = products.filter(p=> p.id!==id);
-                    saveData(); renderAdminProducts(); renderPublicTabs((publicSearchInput?.value || '').trim()); productDetailModal.classList.add('hidden'); showToast('Producto eliminado correctamente.');
+                    saveData(); renderAdminProducts(); renderPublicTabs(currentPublicQuery()); productDetailModal.classList.add('hidden'); showToast('Producto eliminado correctamente.');
                     if(selection.has(id)) selection.delete(id); updateDeleteButton();
                 }
             });
@@ -1081,7 +1117,7 @@ function importFromCSV(file) {
             saveCustomField.addEventListener('click', ()=>{
                 const key=sanitizeInput(customKey.value.trim()); const value=sanitizeInput(customValue.value.trim()); if(!key){ showToast('La clave es obligatoria.', true); return; }
                 const id=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===id);
-                if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs((publicSearchInput?.value || '').trim()); }
+                if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(currentPublicQuery()); }
             });
 
             // Vista admin/public
@@ -1099,7 +1135,7 @@ function importFromCSV(file) {
                 updateDeleteButton();
             });
             // Eliminar seleccionados
-            deleteSelected.addEventListener('click', ()=>{ if(selection.size===0) return; if(!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return; const ids=new Set(selection); products = products.filter(p=> !ids.has(p.id)); saveData(); renderAdminProducts(); renderPublicTabs((publicSearchInput?.value || '').trim()); clearSelection(); showToast('Productos eliminados correctamente.'); });
+            deleteSelected.addEventListener('click', ()=>{ if(selection.size===0) return; if(!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return; const ids=new Set(selection); products = products.filter(p=> !ids.has(p.id)); saveData(); renderAdminProducts(); renderPublicTabs(currentPublicQuery()); clearSelection(); showToast('Productos eliminados correctamente.'); });
 
             // Cerrar modales clic fuera
             window.addEventListener('click', (e)=>{ if(e.target===productDetailModal) productDetailModal.classList.add('hidden'); if(e.target===productFormModal) productFormModal.classList.add('hidden'); if(e.target===importModal) importModal.classList.add('hidden'); if(e.target===passwordModal) passwordModal.classList.add('hidden'); });
@@ -1135,7 +1171,7 @@ function importFromCSV(file) {
                     const p = products.find(x=> x.id===productId);
                     if(p){ newProduct.customFields = p.customFields || {}; newProduct.dateAdded = p.dateAdded || newProduct.dateAdded; Object.assign(p, newProduct); }
                 } else { products.push(newProduct); }
-                saveData(); renderAdminProducts(); renderPublicTabs((publicSearchInput?.value || '').trim()); showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.'); productFormModal.classList.add('hidden');
+                saveData(); renderAdminProducts(); renderPublicTabs(currentPublicQuery()); showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.'); productFormModal.classList.add('hidden');
             });
         }
 
@@ -1171,7 +1207,7 @@ function importFromCSV(file) {
                 const input=document.createElement('input'); input.type='text'; input.value=currentValue==='N/A' ? '' : currentValue; input.className='border border-brand-green/30 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent'; input.style.width='100px';
                 itemSpan.replaceWith(input); input.focus();
                 const saveChange=()=>{
-                    const newValue=input.value.trim()||'N/A'; const productId=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===productId); if(!product) return; product.itemNumber=newValue; saveData(); const newSpan=document.createElement('span'); newSpan.id='productItemNumber'; newSpan.className='text-brand-green cursor-pointer'; newSpan.textContent=newValue; input.replaceWith(newSpan); showToast('Item Code actualizado correctamente.'); renderAdminProducts(); renderPublicTabs((publicSearchInput?.value || '').trim()); enableInlineItemEdit();
+                    const newValue=input.value.trim()||'N/A'; const productId=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===productId); if(!product) return; product.itemNumber=newValue; saveData(); const newSpan=document.createElement('span'); newSpan.id='productItemNumber'; newSpan.className='text-brand-green cursor-pointer'; newSpan.textContent=newValue; input.replaceWith(newSpan); showToast('Item Code actualizado correctamente.'); renderAdminProducts(); renderPublicTabs(currentPublicQuery()); enableInlineItemEdit();
                 };
                 input.addEventListener('blur', saveChange); input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
             });
