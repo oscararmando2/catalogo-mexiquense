@@ -667,7 +667,7 @@
             }
         }
         function saveData(){
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 try{ 
                     if(database) {
                         database.ref('products').set(products)
@@ -679,11 +679,11 @@
                                 resolve();
                             })
                             .catch((err) => {
-                                console.warn('Firebase save error, using localStorage', err);
+                                console.warn('Firebase save error, using localStorage as fallback', err);
                                 if(isLocalStorageAvailable()) {
                                     localStorage.setItem('products', JSON.stringify(products));
                                 }
-                                resolve(); // Still resolve even if Firebase fails
+                                resolve(); // Resolve with localStorage fallback instead of rejecting
                             });
                     } else {
                         if(isLocalStorageAvailable()) {
@@ -697,7 +697,7 @@
                     if(isLocalStorageAvailable()) {
                         localStorage.setItem('products', JSON.stringify(products));
                     }
-                    resolve(); // Still resolve to prevent blocking
+                    resolve(); // Resolve to prevent UI from hanging on error
                 }
             });
         }
@@ -1428,7 +1428,7 @@ function importFromCSV(file) {
 
         // Save especiales to Firebase and localStorage
         function saveEspeciales() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 try {
                     if (database) {
                         database.ref('especiales').set(especiales)
@@ -1440,11 +1440,11 @@ function importFromCSV(file) {
                                 resolve();
                             })
                             .catch((err) => {
-                                console.warn('Firebase save error for especiales, using localStorage', err);
+                                console.warn('Firebase save error for especiales, using localStorage as fallback', err);
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especiales', JSON.stringify(especiales));
                                 }
-                                resolve(); // Still resolve even if Firebase fails
+                                resolve(); // Resolve with localStorage fallback instead of rejecting
                             });
                     } else {
                         if (isLocalStorageAvailable()) {
@@ -1457,7 +1457,7 @@ function importFromCSV(file) {
                     if (isLocalStorageAvailable()) {
                         localStorage.setItem('especiales', JSON.stringify(especiales));
                     }
-                    resolve(); // Still resolve to prevent blocking
+                    resolve(); // Resolve to prevent UI from hanging on error
                 }
             });
         }
@@ -1738,7 +1738,7 @@ function importFromCSV(file) {
 
         // Save credits to Firebase and localStorage
         function saveCredits() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 try {
                     if (database) {
                         database.ref('credits').set(credits)
@@ -1750,11 +1750,11 @@ function importFromCSV(file) {
                                 resolve();
                             })
                             .catch((err) => {
-                                console.warn('Firebase save error for credits, using localStorage', err);
+                                console.warn('Firebase save error for credits, using localStorage as fallback', err);
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('credits', JSON.stringify(credits));
                                 }
-                                resolve(); // Still resolve even if Firebase fails
+                                resolve(); // Resolve with localStorage fallback instead of rejecting
                             });
                     } else {
                         if (isLocalStorageAvailable()) {
@@ -1767,7 +1767,7 @@ function importFromCSV(file) {
                     if (isLocalStorageAvailable()) {
                         localStorage.setItem('credits', JSON.stringify(credits));
                     }
-                    resolve(); // Still resolve to prevent blocking
+                    resolve(); // Resolve to prevent UI from hanging on error
                 }
             });
         }
