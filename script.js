@@ -4,6 +4,10 @@
 // on the 4-inch display
 // ============================================
 
+// Device width constants for responsive design
+const ZEBRA_MC330M_MAX_WIDTH = 480; // Zebra MC330M portrait width in pixels
+const MOBILE_MAX_WIDTH = 800; // Maximum width for mobile devices
+
 /**
  * Attempts to enable fullscreen mode in the browser
  * This is particularly useful for the Zebra MC330M to maximize screen real estate
@@ -40,24 +44,31 @@ function isChromeBrowser() {
 
 /**
  * Initializes fullscreen mode on user interaction
+ * Specifically optimized for Zebra MC330M (480px width)
  * Note: Fullscreen API requires user gesture (click/touch)
  */
 function initFullscreenMode() {
-    // Only enable fullscreen on Chrome browsers and mobile devices
-    if (isChromeBrowser() && window.innerWidth <= 800) {
+    // Only enable fullscreen on Chrome browsers with Zebra MC330M width
+    // This maximizes the usable space on the 4-inch display
+    const isZebraMC330M = window.innerWidth <= ZEBRA_MC330M_MAX_WIDTH;
+    
+    if (isChromeBrowser() && isZebraMC330M) {
         // Wait for first user interaction before requesting fullscreen
         const triggerFullscreen = () => {
             enableFullscreen();
-            // Remove listener after first trigger
-            document.removeEventListener('click', triggerFullscreen);
-            document.removeEventListener('touchstart', triggerFullscreen);
+            console.log(`Fullscreen mode activated for Zebra MC330M (${window.innerWidth}px)`);
         };
         
-        // Listen for user interaction to trigger fullscreen
+        // Listen for user interaction to trigger fullscreen (once only)
         document.addEventListener('click', triggerFullscreen, { once: true });
         document.addEventListener('touchstart', triggerFullscreen, { once: true });
         
-        console.log('Fullscreen will be triggered on first user interaction');
+        console.log(`Fullscreen will be triggered on first user interaction (Zebra MC330M detected: ${window.innerWidth}px)`);
+    } else if (isChromeBrowser() && window.innerWidth <= MOBILE_MAX_WIDTH) {
+        // For other mobile devices (not MC330M), optionally enable fullscreen
+        console.log('Mobile device detected but not MC330M. Fullscreen available but not forced.');
+    } else {
+        console.log('Desktop or non-Chrome browser detected. Fullscreen not enabled.');
     }
 }
 
@@ -2350,43 +2361,77 @@ function closeMobileMenu() {
 // ============================================
 // AUTO-FOCUS FOR ZEBRA MC330M SCANNER
 // Automatically focuses the first UPC input field when
-// the credit registration form is displayed
+// the credit registration form is displayed.
+// This is essential for the Zebra MC330M barcode scanner
+// to work immediately without manual field selection.
 // ============================================
 
 /**
  * Sets focus on the first UPC input field in the credit registration form
- * This ensures the Zebra scanner can immediately scan barcodes
+ * This ensures the Zebra scanner can immediately scan barcodes without
+ * requiring the user to manually tap the input field first.
+ * 
+ * The auto-focus functionality is maintained regardless of screen size,
+ * as it's a UX improvement for all devices with barcode scanners.
+ * 
+ * @returns {void}
  */
 function focusFirstUPCInput() {
-    // Wait a bit for DOM to be ready
+    // Wait a bit for DOM to be ready (100ms delay ensures rendering is complete)
     setTimeout(() => {
         const firstUPCInput = document.querySelector('.product-upc');
         if (firstUPCInput) {
             firstUPCInput.focus();
-            console.log('Auto-focused first UPC input for Zebra scanner');
+            console.log('Auto-focused first UPC input for Zebra scanner (ready for barcode scan)');
         }
     }, 100);
 }
 
 // ============================================
 // INITIALIZATION
+// Initializes the Mexiquense catalog application with
+// specific optimizations for the Zebra MC330M device
 // ============================================
 
-// ==== Init ====
+/**
+ * Main initialization function
+ * 
+ * Loads data, sets up event listeners, and applies device-specific
+ * optimizations. For Zebra MC330M (480px width), this includes:
+ * - Fullscreen mode activation (Chrome only)
+ * - Auto-focus on UPC input fields for barcode scanning
+ * - FTSRetail-inspired compact layout (CSS-based)
+ * 
+ * For mobile devices (720px+) and desktop, the standard layout is maintained.
+ * 
+ * @returns {void}
+ */
 function init(){ 
+    // Load data from Firebase/localStorage
     loadData(); 
     loadEspeciales();
     loadCredits();
+    
+    // Setup event listeners for all views
     setupEventListeners(); 
     setupEspecialesEventListeners();
     setupCreditsEventListeners();
+    
+    // Check if required libraries are loaded
     checkLibraries(); 
+    
+    // Show public view by default
     showView('public');
+    
+    // Start credit notification system
     startCreditNotifications();
     
-    // Initialize fullscreen mode for Zebra MC330M
+    // Initialize fullscreen mode for Zebra MC330M (480px width only)
+    // This maximizes the usable screen space on the 4-inch display
     initFullscreenMode();
     
-    console.log('Mexiquense catalog initialized with Zebra MC330M optimizations');
+    console.log('Mexiquense catalog initialized with Zebra MC330M optimizations (FTSRetail-inspired design for 480px)');
 }
+
+// Wait for DOM to be fully loaded before initializing
 document.addEventListener('DOMContentLoaded', init);
