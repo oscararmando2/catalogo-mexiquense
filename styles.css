@@ -175,115 +175,178 @@ body {
 }
 
 /* ============================================
-   ZEBRA MC330M OPTIMIZATIONS
+   ZEBRA MC330M OPTIMIZATIONS - FTSRETAIL INSPIRED DESIGN
    Device: Zebra MC330M (4 inch screen)
    Portrait: 480x800px (5:3 aspect ratio)
    Landscape: 800x480px
+   
+   Design inspired by FTSRetail StoreApp:
+   - Fixed viewport width of 225px for 480px devices
+   - Centered layout with max-width: 225px
+   - Small fonts (9px for text, 6px for buttons)
+   - Full-width inputs with minimal borders and padding
+   - Rounded borders (4px border-radius)
+   - Minimal spacing
    ============================================ */
 
-/* Portrait mode - 480px width (primary orientation) */
+/* Portrait mode - 480px width (primary orientation) - MC330M ONLY */
 @media screen and (max-width: 480px) {
     /* Ensure proper box sizing for all elements */
     * {
         box-sizing: border-box;
     }
     
-    /* Optimize body for touch */
+    /* Body optimized for MC330M 4-inch screen */
     body {
-        font-size: 14px;
-        line-height: 1.4;
+        font-size: 9px; /* Small font inspired by FTSRetail */
+        line-height: 1.3;
         -webkit-text-size-adjust: none; /* Prevent text inflation */
     }
     
-    /* Optimize "Registrar Nuevo Crédito" section for MC330M */
+    /* ==================================================
+       SECTION: Registrar Nuevo Crédito - MC330M SPECIFIC
+       Inspired by FTSRetail StoreApp design
+       ================================================== */
+    
+    /* Main container - centered layout with max-width 225px */
     #creditosRegister {
-        padding: 0.75rem !important;
+        display: flex !important;
+        justify-content: center !important;
+        padding: 2px !important; /* Minimal padding */
+        width: 100% !important;
     }
     
+    /* Inner card - centered with max-width 225px like FTSRetail */
     #creditosRegister .bg-white {
-        padding: 1rem !important;
-        margin: 0 !important;
+        max-width: 225px !important; /* FTSRetail inspired width */
+        width: 100% !important;
+        padding: 3px !important; /* Minimal padding (2-3px) */
+        margin: 0 auto !important;
+        box-sizing: border-box !important;
     }
     
+    /* Heading - small font size */
     #creditosRegister h2 {
-        font-size: 1.25rem !important;
-        margin-bottom: 1rem !important;
+        font-size: 9px !important; /* Small text like FTSRetail */
+        font-weight: 600 !important;
+        margin-bottom: 3px !important;
+        text-align: center !important;
     }
     
-    /* Product fields container - use flexbox for better layout */
+    /* Form container */
+    #creditosRegister form {
+        width: 100% !important;
+    }
+    
+    /* Product fields container - vertical layout */
     #productsFieldsContainer {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important; /* Minimal gap */
+        width: 100% !important;
     }
     
+    #productsFieldsContainer label {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    /* Product field cards - minimal styling */
     .product-field {
-        padding: 0.75rem !important;
-        margin-bottom: 0.75rem !important;
-        border: 1px solid #d1d5db !important;
+        padding: 3px !important; /* Minimal padding (2-3px) */
+        margin-bottom: 3px !important;
+        border: 0.1px solid #d1d5db !important; /* Very thin border */
+        border-radius: 4px !important; /* Rounded borders */
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     
     .product-field h4 {
-        font-size: 1rem !important;
-        margin-bottom: 0.5rem !important;
+        font-size: 9px !important; /* Small text */
+        font-weight: 600 !important;
+        margin-bottom: 2px !important;
     }
     
-    /* Input fields optimized for touch and MC330M screen */
+    /* Labels - small font size */
+    #creditosRegister label,
+    .product-field label {
+        font-size: 9px !important; /* Small text like FTSRetail */
+        font-weight: 500 !important;
+        margin-bottom: 2px !important;
+        display: block !important;
+    }
+    
+    /* Input fields - full width with minimal styling */
     #creditosRegister input[type="text"],
     #creditosRegister input[type="number"],
     #creditosRegister input[type="date"],
+    #creditosRegister input[type="file"],
     #creditosRegister textarea,
     #creditosRegister select,
     .product-qty,
     .product-upc,
-    .product-desc {
-        width: 100% !important;
-        font-size: 14px !important; /* Readable on 4-inch screen */
-        padding: 0.625rem !important; /* 10px - touch-friendly */
-        min-height: 44px !important; /* Apple's minimum touch target */
-        border: 1px solid #d1d5db !important;
-        border-radius: 0.375rem !important;
+    .product-desc,
+    .product-photo {
+        width: 100% !important; /* Full width */
+        font-size: 9px !important; /* Small text */
+        padding: 2px 3px !important; /* Minimal padding (2-3px) */
+        min-height: 44px !important; /* Maintain touch target size */
+        border: 0.1px solid #d1d5db !important; /* Very thin border */
+        border-radius: 4px !important; /* Rounded borders */
         box-sizing: border-box !important;
-        -webkit-appearance: none; /* Remove default styling */
+        -webkit-appearance: none !important;
+        display: block !important;
     }
     
-    /* Labels optimized for readability */
-    #creditosRegister label {
-        font-size: 13px !important;
-        font-weight: 500 !important;
-        margin-bottom: 0.375rem !important;
-        display: block;
+    /* Textarea - slightly taller */
+    #creditosRegister textarea {
+        min-height: 60px !important;
+        resize: vertical !important;
     }
     
-    /* Buttons optimized for touch */
+    /* Buttons - full width with small font */
     #creditosRegister button,
-    .scan-upc-btn,
     #addProductField,
     .remove-product-field {
-        min-height: 44px !important; /* Touch-friendly size */
-        padding: 0.625rem 1rem !important;
-        font-size: 14px !important;
-        font-weight: 500 !important;
-        border-radius: 0.375rem !important;
-        width: 100% !important;
+        width: 100% !important; /* Full width */
+        font-size: 6px !important; /* Very small font for buttons like FTSRetail */
+        font-weight: 600 !important;
+        padding: 2px 3px !important; /* Minimal padding */
+        min-height: 44px !important; /* Maintain touch target */
+        border-radius: 4px !important; /* Rounded borders */
         box-sizing: border-box !important;
-        margin-top: 0.5rem !important;
+        margin-top: 3px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.3px !important;
     }
     
-    /* Inline buttons (like scan button) should not be full width */
+    /* Scan button - inline but still touch-friendly */
     .scan-upc-btn {
         width: auto !important;
         display: inline-flex !important;
         align-items: center !important;
-        padding: 0.5rem 0.75rem !important;
+        justify-content: center !important;
+        padding: 2px 4px !important;
         min-height: 36px !important;
+        font-size: 6px !important;
+        margin-left: 3px !important;
     }
     
-    /* Form actions (Cancel/Submit buttons) in a row */
+    .scan-upc-btn svg {
+        width: 12px !important;
+        height: 12px !important;
+        margin-right: 2px !important;
+    }
+    
+    /* Form actions (Cancel/Submit) - row layout */
     #creditosRegister .flex.gap-4 {
         display: flex !important;
-        gap: 0.5rem !important;
-        margin-top: 1rem !important;
+        gap: 3px !important;
+        margin-top: 3px !important;
+        width: 100% !important;
     }
     
     #creditosRegister .flex.gap-4 button {
@@ -291,80 +354,99 @@ body {
         width: auto !important;
     }
     
-    /* Textarea specific */
-    #creditosRegister textarea {
-        min-height: 80px !important;
-        resize: vertical;
-    }
-    
-    /* Helper text */
+    /* Helper text - very small */
     #creditosRegister .text-xs,
-    #creditosRegister .text-sm {
-        font-size: 12px !important;
-        line-height: 1.3 !important;
+    #creditosRegister .text-sm,
+    #creditosRegister p {
+        font-size: 6px !important; /* Very small helper text */
+        line-height: 1.2 !important;
+        margin-top: 1px !important;
     }
     
-    /* Photo preview */
+    /* Photo preview - compact */
     .product-photo-preview img {
-        max-width: 80px !important;
-        max-height: 80px !important;
+        max-width: 60px !important;
+        max-height: 60px !important;
+        border-radius: 4px !important;
     }
     
-    /* Reduce spacing between form elements */
-    #creditosRegister .space-y-6 > * + * {
-        margin-top: 0.75rem !important;
+    /* Spacing adjustments - minimal */
+    #creditosRegister .space-y-6 > * + *,
+    #creditosRegister .space-y-4 > * + *,
+    #creditosRegister form > div {
+        margin-top: 3px !important;
     }
     
-    #creditosRegister .space-y-4 > * + * {
-        margin-top: 0.5rem !important;
-    }
-    
-    /* Container padding adjustments */
+    /* Container padding - minimal */
     #creditosView .container {
-        padding-left: 0.75rem !important;
-        padding-right: 0.75rem !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+    
+    /* Prevent horizontal scroll */
+    #creditosView,
+    #creditosRegister,
+    #creditosRegister * {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
     }
     
     /* Header optimizations for MC330M */
     header {
-        padding-top: 0.75rem !important;
-        padding-bottom: 0.75rem !important;
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
     }
     
     header h1 {
-        font-size: 1.25rem !important;
+        font-size: 10px !important;
     }
     
     header .h-10 {
-        height: 2rem !important;
-        width: 2rem !important;
+        height: 1.5rem !important;
+        width: 1.5rem !important;
     }
     
     /* Mobile menu button */
     #mobileMenuBtn {
-        padding: 0.5rem !important;
+        padding: 3px !important;
         min-height: 44px !important;
+    }
+    
+    /* Focus states - maintain visibility */
+    #creditosRegister input:focus,
+    #creditosRegister textarea:focus,
+    #creditosRegister select:focus,
+    #creditosRegister button:focus {
+        outline: 2px solid #006847 !important;
+        outline-offset: 1px !important;
+        border-color: #006847 !important;
     }
 }
 
-/* Landscape mode - 800px width (secondary orientation) */
+/* Landscape mode - 800px width (secondary orientation) - MC330M ONLY */
 @media screen and (max-width: 800px) and (orientation: landscape) {
-    /* Optimize for landscape when needed */
+    /* Body - small font for landscape */
+    body {
+        font-size: 9px;
+    }
+    
+    /* Optimize for landscape - centered layout maintained */
     #creditosRegister {
-        padding: 0.5rem !important;
+        padding: 2px !important;
     }
     
     #creditosRegister .bg-white {
-        padding: 0.75rem !important;
+        max-width: 225px !important; /* Keep FTSRetail width */
+        padding: 3px !important;
         max-height: 90vh;
         overflow-y: auto;
     }
     
-    /* Two-column layout for larger fields in landscape */
+    /* Two-column layout for some fields in landscape to save space */
     #creditosRegister .space-y-6 {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        gap: 3px;
         margin-top: 0 !important;
     }
     
@@ -375,53 +457,103 @@ body {
         grid-column: 1 / -1;
     }
     
-    /* Adjust font sizes for landscape */
-    body {
-        font-size: 13px;
+    /* Maintain small fonts in landscape */
+    #creditosRegister h2 {
+        font-size: 9px !important;
     }
     
-    #creditosRegister h2 {
-        font-size: 1.125rem !important;
+    #creditosRegister label {
+        font-size: 9px !important;
+    }
+    
+    #creditosRegister input,
+    #creditosRegister textarea,
+    #creditosRegister select {
+        font-size: 9px !important;
+    }
+    
+    #creditosRegister button {
+        font-size: 6px !important;
     }
 }
 
-/* Additional optimizations for very small screens */
-@media screen and (max-width: 400px) {
+/* Additional optimizations for devices between 400-480px */
+@media screen and (min-width: 401px) and (max-width: 480px) {
+    /* Slightly larger fonts for devices in this range */
     body {
-        font-size: 13px;
+        font-size: 9px;
     }
     
     #creditosRegister input,
     #creditosRegister textarea,
     #creditosRegister button {
-        font-size: 13px !important;
+        font-size: 9px !important;
     }
     
     #creditosRegister label {
-        font-size: 12px !important;
+        font-size: 9px !important;
     }
 }
 
-    /* Focus states for better visibility on MC330M */
+/* Focus states for better visibility on MC330M - OUTSIDE media query */
+/* Applied globally but optimized for touch devices */
+@media screen and (max-width: 480px) {
     input:focus,
     textarea:focus,
     select:focus {
         outline: 2px solid #006847 !important;
-        outline-offset: 2px !important;
+        outline-offset: 1px !important;
         border-color: #006847 !important;
     }
     
     button:focus {
         outline: 2px solid #006847 !important;
-        outline-offset: 2px !important;
+        outline-offset: 1px !important;
+    }
+}
+
+/* ============================================
+   PRESERVE ORIGINAL DESIGN FOR MOBILE (720px+) AND DESKTOP
+   These rules ensure that devices with screens 720px or larger
+   maintain the original, non-optimized design
+   ============================================ */
+
+@media screen and (min-width: 720px) {
+    /* Reset any MC330M-specific styles for larger devices */
+    body {
+        font-size: inherit; /* Use default Tailwind/browser sizes */
     }
     
-    /* Prevent zoom on input focus (important for barcode scanner) */
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    textarea,
-    select {
-        font-size: 16px !important; /* iOS won't zoom if >= 16px */
+    /* Registrar Nuevo Crédito section - normal layout for larger screens */
+    #creditosRegister {
+        padding: inherit !important;
+        justify-content: initial !important;
+    }
+    
+    #creditosRegister .bg-white {
+        max-width: none !important; /* No width restriction */
+        padding: 1.5rem !important; /* Normal padding */
+    }
+    
+    #creditosRegister h2 {
+        font-size: 1.5rem !important; /* Normal heading size */
+    }
+    
+    #creditosRegister label {
+        font-size: 0.875rem !important; /* Normal label size */
+    }
+    
+    #creditosRegister input,
+    #creditosRegister textarea,
+    #creditosRegister select,
+    #creditosRegister button {
+        font-size: 1rem !important; /* Normal input/button size */
+        padding: 0.5rem 1rem !important; /* Normal padding */
+    }
+    
+    /* Normal spacing for larger devices */
+    .product-field {
+        padding: 1rem !important;
+        margin-bottom: 1rem !important;
     }
 }
