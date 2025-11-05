@@ -178,17 +178,23 @@ const nextPageBtn = document.getElementById('nextPage');
 const pageNumbers = document.getElementById('pageNumbers');
 const paginationControls = document.getElementById('paginationControls');
 
+// ==== Constants ====
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // ==== Utils ====
+// Reusable currency formatter for better performance
+const currencyFormatter = new Intl.NumberFormat('es-MX', {style: 'currency', currency: 'MXN'});
+
 function generateId(){ return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 function sanitizeInput(input){ if (!input) return ''; const div=document.createElement('div'); div.textContent=input; return div.innerHTML; }
-function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
+function formatCurrency(amount){ return currencyFormatter.format(amount); }
 function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
 function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
 
 // === NUEVO: ¿producto es "NEW"? (7 días) ===
 function isNewProduct(product){
     if(!product || !product.dateAdded) return false;
-    const sevenDays = 7*24*60*60*1000;
+    const sevenDays = 7 * MILLISECONDS_PER_DAY;
     return (Date.now() - product.dateAdded) < sevenDays;
 }
 
@@ -1353,7 +1359,7 @@ function getDaysElapsed(dateStr) {
     const creditDate = new Date(dateStr);
     const now = new Date();
     const diff = now - creditDate;
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+    return Math.floor(diff / MILLISECONDS_PER_DAY);
 }
 
 // Get time elapsed text
@@ -1405,6 +1411,8 @@ function showCreditsView(subView) {
     } else if (subView === 'register') {
         document.getElementById('creditosRegister').classList.remove('hidden');
         initializeProductFields();
+        // Auto-focus UPC input for Zebra scanner when showing register view
+        focusFirstUPCInput();
     } else if (subView === 'deliver') {
         document.getElementById('creditosDeliver').classList.remove('hidden');
     } else if (subView === 'history') {
@@ -2359,17 +2367,6 @@ function focusFirstUPCInput() {
         }
     }, 100);
 }
-
-// Override the showCreditsView function to add auto-focus
-const originalShowCreditsView = showCreditsView;
-showCreditsView = function(subView) {
-    originalShowCreditsView(subView);
-    
-    // Auto-focus UPC input when showing register view
-    if (subView === 'register') {
-        focusFirstUPCInput();
-    }
-};
 
 // ============================================
 // INITIALIZATION

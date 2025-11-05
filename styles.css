@@ -402,8 +402,7 @@ body {
     }
 }
 
-/* Focus states for better visibility on MC330M */
-@media screen and (max-width: 480px) {
+    /* Focus states for better visibility on MC330M */
     input:focus,
     textarea:focus,
     select:focus {
@@ -416,10 +415,8 @@ body {
         outline: 2px solid #006847 !important;
         outline-offset: 2px !important;
     }
-}
-
-/* Prevent zoom on input focus (important for barcode scanner) */
-@media screen and (max-width: 480px) {
+    
+    /* Prevent zoom on input focus (important for barcode scanner) */
     input[type="text"],
     input[type="number"],
     input[type="date"],
