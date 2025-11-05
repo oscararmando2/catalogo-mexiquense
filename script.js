@@ -4,6 +4,10 @@
 // on the 4-inch display
 // ============================================
 
+// Device width constants for responsive design
+const ZEBRA_MC330M_MAX_WIDTH = 480; // Zebra MC330M portrait width in pixels
+const MOBILE_MAX_WIDTH = 800; // Maximum width for mobile devices
+
 /**
  * Attempts to enable fullscreen mode in the browser
  * This is particularly useful for the Zebra MC330M to maximize screen real estate
@@ -44,23 +48,23 @@ function isChromeBrowser() {
  * Note: Fullscreen API requires user gesture (click/touch)
  */
 function initFullscreenMode() {
-    // Only enable fullscreen on Chrome browsers with 480px width (Zebra MC330M)
+    // Only enable fullscreen on Chrome browsers with Zebra MC330M width
     // This maximizes the usable space on the 4-inch display
-    const isZebraMC330M = window.innerWidth <= 480;
+    const isZebraMC330M = window.innerWidth <= ZEBRA_MC330M_MAX_WIDTH;
     
     if (isChromeBrowser() && isZebraMC330M) {
         // Wait for first user interaction before requesting fullscreen
         const triggerFullscreen = () => {
             enableFullscreen();
-            console.log('Fullscreen mode activated for Zebra MC330M (480px)');
+            console.log(`Fullscreen mode activated for Zebra MC330M (${window.innerWidth}px)`);
         };
         
         // Listen for user interaction to trigger fullscreen (once only)
         document.addEventListener('click', triggerFullscreen, { once: true });
         document.addEventListener('touchstart', triggerFullscreen, { once: true });
         
-        console.log('Fullscreen will be triggered on first user interaction (Zebra MC330M detected: 480px)');
-    } else if (isChromeBrowser() && window.innerWidth <= 800) {
+        console.log(`Fullscreen will be triggered on first user interaction (Zebra MC330M detected: ${window.innerWidth}px)`);
+    } else if (isChromeBrowser() && window.innerWidth <= MOBILE_MAX_WIDTH) {
         // For other mobile devices (not MC330M), optionally enable fullscreen
         console.log('Mobile device detected but not MC330M. Fullscreen available but not forced.');
     } else {

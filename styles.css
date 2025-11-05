@@ -187,6 +187,26 @@ body {
    - Full-width inputs with minimal borders and padding
    - Rounded borders (4px border-radius)
    - Minimal spacing
+   
+   IMPORTANT NOTES:
+   
+   1. ACCESSIBILITY: The extremely small font sizes (6px-9px) are 
+      intentional for this industrial device (MC330M) used by trained
+      operators in controlled environments. These sizes are based on
+      the FTSRetail StoreApp design. Users should test on actual 
+      hardware before deployment.
+   
+   2. BORDER WIDTH: The 0.1px border is intentionally thin for a 
+      compact look. If rendering issues occur on the MC330M, consider
+      using 1px with rgba(209, 213, 219, 0.3) for similar appearance.
+   
+   3. TOUCH TARGETS: Despite small fonts, all interactive elements
+      maintain minimum 44px height for accessibility per Apple/Material
+      Design guidelines. This ensures usability even with small text.
+   
+   4. TESTING REQUIRED: This design MUST be tested on actual Zebra 
+      MC330M hardware to ensure legibility and usability. Adjust font
+      sizes if needed after real-world testing.
    ============================================ */
 
 /* Portrait mode - 480px width (primary orientation) - MC330M ONLY */
@@ -256,6 +276,7 @@ body {
         padding: 3px !important; /* Minimal padding (2-3px) */
         margin-bottom: 3px !important;
         border: 0.1px solid #d1d5db !important; /* Very thin border */
+        /* Alternative if 0.1px doesn't render well: border: 1px solid rgba(209, 213, 219, 0.3) !important; */
         border-radius: 4px !important; /* Rounded borders */
         width: 100% !important;
         box-sizing: border-box !important;
@@ -292,6 +313,7 @@ body {
         padding: 2px 3px !important; /* Minimal padding (2-3px) */
         min-height: 44px !important; /* Maintain touch target size */
         border: 0.1px solid #d1d5db !important; /* Very thin border */
+        /* Alternative if 0.1px doesn't render well: border: 1px solid rgba(209, 213, 219, 0.3) !important; */
         border-radius: 4px !important; /* Rounded borders */
         box-sizing: border-box !important;
         -webkit-appearance: none !important;
