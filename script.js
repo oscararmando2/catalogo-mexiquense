@@ -78,6 +78,9 @@ function initFullscreenMode() {
 
 // ==== Firebase (reemplaza con tus credenciales reales) ====
 let database = null;
+let messaging = null;
+let fcmToken = null;
+
 try {
     const firebaseConfig = {
         apiKey: "TU_API_KEY_AQUI",
@@ -91,9 +94,243 @@ try {
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
+        
+        // Inicializar Firebase Cloud Messaging (FCM)
+        if (firebase.messaging.isSupported()) {
+            messaging = firebase.messaging();
+            console.log('Firebase Messaging inicializado correctamente');
+        } else {
+            console.warn('Firebase Messaging no es soportado en este navegador');
+        }
     }
 } catch(err) {
     console.warn('Firebase not available, using localStorage only', err);
+}
+
+// ============================================
+// FIREBASE CLOUD MESSAGING (FCM) - PUSH NOTIFICATIONS
+// ============================================
+
+/**
+ * Solicita permisos de notificación al usuario y obtiene el token FCM.
+ * El token debe ser guardado en la base de datos asociado al usuario/dispositivo.
+ * 
+ * PASOS PARA GUARDAR EL TOKEN EN LA BASE DE DATOS:
+ * 1. Después de obtener el token exitosamente, enviar al servidor o Firebase
+ * 2. Estructura sugerida en Firebase Realtime Database:
+ *    /users/{userId}/fcmTokens/{tokenId}: { token: "...", timestamp: "...", device: "..." }
+ *    O para tokens globales (todos los usuarios):
+ *    /fcmTokens/{tokenId}: { token: "...", timestamp: "...", userAgent: "..." }
+ * 3. Al enviar notificaciones desde el backend, usar estos tokens almacenados
+ * 4. Actualizar el token si cambia (onTokenRefresh)
+ * 5. Eliminar tokens inválidos cuando FCM devuelva error
+ */
+async function requestNotificationPermission() {
+    try {
+        if (!messaging) {
+            console.log('Firebase Messaging no está disponible');
+            return null;
+        }
+        
+        // Verificar si ya tenemos permiso
+        if (Notification.permission === 'granted') {
+            console.log('Ya tenemos permiso de notificaciones');
+            return await getFCMToken();
+        }
+        
+        // Verificar si el permiso fue denegado previamente
+        if (Notification.permission === 'denied') {
+            console.warn('Los permisos de notificación fueron denegados por el usuario');
+            showToast('Las notificaciones están bloqueadas. Habilítalas en la configuración del navegador.', true);
+            return null;
+        }
+        
+        // Solicitar permiso al usuario
+        console.log('Solicitando permiso de notificaciones...');
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            console.log('Permiso de notificaciones concedido');
+            showToast('¡Notificaciones habilitadas! Recibirás alertas de nuevos productos.', false);
+            return await getFCMToken();
+        } else {
+            console.log('Permiso de notificaciones denegado');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error al solicitar permiso de notificaciones:', error);
+        return null;
+    }
+}
+
+/**
+ * Obtiene el token FCM del dispositivo actual.
+ * Este token es único por dispositivo/navegador y se usa para enviar notificaciones.
+ */
+async function getFCMToken() {
+    try {
+        if (!messaging) {
+            console.log('Firebase Messaging no está disponible');
+            return null;
+        }
+        
+        // Obtener el token de registro
+        // IMPORTANTE: Necesitas configurar un certificado VAPID en Firebase Console
+        // Ve a Project Settings > Cloud Messaging > Web Push certificates
+        // Genera un par de claves y usa la "Key pair" aquí
+        const token = await messaging.getToken({
+            vapidKey: 'TU_VAPID_KEY_AQUI' // Reemplazar con tu VAPID key de Firebase Console
+        });
+        
+        if (token) {
+            console.log('Token FCM obtenido:', token);
+            fcmToken = token;
+            
+            // TODO: GUARDAR EL TOKEN EN LA BASE DE DATOS
+            // Ejemplo de cómo guardarlo en Firebase Realtime Database:
+            /*
+            if (database) {
+                const tokenRef = database.ref('fcmTokens').push();
+                await tokenRef.set({
+                    token: token,
+                    timestamp: Date.now(),
+                    userAgent: navigator.userAgent,
+                    lastUsed: Date.now()
+                });
+                console.log('Token FCM guardado en la base de datos');
+            }
+            */
+            
+            // Por ahora, guardar en localStorage como respaldo
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('fcmToken', token);
+                localStorage.setItem('fcmTokenTimestamp', Date.now().toString());
+            }
+            
+            return token;
+        } else {
+            console.log('No se pudo obtener el token FCM');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error al obtener el token FCM:', error);
+        return null;
+    }
+}
+
+/**
+ * Configura el listener para mensajes en primer plano.
+ * Cuando la app está abierta y llega una notificación, se maneja aquí.
+ */
+function setupForegroundMessageHandler() {
+    if (!messaging) return;
+    
+    messaging.onMessage((payload) => {
+        console.log('Mensaje recibido en primer plano:', payload);
+        
+        // Extraer información del mensaje
+        const notificationTitle = payload.notification?.title || 'Nuevo Producto';
+        const notificationBody = payload.notification?.body || 'Se agregó un nuevo Producto al catálogo';
+        const productId = payload.data?.productId;
+        
+        // Mostrar notificación usando la API de Notifications del navegador
+        if (Notification.permission === 'granted') {
+            const notification = new Notification(notificationTitle, {
+                body: notificationBody,
+                icon: '/apple-touch-icon-180x180.png',
+                badge: '/apple-touch-icon.png',
+                tag: 'new-product',
+                data: {
+                    productId: productId,
+                    url: productId ? `/?product=${productId}` : '/'
+                }
+            });
+            
+            // Manejar clic en la notificación
+            notification.onclick = (event) => {
+                event.preventDefault();
+                window.focus();
+                
+                // Si hay un productId, abrir el modal del producto
+                if (productId) {
+                    showProductDetails(productId);
+                }
+                
+                notification.close();
+            };
+        } else {
+            // Si no hay permiso para notificaciones del sistema, usar toast
+            showToast(notificationBody, false);
+        }
+        
+        // Actualizar la vista para mostrar el nuevo producto
+        renderAdminProducts();
+        renderPublicTabs();
+    });
+}
+
+/**
+ * Envía una notificación push cuando se agrega un nuevo producto.
+ * Esta función debe ser llamada desde el servidor/backend.
+ * 
+ * NOTA: Las notificaciones push NO se pueden enviar directamente desde el cliente
+ * por razones de seguridad. Debes configurar un servidor backend que:
+ * 1. Escuche cambios en la base de datos (nuevos productos)
+ * 2. Obtenga los tokens FCM guardados
+ * 3. Use la Admin SDK de Firebase para enviar notificaciones
+ * 
+ * Ejemplo de código backend (Node.js):
+ * 
+ * const admin = require('firebase-admin');
+ * admin.initializeApp();
+ * 
+ * async function sendNewProductNotification(productId, productName) {
+ *   const tokensSnapshot = await admin.database().ref('fcmTokens').once('value');
+ *   const tokens = [];
+ *   tokensSnapshot.forEach(child => {
+ *     tokens.push(child.val().token);
+ *   });
+ *   
+ *   const message = {
+ *     notification: {
+ *       title: 'Nuevo Producto',
+ *       body: 'Se agregó un nuevo Producto al catálogo: ' + productName
+ *     },
+ *     data: {
+ *       productId: productId,
+ *       productUrl: '/?product=' + productId
+ *     },
+ *     tokens: tokens
+ *   };
+ *   
+ *   const response = await admin.messaging().sendMulticast(message);
+ *   console.log('Notificaciones enviadas:', response.successCount);
+ * }
+ */
+function notifyNewProduct(productId, productName) {
+    console.log('Nueva notificación de producto:', { productId, productName });
+    
+    // IMPORTANTE: Esta función es solo un placeholder para documentación.
+    // Las notificaciones reales deben enviarse desde el servidor backend
+    // usando la Admin SDK de Firebase.
+    
+    // Para propósitos de demostración local, mostrar un toast
+    if (Notification.permission === 'granted') {
+        showToast(`Nuevo producto agregado: ${productName}`, false);
+    }
+    
+    // TODO: Implementar llamada al backend para enviar notificación
+    // Ejemplo:
+    /*
+    fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            productId: productId,
+            productName: productName
+        })
+    });
+    */
 }
 
 // ==== Catálogo de productos para búsqueda por UPC ====
@@ -814,10 +1051,15 @@ function setupEventListeners(){
             customFields: {},
             dateAdded: Date.now() // NUEVO: necesario para badge "NEW"
         };
+        const isNewProduct = !productId; // Determinar si es un producto nuevo
         if(productId){
             const p = products.find(x=> x.id===productId);
             if(p){ newProduct.customFields = p.customFields || {}; newProduct.dateAdded = p.dateAdded || newProduct.dateAdded; Object.assign(p, newProduct); }
-        } else { products.push(newProduct); }
+        } else { 
+            products.push(newProduct);
+            // Enviar notificación push para nuevo producto
+            notifyNewProduct(newProduct.id, newProduct.nombre);
+        }
         saveData(); renderAdminProducts(); renderPublicTabs(); showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.'); productFormModal.classList.add('hidden');
     });
 }
@@ -2429,6 +2671,27 @@ function init(){
     // Initialize fullscreen mode for Zebra MC330M (480px width only)
     // This maximizes the usable screen space on the 4-inch display
     initFullscreenMode();
+    
+    // Initialize Firebase Cloud Messaging (FCM) for push notifications
+    // Request permission after a short delay to avoid overwhelming the user on first load
+    setTimeout(() => {
+        if (messaging) {
+            // Configurar el manejador de mensajes en primer plano
+            setupForegroundMessageHandler();
+            
+            // Solicitar permisos de notificación (solo en navegadores compatibles)
+            // El usuario puede activar/desactivar esto en la configuración
+            requestNotificationPermission()
+                .then(token => {
+                    if (token) {
+                        console.log('FCM configurado correctamente. Token:', token);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al configurar FCM:', error);
+                });
+        }
+    }, 2000); // Esperar 2 segundos después de la carga inicial
     
     console.log('Mexiquense catalog initialized with Zebra MC330M optimizations (FTSRetail-inspired design for 480px)');
 }
