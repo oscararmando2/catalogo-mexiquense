@@ -66,6 +66,26 @@ CATALOGO
         .especiales-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
         .price-indicator { width: 16px; height: 16px; border-radius: 50%; background-color: #ef4444; display: inline-block; margin-left: 8px; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Calendar styles for reservations */
+        .calendar-container { overflow-x: auto; }
+        .calendar-grid { display: grid; grid-template-columns: 80px repeat(7, 1fr); min-width: 100%; border: 1px solid #e5e7eb; }
+        .calendar-header { background: #006847; color: white; padding: 0.75rem; text-align: center; font-weight: 600; border-right: 1px solid #e5e7eb; }
+        .calendar-time { background: #f9fafb; padding: 0.75rem; text-align: center; font-weight: 500; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; font-size: 0.875rem; }
+        .calendar-cell { border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 0.5rem; min-height: 60px; cursor: pointer; transition: background 0.2s; position: relative; }
+        .calendar-cell:hover { background: #f0fdf4; }
+        .reservation-item { background: #10b981; color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; margin-bottom: 2px; cursor: pointer; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .reservation-item:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4); }
+        .reservation-tooltip { position: absolute; background: white; border: 2px solid #10b981; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 250px; display: none; }
+        .reservation-tooltip.show { display: block; }
+        
+        /* Responsive calendar for mobile */
+        @media (max-width: 768px) {
+            .calendar-grid { grid-template-columns: 60px repeat(7, minmax(80px, 1fr)); font-size: 0.75rem; }
+            .calendar-header, .calendar-time { padding: 0.5rem; font-size: 0.75rem; }
+            .calendar-cell { min-height: 50px; padding: 0.25rem; }
+            .reservation-item { font-size: 0.65rem; padding: 2px 4px; }
+        }
     </style>
 </head>
 <body>
@@ -91,6 +111,7 @@ CATALOGO
                         <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
                         <button id="especialesViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Especiales</button>
                         <button id="creditosViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Créditos</button>
+                        <button id="reservasViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Reservas</button>
                         <button id="adminViewBtnMobile" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Panel de Administración</button>
                     </div>
                 </div>
@@ -310,6 +331,40 @@ CATALOGO
             </div>
         </section>
 
+        <!-- Reservas View -->
+        <section id="reservasView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <h2 class="text-2xl font-bold text-mexican-green mb-4 md:mb-0">Calendario de Reservas</h2>
+                    <button id="addReservaBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium flex items-center transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Nueva Reserva
+                    </button>
+                </div>
+                
+                <!-- Week Navigation -->
+                <div class="flex items-center justify-between mb-6">
+                    <button id="prevWeekBtn" class="bg-white border-2 border-mexican-green text-mexican-green hover:bg-mexican-green hover:text-white px-4 py-2 rounded-lg font-medium transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <div class="text-center">
+                        <h3 id="weekDisplay" class="text-xl font-bold text-gray-800"></h3>
+                        <button id="todayBtn" class="text-sm text-mexican-green hover:underline mt-1">Hoy</button>
+                    </div>
+                    <button id="nextWeekBtn" class="bg-white border-2 border-mexican-green text-mexican-green hover:bg-mexican-green hover:text-white px-4 py-2 rounded-lg font-medium transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Calendar Grid -->
+            <div class="calendar-container bg-white rounded-xl shadow-md overflow-hidden">
+                <div id="calendarGrid" class="calendar-grid">
+                    <!-- Calendar will be dynamically generated here -->
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-6">
             <div class="container mx-auto px-4 text-center">
@@ -518,6 +573,81 @@ CATALOGO
                             <button type="submit" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Reserva Form -->
+        <div id="reservaFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
+                    <h3 id="reservaFormTitle" class="text-xl font-bold">Nueva Reserva</h3>
+                    <button id="closeReservaFormModal" class="text-white hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto custom-scrollbar">
+                    <form id="reservaForm" class="space-y-4">
+                        <input type="hidden" id="reservaId" />
+                        <div>
+                            <label for="reservaName" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo*</label>
+                            <input type="text" id="reservaName" name="reservaName" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" placeholder="Ej: Ketzy Gallegos" />
+                        </div>
+                        <div>
+                            <label for="reservaEmail" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico*</label>
+                            <input type="email" id="reservaEmail" name="reservaEmail" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" placeholder="Ej: cliente@email.com" />
+                        </div>
+                        <div>
+                            <label for="reservaDate" class="block text-sm font-medium text-gray-700 mb-1">Fecha*</label>
+                            <input type="date" id="reservaDate" name="reservaDate" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label for="reservaTime" class="block text-sm font-medium text-gray-700 mb-1">Hora*</label>
+                            <select id="reservaTime" name="reservaTime" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                                <option value="">Seleccionar hora</option>
+                                <option value="09:00">09:00</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00</option>
+                                <option value="13:00">13:00</option>
+                                <option value="14:00">14:00</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                                <option value="17:00">17:00</option>
+                                <option value="18:00">18:00</option>
+                                <option value="19:00">19:00</option>
+                                <option value="20:00">20:00</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="reservaNotes" class="block text-sm font-medium text-gray-700 mb-1">Notas (opcional)</label>
+                            <textarea id="reservaNotes" name="reservaNotes" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" placeholder="Notas adicionales sobre la reserva..."></textarea>
+                        </div>
+                        <div class="pt-4 flex justify-end space-x-2">
+                            <button type="button" id="cancelReservaBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                            <button type="submit" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Detalle Reserva -->
+        <div id="reservaDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+                <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-xl font-bold">Detalles de la Reserva</h3>
+                    <button id="closeReservaDetailModal" class="text-white hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div id="reservaDetailContent" class="space-y-4">
+                        <!-- Content will be dynamically filled -->
+                    </div>
+                    <div class="flex justify-end space-x-2 mt-6">
+                        <button id="deleteReservaBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all">Eliminar</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1073,6 +1203,7 @@ function importFromCSV(file) {
             currentView=view; 
             document.getElementById('creditosView').classList.add('hidden');
             document.getElementById('especialesView').classList.add('hidden');
+            document.getElementById('reservasView').classList.add('hidden');
             if(view==='admin'){ 
                 adminView.classList.remove('hidden'); 
                 publicView.classList.add('hidden'); 
@@ -1853,18 +1984,21 @@ function importFromCSV(file) {
             const publicBtn = document.getElementById('publicViewBtnMobile');
             const especialesBtn = document.getElementById('especialesViewBtnMobile');
             const creditosBtn = document.getElementById('creditosViewBtnMobile');
+            const reservasBtn = document.getElementById('reservasViewBtnMobile');
             const adminBtn = document.getElementById('adminViewBtnMobile');
             
-            if (!publicBtn || !especialesBtn || !creditosBtn || !adminBtn) return;
+            if (!publicBtn || !especialesBtn || !creditosBtn || !reservasBtn || !adminBtn) return;
             
             publicBtn.classList.remove('bg-mexican-green', 'text-white');
             especialesBtn.classList.remove('bg-mexican-green', 'text-white');
             creditosBtn.classList.remove('bg-mexican-green', 'text-white');
+            reservasBtn.classList.remove('bg-mexican-green', 'text-white');
             adminBtn.classList.remove('bg-mexican-green', 'text-white', 'bg-mexican-red');
             
             publicBtn.classList.add('bg-white', 'text-mexican-green');
             especialesBtn.classList.add('bg-white', 'text-mexican-green');
             creditosBtn.classList.add('bg-white', 'text-mexican-green');
+            reservasBtn.classList.add('bg-white', 'text-mexican-green');
             adminBtn.classList.add('bg-white', 'text-mexican-green');
             
             if (currentView === 'public') {
@@ -1876,6 +2010,9 @@ function importFromCSV(file) {
             } else if (currentView === 'creditos') {
                 creditosBtn.classList.remove('bg-white', 'text-mexican-green');
                 creditosBtn.classList.add('bg-mexican-green', 'text-white');
+            } else if (currentView === 'reservas') {
+                reservasBtn.classList.remove('bg-white', 'text-mexican-green');
+                reservasBtn.classList.add('bg-mexican-green', 'text-white');
             } else if (currentView === 'admin') {
                 adminBtn.classList.remove('bg-white', 'text-mexican-green');
                 adminBtn.classList.add('bg-mexican-red', 'text-white');
@@ -2614,14 +2751,436 @@ function importFromCSV(file) {
             }
         }
 
+        // ==== RESERVAS FUNCTIONALITY ====
+        let reservas = [];
+        let currentWeekStart = null;
+
+        // Load reservas from Firebase with localStorage fallback
+        function loadReservas() {
+            try {
+                if (database) {
+                    database.ref('reservas').on('value', (snapshot) => {
+                        reservas = snapshot.val() || [];
+                        // Render if we're in reservas view
+                        if (currentView === 'reservas') {
+                            renderCalendar();
+                        }
+                        console.log('Reservas synchronized from Firebase.');
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
+            } catch (err) {
+                console.warn('Using localStorage for reservas', err);
+                if (isLocalStorageAvailable()) {
+                    const stored = localStorage.getItem('reservas');
+                    reservas = stored ? JSON.parse(stored) : [];
+                }
+            }
+        }
+
+        // Save reservas to Firebase and localStorage
+        function saveReservas() {
+            return new Promise((resolve) => {
+                try {
+                    if (database) {
+                        database.ref('reservas').set(reservas)
+                            .then(() => {
+                                console.log('Reservas saved to Firebase successfully');
+                                if (isLocalStorageAvailable()) {
+                                    localStorage.setItem('reservas', JSON.stringify(reservas));
+                                }
+                                resolve();
+                            })
+                            .catch((err) => {
+                                console.warn('Firebase save error for reservas, using localStorage as fallback', err);
+                                if (isLocalStorageAvailable()) {
+                                    localStorage.setItem('reservas', JSON.stringify(reservas));
+                                }
+                                resolve();
+                            });
+                    } else {
+                        if (isLocalStorageAvailable()) {
+                            localStorage.setItem('reservas', JSON.stringify(reservas));
+                        }
+                        resolve();
+                    }
+                } catch (err) {
+                    console.error('Error saving reservas:', err);
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('reservas', JSON.stringify(reservas));
+                    }
+                    resolve();
+                }
+            });
+        }
+
+        // Generate unique ID for reservas
+        function generateReservaId() {
+            return 'RES-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        // Get Monday of current week
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        // Format date for display
+        function formatDateES(date) {
+            const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const d = new Date(date);
+            return `${days[d.getDay()]}, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
+        }
+
+        // Get first name from full name
+        function getFirstName(fullName) {
+            return fullName.trim().split(' ')[0];
+        }
+
+        // Show reservas view
+        function showReservasView() {
+            currentView = 'reservas';
+            
+            // Hide all main sections
+            adminView.classList.add('hidden');
+            publicView.classList.add('hidden');
+            document.getElementById('creditosView').classList.add('hidden');
+            document.getElementById('especialesView').classList.add('hidden');
+            document.getElementById('reservasView').classList.remove('hidden');
+            
+            // Initialize current week if not set
+            if (!currentWeekStart) {
+                currentWeekStart = getMonday(new Date());
+            }
+            
+            // Render calendar
+            renderCalendar();
+            
+            // Update header buttons
+            updateHeaderButtons();
+        }
+
+        // Render weekly calendar
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            // Time slots (9:00 to 20:00)
+            const timeSlots = [];
+            for (let h = 9; h <= 20; h++) {
+                timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+            }
+            
+            // Get week dates
+            const weekDates = [];
+            const weekStart = new Date(currentWeekStart);
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(weekStart);
+                date.setDate(weekStart.getDate() + i);
+                weekDates.push(date);
+            }
+            
+            // Update week display
+            const weekDisplay = document.getElementById('weekDisplay');
+            if (weekDisplay) {
+                const endDate = new Date(weekDates[6]);
+                weekDisplay.textContent = `${weekDates[0].getDate()} - ${endDate.getDate()} de ${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][endDate.getMonth()]} ${endDate.getFullYear()}`;
+            }
+            
+            // Header row (Time + Days)
+            const headerTime = document.createElement('div');
+            headerTime.className = 'calendar-header';
+            headerTime.textContent = 'Hora';
+            grid.appendChild(headerTime);
+            
+            const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            weekDates.forEach((date, idx) => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                const isToday = date.toDateString() === new Date().toDateString();
+                header.innerHTML = `
+                    <div class="font-bold">${dayNames[idx]}</div>
+                    <div class="text-sm ${isToday ? 'bg-white text-mexican-green rounded-full px-2' : ''}">${date.getDate()}</div>
+                `;
+                grid.appendChild(header);
+            });
+            
+            // Time rows
+            timeSlots.forEach(time => {
+                // Time label
+                const timeCell = document.createElement('div');
+                timeCell.className = 'calendar-time';
+                timeCell.textContent = time;
+                grid.appendChild(timeCell);
+                
+                // Day cells
+                weekDates.forEach(date => {
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-cell';
+                    const dateStr = date.toISOString().split('T')[0];
+                    cell.dataset.date = dateStr;
+                    cell.dataset.time = time;
+                    
+                    // Find reservations for this date and time
+                    const cellReservas = reservas.filter(r => {
+                        return r.date === dateStr && r.time === time;
+                    });
+                    
+                    // Add reservation items
+                    cellReservas.forEach(reserva => {
+                        const item = document.createElement('div');
+                        item.className = 'reservation-item';
+                        item.textContent = getFirstName(reserva.name);
+                        item.dataset.reservaId = reserva.id;
+                        item.title = `${reserva.name} - ${reserva.email}`;
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showReservaDetails(reserva.id);
+                        });
+                        cell.appendChild(item);
+                    });
+                    
+                    // Allow clicking empty cell to add reservation
+                    cell.addEventListener('click', () => {
+                        openReservaForm(dateStr, time);
+                    });
+                    
+                    grid.appendChild(cell);
+                });
+            });
+        }
+
+        // Open reserva form
+        function openReservaForm(date = null, time = null) {
+            const modal = document.getElementById('reservaFormModal');
+            const form = document.getElementById('reservaForm');
+            form.reset();
+            document.getElementById('reservaId').value = '';
+            document.getElementById('reservaFormTitle').textContent = 'Nueva Reserva';
+            
+            if (date) {
+                document.getElementById('reservaDate').value = date;
+            } else {
+                document.getElementById('reservaDate').value = new Date().toISOString().split('T')[0];
+            }
+            
+            if (time) {
+                document.getElementById('reservaTime').value = time;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Show reserva details
+        function showReservaDetails(reservaId) {
+            const reserva = reservas.find(r => r.id === reservaId);
+            if (!reserva) return;
+            
+            const modal = document.getElementById('reservaDetailModal');
+            const content = document.getElementById('reservaDetailContent');
+            
+            const date = new Date(reserva.date + 'T00:00:00');
+            const dateStr = formatDateES(date);
+            const createdDate = new Date(reserva.createdAt);
+            
+            content.innerHTML = `
+                <div>
+                    <p class="text-sm text-gray-500">ID: ${reserva.id}</p>
+                    <h3 class="text-xl font-bold text-gray-900 mt-2">${sanitizeInput(reserva.name)}</h3>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-sm"><strong>Email:</strong> ${sanitizeInput(reserva.email)}</p>
+                    <p class="text-sm"><strong>Fecha:</strong> ${dateStr}</p>
+                    <p class="text-sm"><strong>Hora:</strong> ${reserva.time}</p>
+                    ${reserva.notes ? `<p class="text-sm"><strong>Notas:</strong> ${sanitizeInput(reserva.notes)}</p>` : ''}
+                    <p class="text-sm text-gray-500"><strong>Creada:</strong> ${createdDate.toLocaleDateString('es-MX')} ${createdDate.toLocaleTimeString('es-MX')}</p>
+                </div>
+            `;
+            
+            document.getElementById('deleteReservaBtn').dataset.reservaId = reserva.id;
+            modal.classList.remove('hidden');
+        }
+
+        // Delete reserva
+        async function deleteReserva(reservaId) {
+            const reserva = reservas.find(r => r.id === reservaId);
+            if (!reserva) return;
+            
+            if (!confirm(`¿Eliminar la reserva de ${reserva.name}?`)) return;
+            
+            reservas = reservas.filter(r => r.id !== reservaId);
+            await saveReservas();
+            renderCalendar();
+            document.getElementById('reservaDetailModal').classList.add('hidden');
+            showToast('Reserva eliminada correctamente');
+        }
+
+        // Setup reservas event listeners
+        function setupReservasEventListeners() {
+            // Navigation button
+            const reservasViewBtnMobile = document.getElementById('reservasViewBtnMobile');
+            if (reservasViewBtnMobile) {
+                reservasViewBtnMobile.addEventListener('click', () => {
+                    showReservasView();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Add reserva button
+            const addReservaBtn = document.getElementById('addReservaBtn');
+            if (addReservaBtn) {
+                addReservaBtn.addEventListener('click', () => {
+                    openReservaForm();
+                });
+            }
+            
+            // Week navigation
+            const prevWeekBtn = document.getElementById('prevWeekBtn');
+            const nextWeekBtn = document.getElementById('nextWeekBtn');
+            const todayBtn = document.getElementById('todayBtn');
+            
+            if (prevWeekBtn) {
+                prevWeekBtn.addEventListener('click', () => {
+                    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+                    renderCalendar();
+                });
+            }
+            
+            if (nextWeekBtn) {
+                nextWeekBtn.addEventListener('click', () => {
+                    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                    renderCalendar();
+                });
+            }
+            
+            if (todayBtn) {
+                todayBtn.addEventListener('click', () => {
+                    currentWeekStart = getMonday(new Date());
+                    renderCalendar();
+                });
+            }
+            
+            // Modal close buttons
+            const closeReservaFormModal = document.getElementById('closeReservaFormModal');
+            const cancelReservaBtn = document.getElementById('cancelReservaBtn');
+            const closeReservaDetailModal = document.getElementById('closeReservaDetailModal');
+            
+            if (closeReservaFormModal) {
+                closeReservaFormModal.addEventListener('click', () => {
+                    document.getElementById('reservaFormModal').classList.add('hidden');
+                });
+            }
+            
+            if (cancelReservaBtn) {
+                cancelReservaBtn.addEventListener('click', () => {
+                    document.getElementById('reservaFormModal').classList.add('hidden');
+                });
+            }
+            
+            if (closeReservaDetailModal) {
+                closeReservaDetailModal.addEventListener('click', () => {
+                    document.getElementById('reservaDetailModal').classList.add('hidden');
+                });
+            }
+            
+            // Form submission
+            const reservaForm = document.getElementById('reservaForm');
+            if (reservaForm) {
+                reservaForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Guardando...';
+                    
+                    try {
+                        const name = document.getElementById('reservaName').value.trim();
+                        const email = document.getElementById('reservaEmail').value.trim();
+                        const date = document.getElementById('reservaDate').value;
+                        const time = document.getElementById('reservaTime').value;
+                        const notes = document.getElementById('reservaNotes').value.trim();
+                        
+                        if (!name || !email || !date || !time) {
+                            showToast('Por favor completa todos los campos obligatorios', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
+                        const newReserva = {
+                            id: generateReservaId(),
+                            name,
+                            email,
+                            date,
+                            time,
+                            notes,
+                            createdAt: Date.now()
+                        };
+                        
+                        reservas.push(newReserva);
+                        await saveReservas();
+                        renderCalendar();
+                        document.getElementById('reservaFormModal').classList.add('hidden');
+                        showToast('Reserva creada correctamente');
+                    } catch (error) {
+                        console.error('Error saving reserva:', error);
+                        showToast('Error al guardar la reserva', true);
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                });
+            }
+            
+            // Delete reserva button
+            const deleteReservaBtn = document.getElementById('deleteReservaBtn');
+            if (deleteReservaBtn) {
+                deleteReservaBtn.addEventListener('click', () => {
+                    const reservaId = deleteReservaBtn.dataset.reservaId;
+                    if (reservaId) {
+                        deleteReserva(reservaId);
+                    }
+                });
+            }
+            
+            // Close modals on outside click
+            const reservaFormModal = document.getElementById('reservaFormModal');
+            const reservaDetailModal = document.getElementById('reservaDetailModal');
+            
+            if (reservaFormModal) {
+                reservaFormModal.addEventListener('click', (e) => {
+                    if (e.target === reservaFormModal) {
+                        reservaFormModal.classList.add('hidden');
+                    }
+                });
+            }
+            
+            if (reservaDetailModal) {
+                reservaDetailModal.addEventListener('click', (e) => {
+                    if (e.target === reservaDetailModal) {
+                        reservaDetailModal.classList.add('hidden');
+                    }
+                });
+            }
+        }
+
         // ==== Init ====
         function init(){ 
             loadData(); 
             loadEspeciales();
             loadCredits();
+            loadReservas();
             setupEventListeners(); 
             setupEspecialesEventListeners();
             setupCreditsEventListeners();
+            setupReservasEventListeners();
             checkLibraries(); 
             showView('public');
             startCreditNotifications();
