@@ -2564,6 +2564,9 @@ function focusFirstUPCInput() {
  * @returns {void}
  */
 function init(){ 
+    // Hide truck loader after 4 seconds
+    hideTruckLoader();
+    
     // Load data from Firebase/localStorage
     loadData(); 
     loadEspeciales();
@@ -2609,6 +2612,26 @@ function init(){
     }, 2000); // Esperar 2 segundos después de la carga inicial
     
     console.log('Mexiquense catalog initialized with Zebra MC330M optimizations (FTSRetail-inspired design for 480px)');
+}
+
+/**
+ * Hides the truck loader animation after 4 seconds
+ * Uses fade-out transition for smooth experience
+ */
+function hideTruckLoader() {
+    const loader = document.getElementById('truckLoader');
+    if (!loader) return;
+    
+    // Wait 4 seconds before hiding
+    setTimeout(() => {
+        // Add fade-out class for smooth transition
+        loader.classList.add('fade-out');
+        
+        // Remove from DOM after fade completes (500ms)
+        setTimeout(() => {
+            loader.classList.add('hidden');
+        }, 500);
+    }, 4000);
 }
 
 // Wait for DOM to be fully loaded before initializing
