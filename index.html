@@ -88,6 +88,7 @@
                     <div id="mobileMenu" class="hidden w-full mt-4 flex-col gap-2">
                         <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
                         <button id="especialesViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Especiales</button>
+                        <button id="especialesEnTiendaBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Especiales en Tienda</button>
                         <button id="creditosViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Créditos</button>
                         <button id="adminViewBtnMobile" class="bg-mexican-red text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Panel de Administración</button>
                     </div>
@@ -1633,6 +1634,15 @@ function importFromCSV(file) {
             const especialesViewBtnMobile = document.getElementById('especialesViewBtnMobile');
             if (especialesViewBtnMobile) {
                 especialesViewBtnMobile.addEventListener('click', () => {
+                    showEspecialesView();
+                    closeMobileMenu();
+                });
+            }
+            
+            // Especiales en Tienda navigation button
+            const especialesEnTiendaBtnMobile = document.getElementById('especialesEnTiendaBtnMobile');
+            if (especialesEnTiendaBtnMobile) {
+                especialesEnTiendaBtnMobile.addEventListener('click', () => {
                     showEspecialesView();
                     closeMobileMenu();
                 });
