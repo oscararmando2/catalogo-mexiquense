@@ -1114,65 +1114,8 @@ function loadEspeciales() {
                 if (data && Array.isArray(data) && data.length > 0) {
                     especiales = data;
                 } else {
-                    // Initialize with simulated data
-                    especiales = [
-                        {
-                            id_price: 1,
-                            id_provider: 101,
-                            provider: 'Avocado',
-                            product: 'Pozole Juanitas',
-                            price: 5.99
-                        },
-                        {
-                            id_price: 2,
-                            id_provider: 102,
-                            provider: 'La Costeña',
-                            product: 'Frijoles Negros Refritos',
-                            price: 3.50
-                        },
-                        {
-                            id_price: 3,
-                            id_provider: 103,
-                            provider: 'Herdez',
-                            product: 'Salsa Verde 7oz',
-                            price: 2.99
-                        },
-                        {
-                            id_price: 4,
-                            id_provider: 101,
-                            provider: 'Avocado',
-                            product: 'Aguacate Fresco Orgánico',
-                            price: 4.25
-                        },
-                        {
-                            id_price: 5,
-                            id_provider: 104,
-                            provider: 'Maseca',
-                            product: 'Harina de Maíz 2kg',
-                            price: 6.99
-                        },
-                        {
-                            id_price: 6,
-                            id_provider: 105,
-                            provider: 'Bimbo',
-                            product: 'Pan Blanco Grande',
-                            price: 3.75
-                        },
-                        {
-                            id_price: 7,
-                            id_provider: 102,
-                            provider: 'La Costeña',
-                            product: 'Jalapeños en Rajas',
-                            price: 2.49
-                        },
-                        {
-                            id_price: 8,
-                            id_provider: 106,
-                            provider: 'Jumex',
-                            product: 'Néctar de Mango 1L',
-                            price: 1.99
-                        }
-                    ];
+                    // Initialize with empty data - user will add their own especiales
+                    especiales = [];
                     saveEspeciales();
                 }
                 // Render if we're in especiales view
@@ -1191,65 +1134,8 @@ function loadEspeciales() {
             if (stored) {
                 especiales = JSON.parse(stored);
             } else {
-                // Initialize with simulated data
-                especiales = [
-                    {
-                        id_price: 1,
-                        id_provider: 101,
-                        provider: 'Avocado',
-                        product: 'Pozole Juanitas',
-                        price: 5.99
-                    },
-                    {
-                        id_price: 2,
-                        id_provider: 102,
-                        provider: 'La Costeña',
-                        product: 'Frijoles Negros Refritos',
-                        price: 3.50
-                    },
-                    {
-                        id_price: 3,
-                        id_provider: 103,
-                        provider: 'Herdez',
-                        product: 'Salsa Verde 7oz',
-                        price: 2.99
-                    },
-                    {
-                        id_price: 4,
-                        id_provider: 101,
-                        provider: 'Avocado',
-                        product: 'Aguacate Fresco Orgánico',
-                        price: 4.25
-                    },
-                    {
-                        id_price: 5,
-                        id_provider: 104,
-                        provider: 'Maseca',
-                        product: 'Harina de Maíz 2kg',
-                        price: 6.99
-                    },
-                    {
-                        id_price: 6,
-                        id_provider: 105,
-                        provider: 'Bimbo',
-                        product: 'Pan Blanco Grande',
-                        price: 3.75
-                    },
-                    {
-                        id_price: 7,
-                        id_provider: 102,
-                        provider: 'La Costeña',
-                        product: 'Jalapeños en Rajas',
-                        price: 2.49
-                    },
-                    {
-                        id_price: 8,
-                        id_provider: 106,
-                        provider: 'Jumex',
-                        product: 'Néctar de Mango 1L',
-                        price: 1.99
-                    }
-                ];
+                // Initialize with empty data - user will add their own especiales
+                especiales = [];
                 saveEspeciales();
             }
         }
@@ -1317,8 +1203,10 @@ function renderEspeciales(searchTerm = '') {
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
         filtered = filtered.filter(e => 
-            e.provider.toLowerCase().includes(term) ||
-            e.product.toLowerCase().includes(term)
+            (e.nombre && e.nombre.toLowerCase().includes(term)) ||
+            (e.upc && e.upc.toLowerCase().includes(term)) ||
+            (e.provider && e.provider.toLowerCase().includes(term)) ||
+            (e.product && e.product.toLowerCase().includes(term))
         );
     }
     
@@ -1329,7 +1217,7 @@ function renderEspeciales(searchTerm = '') {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron precios especiales</h3>
-                <p class="mt-1 text-gray-500">Intenta con otra búsqueda.</p>
+                <p class="mt-1 text-gray-500">Agrega un nuevo especial para comenzar.</p>
             </div>
         `;
         return;
@@ -1338,12 +1226,20 @@ function renderEspeciales(searchTerm = '') {
     filtered.forEach(especial => {
         const card = document.createElement('div');
         card.className = 'especiales-card';
+        
+        // Show discount percentage if we have both prices
+        let discountHTML = '';
+        if (especial.antes && especial.price) {
+            const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
+            discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
+        }
+        
         card.innerHTML = `
             <div class="mb-4">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex-grow">
-                        <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.provider)}</h3>
-                        <p class="text-gray-700 font-medium mb-3">${sanitizeInput(especial.product)}</p>
+                        <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
+                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-2">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
                     </div>
                     <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1352,10 +1248,19 @@ function renderEspeciales(searchTerm = '') {
                     </button>
                 </div>
             </div>
-            <div class="flex items-center justify-between pt-3 border-t border-gray-200">
-                <div class="flex items-center">
-                    <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
-                    <span class="price-indicator" title="Precio especial próximo"></span>
+            <div class="pt-3 border-t border-gray-200">
+                ${especial.antes ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-gray-600">Precio Antes:</span>
+                        <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
+                    </div>
+                ` : ''}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-sm text-gray-600 mr-2">Precio Especial:</span>
+                        <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
+                        ${discountHTML}
+                    </div>
                 </div>
             </div>
         `;
@@ -1384,13 +1289,13 @@ function getNextId(array, idField, defaultStart = 1) {
 }
 
 // Add new especial
-async function addEspecial(provider, product, price) {
+async function addEspecial(nombre, upc, antes, precio) {
     const newEspecial = {
         id_price: getNextId(especiales, 'id_price', 1),
-        id_provider: getNextId(especiales, 'id_provider', 1),
-        provider: provider,
-        product: product,
-        price: parseFloat(price)
+        nombre: nombre,
+        upc: upc,
+        antes: parseFloat(antes),
+        price: parseFloat(precio)
     };
     
     especiales.push(newEspecial);
@@ -1416,7 +1321,8 @@ async function deleteEspecial(especialId) {
         return;
     }
     
-    if (!confirm(`¿Estás seguro de eliminar el especial "${especial.product}" de ${especial.provider}?`)) {
+    const nombreProducto = especial.nombre || especial.product || 'este producto';
+    if (!confirm(`¿Estás seguro de eliminar el especial de "${nombreProducto}"?`)) {
         return;
     }
     
@@ -1459,8 +1365,9 @@ function setupEspecialesEventListeners() {
         addEspecialBtn.addEventListener('click', () => {
             document.getElementById('especialFormTitle').textContent = 'Nuevo Especial';
             document.getElementById('especialId').value = '';
-            document.getElementById('especialProvider').value = '';
-            document.getElementById('especialProduct').value = '';
+            document.getElementById('especialNombre').value = '';
+            document.getElementById('especialUpc').value = '';
+            document.getElementById('especialAntes').value = '';
             document.getElementById('especialPrice').value = '';
             especialFormModal.classList.remove('hidden');
         });
@@ -1489,28 +1396,36 @@ function setupEspecialesEventListeners() {
             submitBtn.textContent = 'Guardando...';
             
             try {
-                const provider = document.getElementById('especialProvider').value.trim();
-                const product = document.getElementById('especialProduct').value.trim();
-                const price = document.getElementById('especialPrice').value;
+                const nombre = document.getElementById('especialNombre').value.trim();
+                const upc = document.getElementById('especialUpc').value.trim();
+                const antes = document.getElementById('especialAntes').value;
+                const precio = document.getElementById('especialPrice').value;
                 
                 // Validate all required fields
-                if (!provider || !product || !price) {
+                if (!nombre || !upc || !antes || !precio) {
                     showToast('Por favor completa todos los campos obligatorios', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
                 }
                 
-                // Validate price is a valid positive number
-                const priceNum = parseFloat(price);
-                if (isNaN(priceNum) || priceNum < 0) {
-                    showToast('Por favor ingresa un precio válido (mayor o igual a 0)', true);
+                // Validate prices are valid positive numbers
+                const antesNum = parseFloat(antes);
+                const precioNum = parseFloat(precio);
+                if (isNaN(antesNum) || antesNum < 0) {
+                    showToast('Por favor ingresa un precio antes válido (mayor o igual a 0)', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+                if (isNaN(precioNum) || precioNum < 0) {
+                    showToast('Por favor ingresa un precio especial válido (mayor o igual a 0)', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
                 }
                 
-                await addEspecial(provider, product, price);
+                await addEspecial(nombre, upc, antes, precio);
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
