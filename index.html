@@ -1497,8 +1497,10 @@ function importFromCSV(file) {
             if (searchTerm) {
                 const term = searchTerm.toLowerCase();
                 filtered = filtered.filter(e => 
-                    e.provider.toLowerCase().includes(term) ||
-                    e.product.toLowerCase().includes(term)
+                    (e.nombre && e.nombre.toLowerCase().includes(term)) ||
+                    (e.upc && e.upc.toLowerCase().includes(term)) ||
+                    (e.provider && e.provider.toLowerCase().includes(term)) ||
+                    (e.product && e.product.toLowerCase().includes(term))
                 );
             }
             
@@ -1518,12 +1520,20 @@ function importFromCSV(file) {
             filtered.forEach(especial => {
                 const card = document.createElement('div');
                 card.className = 'especiales-card';
+                
+                // Show discount percentage if we have both prices
+                let discountHTML = '';
+                if (especial.antes && especial.price) {
+                    const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
+                    discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
+                }
+                
                 card.innerHTML = `
                     <div class="mb-4">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-grow">
-                                <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.provider)}</h3>
-                                <p class="text-gray-700 font-medium mb-3">${sanitizeInput(especial.product)}</p>
+                                <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
+                                ${especial.upc ? `<p class="text-sm text-gray-500 mb-2">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
                             </div>
                             <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1532,10 +1542,19 @@ function importFromCSV(file) {
                             </button>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between pt-3 border-t border-gray-200">
-                        <div class="flex items-center">
-                            <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
-                            <span class="price-indicator" title="Precio especial próximo"></span>
+                    <div class="pt-3 border-t border-gray-200">
+                        ${especial.antes ? `
+                            <div class="mb-3">
+                                <span class="text-sm text-gray-600">Precio Antes:</span>
+                                <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-600 mr-2">Precio Especial:</span>
+                                <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
+                                ${discountHTML}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1564,13 +1583,13 @@ function importFromCSV(file) {
         }
         
         // Add new especial
-        async function addEspecial(provider, product, price) {
+        async function addEspecial(nombre, upc, antes, precio) {
             const newEspecial = {
                 id_price: getNextId(especiales, 'id_price', 1),
-                id_provider: getNextId(especiales, 'id_provider', 1),
-                provider: provider,
-                product: product,
-                price: parseFloat(price)
+                nombre: nombre,
+                upc: upc,
+                antes: parseFloat(antes),
+                price: parseFloat(precio)
             };
             
             especiales.push(newEspecial);
@@ -1596,7 +1615,8 @@ function importFromCSV(file) {
                 return;
             }
             
-            if (!confirm(`¿Estás seguro de eliminar el especial "${especial.product}" de ${especial.provider}?`)) {
+            const nombreProducto = especial.nombre || especial.product || 'este producto';
+            if (!confirm(`¿Estás seguro de eliminar el especial de "${nombreProducto}"?`)) {
                 return;
             }
             
@@ -1639,8 +1659,9 @@ function importFromCSV(file) {
                 addEspecialBtn.addEventListener('click', () => {
                     document.getElementById('especialFormTitle').textContent = 'Nuevo Especial';
                     document.getElementById('especialId').value = '';
-                    document.getElementById('especialProvider').value = '';
-                    document.getElementById('especialProduct').value = '';
+                    document.getElementById('especialNombre').value = '';
+                    document.getElementById('especialUpc').value = '';
+                    document.getElementById('especialAntes').value = '';
                     document.getElementById('especialPrice').value = '';
                     especialFormModal.classList.remove('hidden');
                 });
@@ -1669,28 +1690,36 @@ function importFromCSV(file) {
                     submitBtn.textContent = 'Guardando...';
                     
                     try {
-                        const provider = document.getElementById('especialProvider').value.trim();
-                        const product = document.getElementById('especialProduct').value.trim();
-                        const price = document.getElementById('especialPrice').value;
+                        const nombre = document.getElementById('especialNombre').value.trim();
+                        const upc = document.getElementById('especialUpc').value.trim();
+                        const antes = document.getElementById('especialAntes').value;
+                        const precio = document.getElementById('especialPrice').value;
                         
                         // Validate all required fields
-                        if (!provider || !product || !price) {
+                        if (!nombre || !upc || !antes || !precio) {
                             showToast('Por favor completa todos los campos obligatorios', true);
                             submitBtn.disabled = false;
                             submitBtn.textContent = originalText;
                             return;
                         }
                         
-                        // Validate price is a valid positive number
-                        const priceNum = parseFloat(price);
-                        if (isNaN(priceNum) || priceNum < 0) {
-                            showToast('Por favor ingresa un precio válido (mayor o igual a 0)', true);
+                        // Validate prices are valid positive numbers
+                        const antesNum = parseFloat(antes);
+                        const precioNum = parseFloat(precio);
+                        if (isNaN(antesNum) || antesNum < 0) {
+                            showToast('Por favor ingresa un precio antes válido (mayor o igual a 0)', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        if (isNaN(precioNum) || precioNum < 0) {
+                            showToast('Por favor ingresa un precio especial válido (mayor o igual a 0)', true);
                             submitBtn.disabled = false;
                             submitBtn.textContent = originalText;
                             return;
                         }
                         
-                        await addEspecial(provider, product, price);
+                        await addEspecial(nombre, upc, antes, precio);
                         especialFormModal.classList.add('hidden');
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
