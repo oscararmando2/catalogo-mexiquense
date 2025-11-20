@@ -200,7 +200,7 @@ body {
 }
 
 .truck-loader-overlay.hidden {
-    display: none;
+    display: none !important;
 }
 
 .truck-loader-container {
