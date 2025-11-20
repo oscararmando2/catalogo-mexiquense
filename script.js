@@ -1104,19 +1104,19 @@ function setupEventListeners(){
 
 // ==== ESPECIALES FUNCTIONALITY ====
 let especiales = [];
-let isSavingEspeciales = false; // Flag to prevent listener from overwriting during save
+let especialesListeners = null; // Store listener references for cleanup
 
-// Load especiales from Firebase with localStorage fallback
+// Load especiales from Firebase with localStorage fallback using granular listeners
 function loadEspeciales() {
     try {
         if (database) {
-            database.ref('especiales').on('value', (snapshot) => {
-                // Don't overwrite local changes while we're saving
-                if (isSavingEspeciales) {
-                    console.log('Skipping especiales update from Firebase - save in progress');
-                    return;
-                }
-                
+            const especialesRef = database.ref('especiales');
+            
+            // Initialize empty array on first load
+            especiales = [];
+            
+            // Use once() to get initial data without setting up a value listener
+            especialesRef.once('value').then((snapshot) => {
                 const data = snapshot.val();
                 if (data && Array.isArray(data) && data.length > 0) {
                     // Filter out any null or undefined values that Firebase might have stored
@@ -1128,11 +1128,15 @@ function loadEspeciales() {
                     // Initialize with empty data - user will add their own especiales
                     especiales = [];
                 }
-                // Render if we're in especiales view
+                
+                // Initial render
                 if (currentView === 'especiales') {
                     renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
                 }
-                console.log('Especiales synchronized from Firebase:', especiales.length, 'items');
+                console.log('Especiales initial load:', especiales.length, 'items');
+                
+                // Now set up granular listeners for real-time updates
+                setupEspecialesListeners();
             });
         } else {
             throw new Error('Firebase not available');
@@ -1153,13 +1157,160 @@ function loadEspeciales() {
     }
 }
 
+// Setup granular Firebase listeners for especiales (child_added, child_removed, child_changed)
+function setupEspecialesListeners() {
+    if (!database) return;
+    
+    const especialesRef = database.ref('especiales');
+    
+    // Store listener references for potential cleanup
+    especialesListeners = {
+        childAdded: null,
+        childRemoved: null,
+        childChanged: null
+    };
+    
+    // Track if this is initial load to avoid duplicates
+    let initialLoadComplete = false;
+    
+    // Listen for new items added
+    especialesListeners.childAdded = especialesRef.on('child_added', (snapshot, prevChildKey) => {
+        // Skip during initial load since we already loaded all items with once()
+        if (!initialLoadComplete) return;
+        
+        const newItem = snapshot.val();
+        const index = parseInt(snapshot.key, 10);
+        
+        // Validate the new item
+        if (newItem && typeof newItem === 'object') {
+            // Check if item already exists (avoid duplicates)
+            const existingIndex = especiales.findIndex(e => 
+                e.id === newItem.id || 
+                (e.nombre === newItem.nombre && e.upc === newItem.upc)
+            );
+            
+            if (existingIndex === -1) {
+                // Add new item at the correct index
+                if (!isNaN(index) && index >= 0 && index < especiales.length) {
+                    especiales.splice(index, 0, newItem);
+                } else {
+                    especiales.push(newItem);
+                }
+                
+                console.log('Especial added from Firebase:', newItem.nombre);
+                
+                // Update localStorage
+                if (isLocalStorageAvailable()) {
+                    localStorage.setItem('especiales', JSON.stringify(especiales));
+                }
+                
+                // Re-render if we're in especiales view
+                if (currentView === 'especiales') {
+                    renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+                }
+            }
+        }
+    });
+    
+    // Listen for items removed
+    especialesListeners.childRemoved = especialesRef.on('child_removed', (snapshot) => {
+        const removedItem = snapshot.val();
+        const index = parseInt(snapshot.key, 10);
+        
+        if (removedItem) {
+            // Remove the item from local array
+            if (!isNaN(index) && index >= 0 && index < especiales.length) {
+                // Remove by index if valid
+                especiales.splice(index, 1);
+            } else {
+                // Otherwise, find and remove by matching properties
+                especiales = especiales.filter(e => 
+                    !(e.id === removedItem.id || 
+                      (e.nombre === removedItem.nombre && e.upc === removedItem.upc))
+                );
+            }
+            
+            console.log('Especial removed from Firebase:', removedItem.nombre || 'Unknown');
+            
+            // Update localStorage
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('especiales', JSON.stringify(especiales));
+            }
+            
+            // Re-render if we're in especiales view
+            if (currentView === 'especiales') {
+                renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+            }
+        }
+    });
+    
+    // Listen for items changed
+    especialesListeners.childChanged = especialesRef.on('child_changed', (snapshot) => {
+        const changedItem = snapshot.val();
+        const index = parseInt(snapshot.key, 10);
+        
+        if (changedItem && typeof changedItem === 'object') {
+            // Update the item in local array
+            if (!isNaN(index) && index >= 0 && index < especiales.length) {
+                // Update by index if valid
+                especiales[index] = changedItem;
+            } else {
+                // Otherwise, find and update by matching properties
+                const existingIndex = especiales.findIndex(e => 
+                    e.id === changedItem.id || 
+                    (e.nombre === changedItem.nombre && e.upc === changedItem.upc)
+                );
+                
+                if (existingIndex !== -1) {
+                    especiales[existingIndex] = changedItem;
+                }
+            }
+            
+            console.log('Especial changed in Firebase:', changedItem.nombre);
+            
+            // Update localStorage
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('especiales', JSON.stringify(especiales));
+            }
+            
+            // Re-render if we're in especiales view
+            if (currentView === 'especiales') {
+                renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+            }
+        }
+    });
+    
+    // Mark initial load as complete after a short delay to allow all listeners to attach
+    setTimeout(() => {
+        initialLoadComplete = true;
+        console.log('Especiales granular listeners active');
+    }, 100);
+}
+
+// Cleanup especiales listeners (useful for disconnecting or testing)
+function cleanupEspecialesListeners() {
+    if (!database || !especialesListeners) return;
+    
+    const especialesRef = database.ref('especiales');
+    
+    if (especialesListeners.childAdded) {
+        especialesRef.off('child_added', especialesListeners.childAdded);
+    }
+    if (especialesListeners.childRemoved) {
+        especialesRef.off('child_removed', especialesListeners.childRemoved);
+    }
+    if (especialesListeners.childChanged) {
+        especialesRef.off('child_changed', especialesListeners.childChanged);
+    }
+    
+    especialesListeners = null;
+    console.log('Especiales listeners cleaned up');
+}
+
 // Save especiales to Firebase and localStorage
 function saveEspeciales() {
     return new Promise((resolve) => {
         try {
-            // Set flag to prevent listener from overwriting during save
-            isSavingEspeciales = true;
-            
             // Filter out any null, undefined, or invalid entries to ensure clean array
             const cleanEspeciales = especiales.filter(e => e != null && typeof e === 'object');
             
@@ -1172,10 +1323,6 @@ function saveEspeciales() {
                         if (isLocalStorageAvailable()) {
                             localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
-                        // Clear the save flag after a short delay to ensure Firebase has propagated
-                        setTimeout(() => {
-                            isSavingEspeciales = false;
-                        }, 500);
                         resolve();
                     })
                     .catch((err) => {
@@ -1184,7 +1331,6 @@ function saveEspeciales() {
                         if (isLocalStorageAvailable()) {
                             localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
-                        isSavingEspeciales = false; // Clear flag on error
                         resolve(); // Resolve with localStorage fallback instead of rejecting
                     });
             } else {
@@ -1192,7 +1338,6 @@ function saveEspeciales() {
                 if (isLocalStorageAvailable()) {
                     localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                 }
-                isSavingEspeciales = false; // Clear flag when no Firebase
                 resolve();
             }
         } catch (err) {
@@ -1200,7 +1345,6 @@ function saveEspeciales() {
             if (isLocalStorageAvailable()) {
                 localStorage.setItem('especiales', JSON.stringify(especiales));
             }
-            isSavingEspeciales = false; // Clear flag on error
             resolve(); // Resolve to prevent UI from hanging on error
         }
     });
