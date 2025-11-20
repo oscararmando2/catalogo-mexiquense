@@ -2575,7 +2575,7 @@ function focusFirstUPCInput() {
  * @returns {void}
  */
 function init(){ 
-    // Hide truck loader after 4 seconds
+    // Hide truck loader after 3.5 seconds
     hideTruckLoader();
     
     // Load data from Firebase/localStorage
@@ -2626,14 +2626,14 @@ function init(){
 }
 
 /**
- * Hides the truck loader animation after 4 seconds
+ * Hides the truck loader animation after 3.5 seconds
  * Uses fade-out transition for smooth experience
  */
 function hideTruckLoader() {
     const loader = document.getElementById('truckLoader');
     if (!loader) return;
     
-    // Wait 4 seconds before hiding
+    // Wait 3.5 seconds before hiding
     setTimeout(() => {
         // Add fade-out class for smooth transition
         loader.classList.add('fade-out');
@@ -2642,7 +2642,7 @@ function hideTruckLoader() {
         setTimeout(() => {
             loader.classList.add('hidden');
         }, 500);
-    }, 4000);
+    }, 3500);
 }
 
 // Wait for DOM to be fully loaded before initializing
