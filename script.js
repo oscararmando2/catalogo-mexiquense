@@ -1104,12 +1104,19 @@ function setupEventListeners(){
 
 // ==== ESPECIALES FUNCTIONALITY ====
 let especiales = [];
+let isSavingEspeciales = false; // Flag to prevent listener from overwriting during save
 
 // Load especiales from Firebase with localStorage fallback
 function loadEspeciales() {
     try {
         if (database) {
             database.ref('especiales').on('value', (snapshot) => {
+                // Don't overwrite local changes while we're saving
+                if (isSavingEspeciales) {
+                    console.log('Skipping especiales update from Firebase - save in progress');
+                    return;
+                }
+                
                 const data = snapshot.val();
                 if (data && Array.isArray(data) && data.length > 0) {
                     // Filter out any null or undefined values that Firebase might have stored
@@ -1150,6 +1157,9 @@ function loadEspeciales() {
 function saveEspeciales() {
     return new Promise((resolve) => {
         try {
+            // Set flag to prevent listener from overwriting during save
+            isSavingEspeciales = true;
+            
             // Filter out any null, undefined, or invalid entries to ensure clean array
             const cleanEspeciales = especiales.filter(e => e != null && typeof e === 'object');
             
@@ -1162,6 +1172,10 @@ function saveEspeciales() {
                         if (isLocalStorageAvailable()) {
                             localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
+                        // Clear the save flag after a short delay to ensure Firebase has propagated
+                        setTimeout(() => {
+                            isSavingEspeciales = false;
+                        }, 500);
                         resolve();
                     })
                     .catch((err) => {
@@ -1170,6 +1184,7 @@ function saveEspeciales() {
                         if (isLocalStorageAvailable()) {
                             localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
+                        isSavingEspeciales = false; // Clear flag on error
                         resolve(); // Resolve with localStorage fallback instead of rejecting
                     });
             } else {
@@ -1177,6 +1192,7 @@ function saveEspeciales() {
                 if (isLocalStorageAvailable()) {
                     localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                 }
+                isSavingEspeciales = false; // Clear flag when no Firebase
                 resolve();
             }
         } catch (err) {
@@ -1184,6 +1200,7 @@ function saveEspeciales() {
             if (isLocalStorageAvailable()) {
                 localStorage.setItem('especiales', JSON.stringify(especiales));
             }
+            isSavingEspeciales = false; // Clear flag on error
             resolve(); // Resolve to prevent UI from hanging on error
         }
     });
