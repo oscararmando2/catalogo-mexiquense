@@ -1112,17 +1112,20 @@ function loadEspeciales() {
             database.ref('especiales').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data && Array.isArray(data) && data.length > 0) {
-                    especiales = data;
+                    // Filter out any null or undefined values that Firebase might have stored
+                    especiales = data.filter(e => e != null && typeof e === 'object');
+                } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                    // Firebase sometimes converts arrays with gaps to objects, convert back
+                    especiales = Object.values(data).filter(e => e != null && typeof e === 'object');
                 } else {
                     // Initialize with empty data - user will add their own especiales
                     especiales = [];
-                    saveEspeciales();
                 }
                 // Render if we're in especiales view
                 if (currentView === 'especiales') {
                     renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
                 }
-                console.log('Especiales synchronized from Firebase.');
+                console.log('Especiales synchronized from Firebase:', especiales.length, 'items');
             });
         } else {
             throw new Error('Firebase not available');
@@ -1132,11 +1135,12 @@ function loadEspeciales() {
         if (isLocalStorageAvailable()) {
             const stored = localStorage.getItem('especiales');
             if (stored) {
-                especiales = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                // Ensure we have a clean array
+                especiales = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
             } else {
                 // Initialize with empty data - user will add their own especiales
                 especiales = [];
-                saveEspeciales();
             }
         }
     }
@@ -1146,25 +1150,32 @@ function loadEspeciales() {
 function saveEspeciales() {
     return new Promise((resolve) => {
         try {
+            // Filter out any null, undefined, or invalid entries to ensure clean array
+            const cleanEspeciales = especiales.filter(e => e != null && typeof e === 'object');
+            
             if (database) {
-                database.ref('especiales').set(especiales)
+                database.ref('especiales').set(cleanEspeciales)
                     .then(() => {
                         console.log('Especiales saved to Firebase successfully');
+                        // Update local array to match what was saved
+                        especiales = cleanEspeciales;
                         if (isLocalStorageAvailable()) {
-                            localStorage.setItem('especiales', JSON.stringify(especiales));
+                            localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
                         resolve();
                     })
                     .catch((err) => {
                         console.warn('Firebase save error for especiales, using localStorage as fallback', err);
+                        especiales = cleanEspeciales;
                         if (isLocalStorageAvailable()) {
-                            localStorage.setItem('especiales', JSON.stringify(especiales));
+                            localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                         }
                         resolve(); // Resolve with localStorage fallback instead of rejecting
                     });
             } else {
+                especiales = cleanEspeciales;
                 if (isLocalStorageAvailable()) {
-                    localStorage.setItem('especiales', JSON.stringify(especiales));
+                    localStorage.setItem('especiales', JSON.stringify(cleanEspeciales));
                 }
                 resolve();
             }
