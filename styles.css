@@ -186,13 +186,13 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ffffff; /* Pure white background */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 99999;
     opacity: 1;
-    transition: opacity 0.5s ease-out;
+    transition: opacity 0.8s ease-out; /* Smooth fade-out */
 }
 
 .truck-loader-overlay.fade-out {
@@ -211,7 +211,7 @@ body {
 }
 
 .truck-loader-text {
-    color: white;
+    color: #006847; /* Mexican green for text on white background */
     font-size: 24px;
     font-weight: 600;
     letter-spacing: 2px;

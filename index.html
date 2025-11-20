@@ -129,7 +129,7 @@
         </div>
     </div>
     
-    <div class="min-h-screen flex flex-col">
+    <div id="mainContent" class="min-h-screen flex flex-col" style="visibility: hidden;">
         <!-- Header -->
         <header class="bg-gradient-to-r from-mexican-green via-white to-mexican-red text-white shadow-lg">
             <div class="container mx-auto px-4 py-6">
@@ -2719,6 +2719,34 @@ function importFromCSV(file) {
                 mobileMenu.classList.remove('mobile-menu-open');
             }
         }
+
+        // ==== Truck Loader Control ====
+        function hideTruckLoader() {
+            const loader = document.getElementById('truckLoader');
+            const mainContent = document.getElementById('mainContent');
+            if (!loader) return;
+            
+            // Add fade-out class to trigger opacity transition
+            loader.classList.add('fade-out');
+            
+            // After fade-out animation completes, hide the loader and show content
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                if (mainContent) {
+                    mainContent.style.visibility = 'visible';
+                }
+            }, 800); // Match the CSS transition duration
+        }
+
+        // Initialize loader on page load
+        window.addEventListener('load', () => {
+            // Ensure minimum 3.5 seconds display time
+            const minDisplayTime = 3500; // 3.5 seconds in milliseconds
+            
+            setTimeout(() => {
+                hideTruckLoader();
+            }, minDisplayTime);
+        });
 
         // ==== Init ====
         function init(){ 
