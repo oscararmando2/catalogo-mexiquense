@@ -840,10 +840,10 @@
                     <input type="number" class="qty-input" min="1" value="1" data-row-id="${rowId}">
                 </td>
                 <td class="product-cell">
-                    <input type="text" class="product-input" placeholder="Producto" readonly data-row-id="${rowId}">
+                    <input type="text" class="product-input" placeholder="Producto" data-row-id="${rowId}">
                 </td>
                 <td class="price-cell">
-                    <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" readonly data-row-id="${rowId}">
+                    <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" data-row-id="${rowId}">
                 </td>
                 <td class="total-cell">
                     <input type="text" class="total-input" value="$0.00" readonly data-row-id="${rowId}">
@@ -858,11 +858,15 @@
             // Setup event listeners for this row
             const upcInput = row.querySelector('.upc-input');
             const qtyInput = row.querySelector('.qty-input');
+            const productInput = row.querySelector('.product-input');
+            const priceInput = row.querySelector('.price-input');
             const deleteBtn = row.querySelector('.delete-btn');
             
             upcInput.addEventListener('input', (e) => handleUpcInput(e, rowId));
             upcInput.addEventListener('focus', (e) => handleUpcInput(e, rowId));
             qtyInput.addEventListener('input', () => calculateRowTotal(rowId));
+            productInput.addEventListener('input', () => handleProductInput(rowId));
+            priceInput.addEventListener('input', () => handlePriceInput(rowId));
             deleteBtn.addEventListener('click', () => deleteRow(rowId));
             
             // Store row data
@@ -963,6 +967,9 @@
             // Calculate row total
             calculateRowTotal(rowId);
             
+            // Check if we need to add a new row automatically
+            checkAndAddNewRow();
+            
             // Focus on qty input
             const qtyInput = row.querySelector('.qty-input');
             qtyInput.focus();
@@ -973,6 +980,62 @@
             document.querySelectorAll('.upc-dropdown').forEach(d => {
                 d.classList.remove('show');
             });
+        }
+        
+        // ============================================
+        // MANUAL INPUT HANDLERS
+        // ============================================
+        
+        function handleProductInput(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const productInput = row.querySelector('.product-input');
+            const product = productInput.value.trim();
+            
+            // Update row data
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.product = product;
+            }
+            
+            // Check if we need to add a new row
+            checkAndAddNewRow();
+        }
+        
+        function handlePriceInput(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const priceInput = row.querySelector('.price-input');
+            const price = parseFloat(priceInput.value) || 0;
+            
+            // Update row data
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.price = price;
+            }
+            
+            // Recalculate row total
+            calculateRowTotal(rowId);
+            
+            // Check if we need to add a new row
+            checkAndAddNewRow();
+        }
+        
+        function checkAndAddNewRow() {
+            // Don't add a row if there are no rows (handled by init/newInvoice)
+            if (invoiceRows.length === 0) return;
+            
+            // Check if all existing rows have data (product name or price > 0)
+            const allRowsFilled = invoiceRows.every(rowData => {
+                return (rowData.product || '').trim() !== '' || rowData.price > 0;
+            });
+            
+            // If all rows are filled, add a new empty row
+            if (allRowsFilled) {
+                addNewRow();
+            }
         }
         
         function highlightMatch(text, search) {
