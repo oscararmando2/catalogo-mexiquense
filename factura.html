@@ -1002,7 +1002,11 @@
             const priceInput = row.querySelector('.price-input');
             const totalInput = row.querySelector('.total-input');
             
-            const qty = parseInt(qtyInput.value, 10) || 0;
+            let qty = parseInt(qtyInput.value, 10);
+            if (isNaN(qty) || qty < 1) {
+                qty = 1;
+                qtyInput.value = 1;
+            }
             const price = parseFloat(priceInput.value) || 0;
             const total = qty * price;
             
