@@ -839,7 +839,7 @@
         // INVOICE ROW MANAGEMENT
         // ============================================
         
-        function addNewRow() {
+        function addNewRow(autoFocus = true) {
             const rowId = Date.now().toString();
             const row = document.createElement('tr');
             row.dataset.rowId = rowId;
@@ -901,8 +901,11 @@
                 total: 0
             });
             
-            // Focus on UPC input
-            upcInput.focus();
+            // Focus on UPC input only when autoFocus is true
+            // This prevents stealing focus when auto-adding rows during typing
+            if (autoFocus) {
+                upcInput.focus();
+            }
         }
         
         function deleteRow(rowId) {
@@ -1054,9 +1057,9 @@
                 return (rowData.product || '').trim() !== '' || rowData.price > 0;
             });
             
-            // If all rows are filled, add a new empty row
+            // If all rows are filled, add a new empty row without stealing focus
             if (allRowsFilled) {
-                addNewRow();
+                addNewRow(false);
             }
         }
         
