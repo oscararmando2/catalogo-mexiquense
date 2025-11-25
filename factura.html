@@ -880,6 +880,15 @@
             qtyInput.addEventListener('input', () => calculateRowTotal(rowId));
             productInput.addEventListener('input', () => handleProductInput(rowId));
             priceInput.addEventListener('input', () => handlePriceInput(rowId));
+            priceInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Recalculate row total before adding new row
+                    calculateRowTotal(rowId);
+                    // Create new row below
+                    addNewRow();
+                }
+            });
             deleteBtn.addEventListener('click', () => deleteRow(rowId));
             
             // Store row data
