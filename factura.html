@@ -615,6 +615,106 @@
                 justify-content: center;
             }
         }
+        
+        /* Products Database Modal Styles */
+        .modal-content-wide {
+            max-width: 800px;
+        }
+        
+        .products-db-search-container {
+            margin-bottom: 15px;
+        }
+        
+        .products-db-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .products-db-search:focus {
+            outline: none;
+            border-color: #006847;
+        }
+        
+        .products-db-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .products-db-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .products-db-table th {
+            background: #006847;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+        }
+        
+        .products-db-table th.text-right {
+            text-align: right;
+        }
+        
+        .products-db-table th.text-center {
+            text-align: center;
+        }
+        
+        .products-db-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .products-db-table td.text-right {
+            text-align: right;
+        }
+        
+        .products-db-table td.text-center {
+            text-align: center;
+        }
+        
+        .products-db-empty {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .products-db-empty p.sub-text {
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
+        .products-db-count {
+            color: #666;
+            font-size: 13px;
+            margin-right: auto;
+        }
+        
+        .price-edit-input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: right;
+            font-size: 13px;
+        }
+        
+        .price-edit-input:focus {
+            outline: none;
+            border-color: #006847;
+        }
+        
+        .btn-save-price {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -669,6 +769,9 @@
             </div>
             <button class="btn btn-primary" id="addProductBtn">
                 + Nuevo Producto
+            </button>
+            <button class="btn btn-info" id="showProductsDbBtn">
+                Productos
             </button>
         </div>
         
@@ -728,6 +831,44 @@
         </div>
     </div>
     
+    <!-- Products Database Modal -->
+    <div class="modal" id="productsDbModal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-header">
+                <h3>Base de Datos de Productos</h3>
+                <button class="modal-close" id="closeProductsDbModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="products-db-search-container">
+                    <input type="text" id="productsDbSearch" class="products-db-search" placeholder="Buscar por UPC o Nombre...">
+                </div>
+                <div id="productsDbTableContainer" class="products-db-table-container">
+                    <table class="products-db-table">
+                        <thead>
+                            <tr>
+                                <th>UPC</th>
+                                <th>Nombre</th>
+                                <th class="text-right">Precio</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsDbBody">
+                            <!-- Products will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="productsDbEmpty" class="products-db-empty">
+                    <p>No hay productos en la base de datos.</p>
+                    <p class="sub-text">Carga un archivo CSV o agrega productos manualmente.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span id="productsDbCount" class="products-db-count"></span>
+                <button class="btn btn-secondary" id="closeProductsDbBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
     
@@ -757,6 +898,17 @@
         const cancelProductBtn = document.getElementById('cancelProductBtn');
         const saveProductBtn = document.getElementById('saveProductBtn');
         const toast = document.getElementById('toast');
+        
+        // Products Database Modal Elements
+        const showProductsDbBtn = document.getElementById('showProductsDbBtn');
+        const productsDbModal = document.getElementById('productsDbModal');
+        const closeProductsDbModal = document.getElementById('closeProductsDbModal');
+        const closeProductsDbBtn = document.getElementById('closeProductsDbBtn');
+        const productsDbBody = document.getElementById('productsDbBody');
+        const productsDbSearch = document.getElementById('productsDbSearch');
+        const productsDbCount = document.getElementById('productsDbCount');
+        const productsDbEmpty = document.getElementById('productsDbEmpty');
+        const productsDbTableContainer = document.getElementById('productsDbTableContainer');
         
         // ============================================
         // INITIALIZATION
@@ -820,10 +972,23 @@
             cancelProductBtn.addEventListener('click', closeProductModal);
             saveProductBtn.addEventListener('click', saveNewProduct);
             
+            // Products Database Modal events
+            showProductsDbBtn.addEventListener('click', openProductsDbModal);
+            closeProductsDbModal.addEventListener('click', closeProductsDbModalFn);
+            closeProductsDbBtn.addEventListener('click', closeProductsDbModalFn);
+            productsDbSearch.addEventListener('input', debounce(filterProductsDb, 300));
+            
             // Close modal on outside click
             addProductModal.addEventListener('click', (e) => {
                 if (e.target === addProductModal) {
                     closeProductModal();
+                }
+            });
+            
+            // Close products database modal on outside click
+            productsDbModal.addEventListener('click', (e) => {
+                if (e.target === productsDbModal) {
+                    closeProductsDbModalFn();
                 }
             });
             
@@ -1234,6 +1399,111 @@
             
             saveProductsToLocalStorage();
             closeProductModal();
+        }
+        
+        // ============================================
+        // PRODUCTS DATABASE MODAL
+        // ============================================
+        
+        function openProductsDbModal() {
+            renderProductsDb();
+            productsDbSearch.value = '';
+            productsDbModal.classList.add('show');
+        }
+        
+        function closeProductsDbModalFn() {
+            productsDbModal.classList.remove('show');
+        }
+        
+        function renderProductsDb(searchTerm = '') {
+            productsDbBody.innerHTML = '';
+            
+            let filtered = products;
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = products.filter(p => 
+                    p.upc.toLowerCase().includes(term) || 
+                    p.name.toLowerCase().includes(term)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                productsDbTableContainer.style.display = 'none';
+                productsDbEmpty.style.display = 'block';
+                productsDbCount.textContent = '';
+                return;
+            }
+            
+            productsDbTableContainer.style.display = 'block';
+            productsDbEmpty.style.display = 'none';
+            productsDbCount.textContent = `${filtered.length} producto${filtered.length !== 1 ? 's' : ''}`;
+            
+            filtered.forEach((product, index) => {
+                const originalIndex = products.findIndex(p => p.upc === product.upc);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(product.upc)}</td>
+                    <td>${escapeHtml(product.name)}</td>
+                    <td class="text-right">
+                        <input type="number" 
+                            class="price-edit-input" 
+                            value="${product.price.toFixed(2)}" 
+                            step="0.01" 
+                            min="0" 
+                            data-index="${originalIndex}">
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-success btn-save-price save-price-btn" data-index="${originalIndex}">
+                            Guardar
+                        </button>
+                    </td>
+                `;
+                productsDbBody.appendChild(row);
+            });
+            
+            // Add event listeners for save buttons
+            productsDbBody.querySelectorAll('.save-price-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.dataset.index, 10);
+                    const input = productsDbBody.querySelector(`.price-edit-input[data-index="${index}"]`);
+                    const newPrice = parseFloat(input.value);
+                    
+                    // Allow 0 for free samples/promotional items
+                    if (isNaN(newPrice) || newPrice < 0) {
+                        showToast('Por favor, ingrese un precio válido (0 o mayor)', 'error');
+                        return;
+                    }
+                    
+                    products[index].price = newPrice;
+                    saveProductsToLocalStorage();
+                    showToast('Precio actualizado correctamente', 'success');
+                });
+            });
+            
+            // Allow pressing Enter to save price
+            productsDbBody.querySelectorAll('.price-edit-input').forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const index = parseInt(input.dataset.index, 10);
+                        const btn = productsDbBody.querySelector(`.save-price-btn[data-index="${index}"]`);
+                        if (btn) btn.click();
+                    }
+                });
+            });
+        }
+        
+        function filterProductsDb() {
+            const searchTerm = productsDbSearch.value.trim();
+            renderProductsDb(searchTerm);
+        }
+        
+        // Debounce helper function for search
+        function debounce(fn, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), wait);
+            };
         }
         
         // ============================================
