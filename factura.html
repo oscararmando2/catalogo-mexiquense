@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Facturación - MEXIQUENSE MARKET LLC</title>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -1258,7 +1261,154 @@
         }
         
         function printInvoice() {
-            window.print();
+            try {
+                if (!window.jspdf) {
+                    showToast('Error: jsPDF no se cargó.', 'error');
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Get invoice data
+                const invoiceNum = document.getElementById('invoiceNumber').textContent;
+                const invoiceDate = document.getElementById('invoiceDate').textContent;
+                const clientName = document.getElementById('clientName').value || 'Cliente';
+                const clientAddress = document.getElementById('clientAddress').value || '';
+                const clientCity = document.getElementById('clientCity').value || '';
+                const grandTotal = document.getElementById('grandTotal').textContent;
+                
+                // Page dimensions
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const margin = 20;
+                const rightColX = pageWidth / 2 + 10;
+                const leftColX = margin;
+                
+                let yPos = 25;
+                
+                // === HEADER SECTION ===
+                // LEFT SIDE: BILL TO
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('BILL TO:', leftColX, yPos);
+                
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'normal');
+                doc.text(clientName, leftColX, yPos + 8);
+                if (clientAddress) {
+                    doc.text(clientAddress, leftColX, yPos + 16);
+                }
+                if (clientCity) {
+                    doc.text(clientCity, leftColX, yPos + 24);
+                }
+                
+                // RIGHT SIDE: INVOICE INFO
+                // Invoice badge
+                doc.setFillColor(204, 0, 0);
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                const invoiceBadgeText = `INVOICE #${invoiceNum}`;
+                const badgeWidth = doc.getTextWidth(invoiceBadgeText) + 10;
+                doc.roundedRect(pageWidth - margin - badgeWidth - 5, yPos - 7, badgeWidth + 10, 12, 2, 2, 'F');
+                doc.text(invoiceBadgeText, pageWidth - margin - badgeWidth, yPos);
+                
+                // Company info (right aligned)
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                const companyName = 'MEXIQUENSE MARKET LLC';
+                doc.text(companyName, pageWidth - margin - doc.getTextWidth(companyName), yPos + 12);
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                const address1 = '9525 LACKLAND RD';
+                doc.text(address1, pageWidth - margin - doc.getTextWidth(address1), yPos + 20);
+                
+                const address2 = 'OVERLAND MO 63114';
+                doc.text(address2, pageWidth - margin - doc.getTextWidth(address2), yPos + 28);
+                
+                // Date
+                doc.setFont('helvetica', 'bold');
+                doc.text(invoiceDate, pageWidth - margin - doc.getTextWidth(invoiceDate), yPos + 38);
+                
+                yPos = 80;
+                
+                // === TABLE SECTION ===
+                // Collect invoice rows data
+                const tableData = [];
+                const rows = document.querySelectorAll('#invoiceBody tr');
+                
+                rows.forEach(row => {
+                    const upc = row.querySelector('.upc-input')?.value || '';
+                    const qty = row.querySelector('.qty-input')?.value || '';
+                    const product = row.querySelector('.product-input')?.value || '';
+                    const price = row.querySelector('.price-input')?.value || '';
+                    const total = row.querySelector('.total-input')?.value || '';
+                    
+                    // Only add rows with data
+                    if (product || upc || (qty && parseFloat(qty) > 0)) {
+                        tableData.push([
+                            upc,
+                            qty,
+                            product,
+                            price ? `$${parseFloat(price).toFixed(2)}` : '',
+                            total
+                        ]);
+                    }
+                });
+                
+                // Create table
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'TOTAL']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [0, 104, 71],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        fontSize: 10
+                    },
+                    styles: {
+                        fontSize: 9,
+                        cellPadding: 4
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 35 },
+                        1: { cellWidth: 20, halign: 'center' },
+                        2: { cellWidth: 'auto' },
+                        3: { cellWidth: 25, halign: 'right' },
+                        4: { cellWidth: 30, halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin }
+                });
+                
+                // === TOTAL SECTION ===
+                const finalY = doc.lastAutoTable.finalY + 15;
+                
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0, 104, 71);
+                const totalLabel = 'TOTAL GENERAL:';
+                const totalValue = grandTotal;
+                
+                doc.setTextColor(0, 0, 0);
+                doc.text(totalLabel, pageWidth - margin - 80, finalY);
+                doc.setTextColor(0, 104, 71);
+                doc.text(totalValue, pageWidth - margin - doc.getTextWidth(totalValue), finalY);
+                
+                // Save the PDF
+                const fileName = `factura-${invoiceNum}-${Date.now()}.pdf`;
+                doc.save(fileName);
+                
+                showToast('PDF descargado correctamente', 'success');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showToast('Error al generar el PDF', 'error');
+            }
         }
         
         // ============================================
