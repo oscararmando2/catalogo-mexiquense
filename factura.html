@@ -24,15 +24,23 @@
             padding: 20px;
         }
         
-        /* Header Styles */
+        /* Header Styles - A4 Invoice Design */
         .invoice-header {
-            background: linear-gradient(135deg, #006847 0%, #004d35 100%);
-            color: white;
+            background: white;
             padding: 20px;
             border-radius: 8px 8px 0 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            border: 1px solid #ddd;
+            border-bottom: none;
+        }
+        
+        .logo-section {
+            margin-bottom: 15px;
+        }
+        
+        .logo-section img {
+            height: 60px;
+            max-width: 200px;
+            object-fit: contain;
         }
         
         .header-top {
@@ -43,64 +51,71 @@
             gap: 20px;
         }
         
+        .left-section {
+            flex: 1;
+        }
+        
+        .invoice-badge {
+            display: inline-block;
+            background: #c00;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .company-info {
+            color: #000;
+        }
+        
         .company-info h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
+            font-size: 16px;
+            margin-bottom: 3px;
+            font-weight: bold;
         }
         
         .company-info p {
-            font-size: 12px;
-            opacity: 0.9;
+            font-size: 13px;
+            margin: 2px 0;
+            color: #000;
         }
         
-        .invoice-details {
-            text-align: right;
-        }
-        
-        .invoice-details h2 {
-            font-size: 28px;
-            color: #ffd700;
-        }
-        
-        .invoice-details p {
-            font-size: 14px;
-            margin: 5px 0;
-        }
-        
-        .invoice-number {
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
-        /* Bill To Section */
-        .bill-to-section {
-            background: white;
-            padding: 20px;
-            border: 1px solid #ddd;
-            margin-bottom: 0;
-        }
-        
-        .bill-to-section h3 {
-            color: #006847;
-            margin-bottom: 10px;
-            font-size: 14px;
+        .company-info .invoice-date {
+            margin-top: 8px;
+            font-weight: 500;
             text-transform: uppercase;
         }
         
-        .bill-to-section input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .right-section {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .bill-to-header {
             font-size: 14px;
+            font-weight: bold;
+            color: #000;
             margin-bottom: 8px;
         }
         
-        .bill-to-section input:focus {
+        .bill-to-fields input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        
+        .bill-to-fields input:focus {
             outline: none;
             border-color: #006847;
-            box-shadow: 0 0 5px rgba(0, 104, 71, 0.3);
+            box-shadow: 0 0 3px rgba(0, 104, 71, 0.3);
         }
+        
+        /* Bill To Section - Removed as it's now in header */
         
         /* Actions Bar */
         .actions-bar {
@@ -513,31 +528,20 @@
             .invoice-header {
                 position: static;
                 background: white;
-                color: black;
-                border: 2px solid #006847;
+                border: none;
                 border-radius: 0;
+            }
+            
+            .invoice-badge {
+                background: #c00 !important;
+                color: white !important;
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
             }
             
-            .invoice-header h1,
-            .invoice-header h2,
-            .invoice-header p {
-                color: black !important;
-            }
-            
-            .invoice-details h2 {
-                color: #006847 !important;
-            }
-            
-            .bill-to-section {
-                border: 1px solid #333;
-                page-break-inside: avoid;
-            }
-            
-            .bill-to-section input {
+            .bill-to-fields input {
                 border: none;
-                padding: 5px 0;
+                padding: 3px 0;
                 font-weight: 500;
             }
             
@@ -589,7 +593,8 @@
                 text-align: center;
             }
             
-            .invoice-details {
+            .left-section,
+            .right-section {
                 text-align: center;
             }
             
@@ -616,29 +621,31 @@
             <a href="index.html">← Volver al Catálogo</a>
         </div>
         
-        <!-- Invoice Header -->
+        <!-- Invoice Header - A4 Design -->
         <header class="invoice-header">
+            <div class="logo-section">
+                <img src="mexiquense market.png" alt="Mexiquense Market Logo">
+            </div>
             <div class="header-top">
-                <div class="company-info">
-                    <h1>MEXIQUENSE MARKET LLC</h1>
-                    <p>9525 LACKLAND RD</p>
-                    <p>OVERLAND MO 63114</p>
-                    <p>Tel: +1 314-428-4919</p>
+                <div class="left-section">
+                    <div class="invoice-badge">INVOICE #<span id="invoiceNumber">25</span></div>
+                    <div class="company-info">
+                        <h1>MEXIQUENSE MARKET LLC</h1>
+                        <p>9525 LACKLAND RD</p>
+                        <p>OVERLAND MO 63114</p>
+                        <p class="invoice-date" id="invoiceDate"></p>
+                    </div>
                 </div>
-                <div class="invoice-details">
-                    <h2>FACTURA</h2>
-                    <p class="invoice-number">N° <span id="invoiceNumber">25</span></p>
-                    <p>Fecha: <span id="invoiceDate"></span></p>
+                <div class="right-section">
+                    <div class="bill-to-header">BILL TO:</div>
+                    <div class="bill-to-fields">
+                        <input type="text" id="clientName" placeholder="Nombre del cliente" value="Ayala Restaurant LLC">
+                        <input type="text" id="clientAddress" placeholder="Dirección del cliente" value="9519 Lackland Rd, St. Louis,">
+                        <input type="text" id="clientCity" placeholder="Ciudad, Estado, ZIP" value="MO 63114.">
+                    </div>
                 </div>
             </div>
         </header>
-        
-        <!-- Bill To Section -->
-        <section class="bill-to-section">
-            <h3>Facturar a:</h3>
-            <input type="text" id="clientName" placeholder="Nombre del cliente">
-            <input type="text" id="clientAddress" placeholder="Dirección del cliente">
-        </section>
         
         <!-- Actions Bar -->
         <div class="actions-bar">
@@ -649,7 +656,7 @@
                 Nueva Factura
             </button>
             <button class="btn btn-info" id="printBtn">
-                Imprimir / PDF
+                Descargar PDF
             </button>
             <div class="file-input-wrapper">
                 <input type="file" id="csvInput" class="file-input" accept=".csv">
@@ -784,8 +791,11 @@
         
         function setCurrentDate() {
             const today = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            invoiceDateEl.textContent = today.toLocaleDateString('es-ES', options);
+            const day = today.getDate();
+            const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+            const month = months[today.getMonth()];
+            const year = today.getFullYear();
+            invoiceDateEl.textContent = `${day} ${month} ${year}`;
         }
         
         function updateInvoiceNumber() {
@@ -1233,6 +1243,7 @@
             // Clear client info
             document.getElementById('clientName').value = '';
             document.getElementById('clientAddress').value = '';
+            document.getElementById('clientCity').value = '';
             
             // Reset totals
             grandTotalEl.textContent = '$0.00';
