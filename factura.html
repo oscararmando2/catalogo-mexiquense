@@ -62,11 +62,11 @@
             display: inline-block;
             background: #c00;
             color: white;
-            padding: 5px 12px;
-            border-radius: 4px;
+            padding: 3px 8px;
+            border-radius: 3px;
             font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 12px;
+            font-size: 11px;
+            margin-bottom: 8px;
         }
         
         .company-info {
@@ -1300,52 +1300,50 @@
                 let yPos = 25;
                 
                 // === HEADER SECTION ===
-                // LEFT SIDE: BILL TO
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text('BILL TO:', leftColX, yPos);
-                
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'normal');
-                doc.text(clientName, leftColX, yPos + 8);
-                if (clientAddress) {
-                    doc.text(clientAddress, leftColX, yPos + 16);
-                }
-                if (clientCity) {
-                    doc.text(clientCity, leftColX, yPos + 24);
-                }
-                
-                // RIGHT SIDE: INVOICE INFO
-                // Invoice badge
+                // LEFT SIDE: Invoice badge + Company info
+                // Invoice badge - smaller size, proportional to text
                 doc.setFillColor(204, 0, 0);
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(11);
+                doc.setFontSize(9);
                 doc.setFont('helvetica', 'bold');
                 const invoiceBadgeText = `INVOICE #${invoiceNum}`;
-                const badgeWidth = doc.getTextWidth(invoiceBadgeText) + 10;
-                doc.roundedRect(pageWidth - margin - badgeWidth - 5, yPos - 7, badgeWidth + 10, 12, 2, 2, 'F');
-                doc.text(invoiceBadgeText, pageWidth - margin - badgeWidth, yPos);
+                const badgeWidth = doc.getTextWidth(invoiceBadgeText) + 6;
+                doc.roundedRect(leftColX, yPos - 5, badgeWidth + 4, 8, 1.5, 1.5, 'F');
+                doc.text(invoiceBadgeText, leftColX + 3, yPos);
                 
-                // Company info (right aligned)
+                // Company info (left aligned, below badge)
                 doc.setTextColor(0, 0, 0);
                 doc.setFontSize(11);
                 doc.setFont('helvetica', 'bold');
-                const companyName = 'MEXIQUENSE MARKET LLC';
-                doc.text(companyName, pageWidth - margin - doc.getTextWidth(companyName), yPos + 12);
+                doc.text('MEXIQUENSE MARKET LLC', leftColX, yPos + 10);
                 
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
-                const address1 = '9525 LACKLAND RD';
-                doc.text(address1, pageWidth - margin - doc.getTextWidth(address1), yPos + 20);
-                
-                const address2 = 'OVERLAND MO 63114';
-                doc.text(address2, pageWidth - margin - doc.getTextWidth(address2), yPos + 28);
+                doc.text('9525 LACKLAND RD', leftColX, yPos + 18);
+                doc.text('OVERLAND MO 63114', leftColX, yPos + 26);
                 
                 // Date
                 doc.setFont('helvetica', 'bold');
-                doc.text(invoiceDate, pageWidth - margin - doc.getTextWidth(invoiceDate), yPos + 38);
+                doc.setFontSize(10);
+                doc.text(invoiceDate, leftColX, yPos + 36);
                 
-                yPos = 80;
+                // RIGHT SIDE: BILL TO
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0, 0, 0);
+                doc.text('BILL TO:', pageWidth - margin - doc.getTextWidth('BILL TO:'), yPos);
+                
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text(clientName, pageWidth - margin - doc.getTextWidth(clientName), yPos + 10);
+                if (clientAddress) {
+                    doc.text(clientAddress, pageWidth - margin - doc.getTextWidth(clientAddress), yPos + 18);
+                }
+                if (clientCity) {
+                    doc.text(clientCity, pageWidth - margin - doc.getTextWidth(clientCity), yPos + 26);
+                }
+                
+                yPos = 75;
                 
                 // === TABLE SECTION ===
                 // Collect invoice rows data
