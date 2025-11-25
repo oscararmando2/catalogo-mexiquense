@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Facturación - MEXIQUENSE MARKET LLC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header Styles */
+        .invoice-header {
+            background: linear-gradient(135deg, #006847 0%, #004d35 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .company-info h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .company-info p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .invoice-details {
+            text-align: right;
+        }
+        
+        .invoice-details h2 {
+            font-size: 28px;
+            color: #ffd700;
+        }
+        
+        .invoice-details p {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .invoice-number {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        /* Bill To Section */
+        .bill-to-section {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-bottom: 0;
+        }
+        
+        .bill-to-section h3 {
+            color: #006847;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .bill-to-section input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .bill-to-section input:focus {
+            outline: none;
+            border-color: #006847;
+            box-shadow: 0 0 5px rgba(0, 104, 71, 0.3);
+        }
+        
+        /* Actions Bar */
+        .actions-bar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #006847;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #004d35;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #138496;
+        }
+        
+        /* Invoice Table */
+        .invoice-table-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            overflow-x: auto;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        
+        .invoice-table th {
+            background: #006847;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .invoice-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        .invoice-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .invoice-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .invoice-table input:focus {
+            outline: none;
+            border-color: #006847;
+        }
+        
+        .invoice-table input[type="number"] {
+            text-align: right;
+        }
+        
+        .invoice-table .upc-cell {
+            position: relative;
+            min-width: 150px;
+        }
+        
+        .invoice-table .qty-cell {
+            width: 80px;
+        }
+        
+        .invoice-table .product-cell {
+            min-width: 200px;
+        }
+        
+        .invoice-table .price-cell,
+        .invoice-table .total-cell {
+            width: 100px;
+        }
+        
+        .invoice-table .delete-cell {
+            width: 50px;
+            text-align: center;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        
+        /* UPC Dropdown */
+        .upc-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .upc-dropdown.show {
+            display: block;
+        }
+        
+        .upc-dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .upc-dropdown-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .upc-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .upc-dropdown-item .upc-code {
+            font-weight: bold;
+            color: #006847;
+        }
+        
+        .upc-dropdown-item .product-name {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        /* Total Section */
+        .total-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            padding: 20px;
+            text-align: right;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        
+        .total-label {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .total-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: #006847;
+            min-width: 150px;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            background: #006847;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #006847;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        /* File Input */
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 3000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .toast.success {
+            background: #28a745;
+        }
+        
+        .toast.error {
+            background: #dc3545;
+        }
+        
+        /* Navigation back */
+        .nav-back {
+            margin-bottom: 20px;
+        }
+        
+        .nav-back a {
+            color: #006847;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+        
+        .nav-back a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Print Styles */
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+            
+            body {
+                background: white;
+                font-size: 11pt;
+            }
+            
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            
+            .nav-back,
+            .actions-bar,
+            .delete-btn,
+            .delete-cell,
+            .btn {
+                display: none !important;
+            }
+            
+            .invoice-header {
+                position: static;
+                background: white;
+                color: black;
+                border: 2px solid #006847;
+                border-radius: 0;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .invoice-header h1,
+            .invoice-header h2,
+            .invoice-header p {
+                color: black !important;
+            }
+            
+            .invoice-details h2 {
+                color: #006847 !important;
+            }
+            
+            .bill-to-section {
+                border: 1px solid #333;
+                page-break-inside: avoid;
+            }
+            
+            .bill-to-section input {
+                border: none;
+                padding: 5px 0;
+                font-weight: 500;
+            }
+            
+            .invoice-table-container {
+                border: 1px solid #333;
+            }
+            
+            .invoice-table th {
+                background: #f0f0f0 !important;
+                color: black !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            .invoice-table input {
+                border: none;
+                padding: 5px;
+                text-align: inherit;
+            }
+            
+            .invoice-table .qty-cell input,
+            .invoice-table .price-cell input,
+            .invoice-table .total-cell input {
+                text-align: right;
+            }
+            
+            .total-section {
+                border: 1px solid #333;
+                border-top: none;
+            }
+            
+            .total-amount {
+                color: black;
+            }
+            
+            .modal {
+                display: none !important;
+            }
+            
+            .toast {
+                display: none !important;
+            }
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .invoice-details {
+                text-align: center;
+            }
+            
+            .actions-bar {
+                justify-content: center;
+            }
+            
+            .total-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Back -->
+        <div class="nav-back">
+            <a href="index.html">← Volver al Catálogo</a>
+        </div>
+        
+        <!-- Invoice Header -->
+        <header class="invoice-header">
+            <div class="header-top">
+                <div class="company-info">
+                    <h1>MEXIQUENSE MARKET LLC</h1>
+                    <p>123 Market Street, Suite 100</p>
+                    <p>Los Angeles, CA 90001</p>
+                    <p>Tel: (555) 123-4567</p>
+                </div>
+                <div class="invoice-details">
+                    <h2>FACTURA</h2>
+                    <p class="invoice-number">N° <span id="invoiceNumber">25</span></p>
+                    <p>Fecha: <span id="invoiceDate"></span></p>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Bill To Section -->
+        <section class="bill-to-section">
+            <h3>Facturar a:</h3>
+            <input type="text" id="clientName" placeholder="Nombre del cliente">
+            <input type="text" id="clientAddress" placeholder="Dirección del cliente">
+        </section>
+        
+        <!-- Actions Bar -->
+        <div class="actions-bar">
+            <button class="btn btn-primary" id="addRowBtn">
+                + Agregar Fila
+            </button>
+            <button class="btn btn-success" id="newInvoiceBtn">
+                Nueva Factura
+            </button>
+            <button class="btn btn-info" id="printBtn">
+                Imprimir / PDF
+            </button>
+            <div class="file-input-wrapper">
+                <input type="file" id="csvInput" class="file-input" accept=".csv">
+                <button class="btn btn-secondary" id="loadCsvBtn">
+                    Cargar CSV
+                </button>
+            </div>
+            <button class="btn btn-primary" id="addProductBtn">
+                + Nuevo Producto
+            </button>
+        </div>
+        
+        <!-- Invoice Table -->
+        <div class="invoice-table-container">
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>UPC</th>
+                        <th>QTY</th>
+                        <th>PRODUCT</th>
+                        <th>PRICE</th>
+                        <th>TOTAL</th>
+                        <th class="delete-cell"></th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceBody">
+                    <!-- Invoice rows will be added here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Total Section -->
+        <section class="total-section">
+            <div class="total-row">
+                <span class="total-label">TOTAL GENERAL:</span>
+                <span class="total-amount" id="grandTotal">$0.00</span>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Add Product Modal -->
+    <div class="modal" id="addProductModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agregar Nuevo Producto</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="newProductUpc">UPC *</label>
+                    <input type="text" id="newProductUpc" placeholder="Ej: 070038372868">
+                </div>
+                <div class="form-group">
+                    <label for="newProductName">Nombre del Producto *</label>
+                    <input type="text" id="newProductName" placeholder="Ej: Best Choice Grade A Large 18 ct.">
+                </div>
+                <div class="form-group">
+                    <label for="newProductPrice">Precio *</label>
+                    <input type="number" id="newProductPrice" placeholder="Ej: 2.79" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelProductBtn">Cancelar</button>
+                <button class="btn btn-primary" id="saveProductBtn">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // ============================================
+        // SISTEMA DE FACTURACIÓN - MEXIQUENSE MARKET LLC
+        // ============================================
+        
+        // State
+        let products = [];
+        let invoiceNumber = 25;
+        let invoiceRows = [];
+        
+        // DOM Elements
+        const invoiceBody = document.getElementById('invoiceBody');
+        const grandTotalEl = document.getElementById('grandTotal');
+        const invoiceNumberEl = document.getElementById('invoiceNumber');
+        const invoiceDateEl = document.getElementById('invoiceDate');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const newInvoiceBtn = document.getElementById('newInvoiceBtn');
+        const printBtn = document.getElementById('printBtn');
+        const loadCsvBtn = document.getElementById('loadCsvBtn');
+        const csvInput = document.getElementById('csvInput');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const addProductModal = document.getElementById('addProductModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelProductBtn = document.getElementById('cancelProductBtn');
+        const saveProductBtn = document.getElementById('saveProductBtn');
+        const toast = document.getElementById('toast');
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        function init() {
+            loadFromLocalStorage();
+            setCurrentDate();
+            updateInvoiceNumber();
+            addNewRow();
+            setupEventListeners();
+        }
+        
+        function loadFromLocalStorage() {
+            // Load products database
+            const storedProducts = localStorage.getItem('factura_products');
+            if (storedProducts) {
+                products = JSON.parse(storedProducts);
+            }
+            
+            // Load invoice number
+            const storedInvoiceNumber = localStorage.getItem('factura_invoiceNumber');
+            if (storedInvoiceNumber) {
+                invoiceNumber = parseInt(storedInvoiceNumber, 10);
+            }
+        }
+        
+        function saveProductsToLocalStorage() {
+            localStorage.setItem('factura_products', JSON.stringify(products));
+        }
+        
+        function saveInvoiceNumberToLocalStorage() {
+            localStorage.setItem('factura_invoiceNumber', invoiceNumber.toString());
+        }
+        
+        function setCurrentDate() {
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            invoiceDateEl.textContent = today.toLocaleDateString('es-ES', options);
+        }
+        
+        function updateInvoiceNumber() {
+            invoiceNumberEl.textContent = invoiceNumber;
+        }
+        
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        
+        function setupEventListeners() {
+            addRowBtn.addEventListener('click', addNewRow);
+            newInvoiceBtn.addEventListener('click', createNewInvoice);
+            printBtn.addEventListener('click', printInvoice);
+            loadCsvBtn.addEventListener('click', () => csvInput.click());
+            csvInput.addEventListener('change', handleCsvUpload);
+            addProductBtn.addEventListener('click', openProductModal);
+            closeModal.addEventListener('click', closeProductModal);
+            cancelProductBtn.addEventListener('click', closeProductModal);
+            saveProductBtn.addEventListener('click', saveNewProduct);
+            
+            // Close modal on outside click
+            addProductModal.addEventListener('click', (e) => {
+                if (e.target === addProductModal) {
+                    closeProductModal();
+                }
+            });
+            
+            // Close dropdowns on outside click
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.upc-cell')) {
+                    closeAllDropdowns();
+                }
+            });
+        }
+        
+        // ============================================
+        // INVOICE ROW MANAGEMENT
+        // ============================================
+        
+        function addNewRow() {
+            const rowId = Date.now().toString();
+            const row = document.createElement('tr');
+            row.dataset.rowId = rowId;
+            
+            row.innerHTML = `
+                <td class="upc-cell">
+                    <input type="text" class="upc-input" placeholder="Buscar UPC..." data-row-id="${rowId}">
+                    <div class="upc-dropdown" id="dropdown-${rowId}"></div>
+                </td>
+                <td class="qty-cell">
+                    <input type="number" class="qty-input" min="1" value="1" data-row-id="${rowId}">
+                </td>
+                <td class="product-cell">
+                    <input type="text" class="product-input" placeholder="Producto" readonly data-row-id="${rowId}">
+                </td>
+                <td class="price-cell">
+                    <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" readonly data-row-id="${rowId}">
+                </td>
+                <td class="total-cell">
+                    <input type="text" class="total-input" value="$0.00" readonly data-row-id="${rowId}">
+                </td>
+                <td class="delete-cell">
+                    <button class="delete-btn" data-row-id="${rowId}">&times;</button>
+                </td>
+            `;
+            
+            invoiceBody.appendChild(row);
+            
+            // Setup event listeners for this row
+            const upcInput = row.querySelector('.upc-input');
+            const qtyInput = row.querySelector('.qty-input');
+            const deleteBtn = row.querySelector('.delete-btn');
+            
+            upcInput.addEventListener('input', (e) => handleUpcInput(e, rowId));
+            upcInput.addEventListener('focus', (e) => handleUpcInput(e, rowId));
+            qtyInput.addEventListener('input', () => calculateRowTotal(rowId));
+            deleteBtn.addEventListener('click', () => deleteRow(rowId));
+            
+            // Store row data
+            invoiceRows.push({
+                id: rowId,
+                upc: '',
+                qty: 1,
+                product: '',
+                price: 0,
+                total: 0
+            });
+            
+            // Focus on UPC input
+            upcInput.focus();
+        }
+        
+        function deleteRow(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (row) {
+                row.remove();
+                invoiceRows = invoiceRows.filter(r => r.id !== rowId);
+                calculateGrandTotal();
+            }
+        }
+        
+        // ============================================
+        // UPC AUTOCOMPLETE
+        // ============================================
+        
+        function handleUpcInput(e, rowId) {
+            const input = e.target;
+            const value = input.value.trim();
+            const dropdown = document.getElementById(`dropdown-${rowId}`);
+            
+            // Close all other dropdowns first
+            closeAllDropdowns();
+            
+            if (value.length < 3) {
+                dropdown.classList.remove('show');
+                dropdown.innerHTML = '';
+                return;
+            }
+            
+            // Search for matching products
+            const matches = products.filter(p => 
+                p.upc.toLowerCase().includes(value.toLowerCase())
+            );
+            
+            if (matches.length === 0) {
+                dropdown.classList.remove('show');
+                dropdown.innerHTML = '';
+                return;
+            }
+            
+            // Build dropdown items
+            dropdown.innerHTML = matches.slice(0, 10).map(p => `
+                <div class="upc-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
+                    <div class="upc-code">${highlightMatch(p.upc, value)}</div>
+                    <div class="product-name">${escapeHtml(p.name)} - $${p.price.toFixed(2)}</div>
+                </div>
+            `).join('');
+            
+            dropdown.classList.add('show');
+            
+            // Add click handlers to dropdown items
+            dropdown.querySelectorAll('.upc-dropdown-item').forEach(item => {
+                item.addEventListener('click', () => selectProduct(item, rowId));
+            });
+        }
+        
+        function selectProduct(item, rowId) {
+            const upc = item.dataset.upc;
+            const name = item.dataset.name;
+            const price = parseFloat(item.dataset.price);
+            
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const upcInput = row.querySelector('.upc-input');
+            const productInput = row.querySelector('.product-input');
+            const priceInput = row.querySelector('.price-input');
+            
+            upcInput.value = upc;
+            productInput.value = name;
+            priceInput.value = price.toFixed(2);
+            
+            // Update row data
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.upc = upc;
+                rowData.product = name;
+                rowData.price = price;
+            }
+            
+            // Close dropdown
+            closeAllDropdowns();
+            
+            // Calculate row total
+            calculateRowTotal(rowId);
+            
+            // Focus on qty input
+            const qtyInput = row.querySelector('.qty-input');
+            qtyInput.focus();
+            qtyInput.select();
+        }
+        
+        function closeAllDropdowns() {
+            document.querySelectorAll('.upc-dropdown').forEach(d => {
+                d.classList.remove('show');
+            });
+        }
+        
+        function highlightMatch(text, search) {
+            const regex = new RegExp(`(${escapeRegex(search)})`, 'gi');
+            return text.replace(regex, '<strong>$1</strong>');
+        }
+        
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ============================================
+        // CALCULATIONS
+        // ============================================
+        
+        function calculateRowTotal(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const qtyInput = row.querySelector('.qty-input');
+            const priceInput = row.querySelector('.price-input');
+            const totalInput = row.querySelector('.total-input');
+            
+            const qty = parseInt(qtyInput.value, 10) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = qty * price;
+            
+            totalInput.value = formatCurrency(total);
+            
+            // Update row data
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.qty = qty;
+                rowData.total = total;
+            }
+            
+            calculateGrandTotal();
+        }
+        
+        function calculateGrandTotal() {
+            const total = invoiceRows.reduce((sum, row) => sum + (row.total || 0), 0);
+            grandTotalEl.textContent = formatCurrency(total);
+        }
+        
+        function formatCurrency(amount) {
+            return '$' + amount.toFixed(2);
+        }
+        
+        // ============================================
+        // CSV HANDLING
+        // ============================================
+        
+        function handleCsvUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const csvData = event.target.result;
+                parseCsv(csvData);
+            };
+            reader.readAsText(file);
+            
+            // Reset input
+            csvInput.value = '';
+        }
+        
+        function parseCsv(csvData) {
+            const lines = csvData.split('\n');
+            let importedCount = 0;
+            
+            lines.forEach((line, index) => {
+                // Skip empty lines
+                if (!line.trim()) return;
+                
+                // Parse CSV line (handle quoted values)
+                const values = parseCSVLine(line);
+                
+                if (values.length >= 3) {
+                    const upc = values[0].trim();
+                    const name = values[1].trim();
+                    const priceStr = values[2].trim().replace(',', '.');
+                    const price = parseFloat(priceStr);
+                    
+                    if (upc && name && !isNaN(price)) {
+                        // Check if product already exists
+                        const existingIndex = products.findIndex(p => p.upc === upc);
+                        if (existingIndex >= 0) {
+                            // Update existing product
+                            products[existingIndex] = { upc, name, price };
+                        } else {
+                            // Add new product
+                            products.push({ upc, name, price });
+                        }
+                        importedCount++;
+                    }
+                }
+            });
+            
+            saveProductsToLocalStorage();
+            showToast(`${importedCount} productos importados correctamente`, 'success');
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            
+            return result;
+        }
+        
+        // ============================================
+        // NEW PRODUCT MODAL
+        // ============================================
+        
+        function openProductModal() {
+            addProductModal.classList.add('show');
+            document.getElementById('newProductUpc').focus();
+        }
+        
+        function closeProductModal() {
+            addProductModal.classList.remove('show');
+            document.getElementById('newProductUpc').value = '';
+            document.getElementById('newProductName').value = '';
+            document.getElementById('newProductPrice').value = '';
+        }
+        
+        function saveNewProduct() {
+            const upc = document.getElementById('newProductUpc').value.trim();
+            const name = document.getElementById('newProductName').value.trim();
+            const price = parseFloat(document.getElementById('newProductPrice').value);
+            
+            if (!upc || !name || isNaN(price)) {
+                showToast('Por favor, complete todos los campos', 'error');
+                return;
+            }
+            
+            // Check if product already exists
+            const existingIndex = products.findIndex(p => p.upc === upc);
+            if (existingIndex >= 0) {
+                products[existingIndex] = { upc, name, price };
+                showToast('Producto actualizado correctamente', 'success');
+            } else {
+                products.push({ upc, name, price });
+                showToast('Producto agregado correctamente', 'success');
+            }
+            
+            saveProductsToLocalStorage();
+            closeProductModal();
+        }
+        
+        // ============================================
+        // INVOICE ACTIONS
+        // ============================================
+        
+        function createNewInvoice() {
+            if (invoiceRows.length > 0 && invoiceRows.some(r => r.total > 0)) {
+                const confirm = window.confirm('¿Está seguro que desea crear una nueva factura? Los datos actuales se perderán.');
+                if (!confirm) return;
+            }
+            
+            // Increment invoice number
+            invoiceNumber++;
+            saveInvoiceNumberToLocalStorage();
+            updateInvoiceNumber();
+            
+            // Clear table
+            invoiceBody.innerHTML = '';
+            invoiceRows = [];
+            
+            // Clear client info
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientAddress').value = '';
+            
+            // Reset totals
+            grandTotalEl.textContent = '$0.00';
+            
+            // Update date
+            setCurrentDate();
+            
+            // Add first row
+            addNewRow();
+            
+            showToast('Nueva factura creada', 'success');
+        }
+        
+        function printInvoice() {
+            window.print();
+        }
+        
+        // ============================================
+        // TOAST NOTIFICATIONS
+        // ============================================
+        
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // ============================================
+        // INITIALIZE APP
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
