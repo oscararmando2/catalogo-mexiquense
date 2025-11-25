@@ -1306,6 +1306,11 @@
         function parseCsv(csvData) {
             const lines = csvData.split('\n');
             let importedCount = 0;
+            let skippedNoUpc = 0;
+            
+            // First pass: collect all products from CSV and group duplicates
+            // Key: upc + name (JSON stringified), Value: { upc, name, price }
+            const csvProducts = new Map();
             
             lines.forEach((line, index) => {
                 // Skip empty lines
@@ -1320,23 +1325,60 @@
                     const priceStr = values[2].trim().replace(',', '.');
                     const price = parseFloat(priceStr);
                     
-                    if (upc && name && !isNaN(price)) {
-                        // Check if product already exists
-                        const existingIndex = products.findIndex(p => p.upc === upc);
-                        if (existingIndex >= 0) {
-                            // Update existing product
-                            products[existingIndex] = { upc, name, price };
+                    // Skip products without UPC
+                    if (!upc) {
+                        skippedNoUpc++;
+                        return;
+                    }
+                    
+                    if (name && !isNaN(price)) {
+                        // Create key for grouping duplicates (same UPC and name)
+                        // Using JSON.stringify to handle product names with special characters
+                        const key = JSON.stringify([upc, name]);
+                        
+                        if (csvProducts.has(key)) {
+                            // Duplicate found - keep the highest price
+                            const existing = csvProducts.get(key);
+                            if (price > existing.price) {
+                                existing.price = price;
+                            }
                         } else {
-                            // Add new product
-                            products.push({ upc, name, price });
+                            // New product
+                            csvProducts.set(key, { upc, name, price });
                         }
-                        importedCount++;
                     }
                 }
             });
             
+            // Second pass: add/update products in the database
+            csvProducts.forEach((product) => {
+                const { upc, name, price } = product;
+                
+                // Check if product already exists in database
+                const existingIndex = products.findIndex(p => p.upc === upc);
+                if (existingIndex >= 0) {
+                    // Update existing product with highest price
+                    const existingPrice = products[existingIndex].price;
+                    products[existingIndex] = { 
+                        upc, 
+                        name, 
+                        price: Math.max(price, existingPrice) 
+                    };
+                } else {
+                    // Add new product
+                    products.push({ upc, name, price });
+                }
+                importedCount++;
+            });
+            
             saveProductsToLocalStorage();
-            showToast(`${importedCount} productos importados correctamente`, 'success');
+            
+            // Build message based on results
+            let message = `${importedCount} productos importados correctamente`;
+            if (skippedNoUpc > 0) {
+                message += ` (${skippedNoUpc} omitidos por falta de UPC)`;
+            }
+            showToast(message, 'success');
         }
         
         function parseCSVLine(line) {
