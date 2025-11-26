@@ -1339,11 +1339,17 @@
                     // Determine decimal separator:
                     // European format: uses comma as decimal separator, dot as thousand separator
                     // US format: uses dot as decimal separator, comma as thousand separator
+                    // Pattern explanation:
+                    //   \d+ - one or more digits before optional thousand separators
+                    //   (?:\.\d{3})* - zero or more groups of dot + exactly 3 digits (thousand separators)
+                    //   ,\d{1,2}$ - comma followed by 1-2 digits at end (decimal portion)
                     if (/\d+(?:\.\d{3})*,\d{1,2}$/.test(priceStr)) {
                         // European format: 1.234,56 or 12.345.678,90 -> 1234.56 or 12345678.90
                         priceStr = priceStr.replace(/\./g, '').replace(',', '.');
                     } else {
-                        // US format: remove thousand separators (commas followed by 3 digits not followed by more digits)
+                        // US format: remove thousand separators
+                        // Pattern: comma followed by exactly 3 digits, but NOT followed by more digits
+                        // This ensures we only remove thousand separators (1,234) not decimal commas (1,23)
                         priceStr = priceStr.replace(/,(?=\d{3}(?!\d))/g, '');
                         // If comma is used as decimal separator (e.g., 4,62 with no dot present), replace it
                         if (priceStr.includes(',') && !priceStr.includes('.')) {
@@ -1427,10 +1433,18 @@
                 ';': { counts: [], consistent: true }
             };
             
+            // Map delimiters to their regex patterns for matching
+            const delimiterPatterns = {
+                '\t': /\t/g,
+                ',': /,/g,
+                ';': /;/g
+            };
+            
             lines.forEach(line => {
                 // Count columns for each delimiter
                 Object.keys(delimiterStats).forEach(delim => {
-                    const count = (line.match(new RegExp(delim === '\t' ? '\\t' : (delim === ',' ? ',' : ';'), 'g')) || []).length + 1;
+                    const matches = line.match(delimiterPatterns[delim]) || [];
+                    const count = matches.length + 1; // columns = delimiters + 1
                     delimiterStats[delim].counts.push(count);
                 });
             });
@@ -1448,14 +1462,17 @@
                 }
             });
             
+            // Helper function to check if a delimiter is viable
+            const isViableDelimiter = (delim) => 
+                delimiterStats[delim].consistent && delimiterStats[delim].avgCount >= 3;
+            
             // Prioritize tab (most reliable), then check for consistency
             // Tab is preferred if it produces consistent column counts >= 3 (UPC, Name, Price)
-            if (delimiterStats['\t'].consistent && delimiterStats['\t'].avgCount >= 3) {
+            if (isViableDelimiter('\t')) {
                 return '\t';
             }
-            // Check semicolon (common in European CSVs)
-            if (delimiterStats[';'].consistent && delimiterStats[';'].avgCount >= 3 && 
-                delimiterStats[';'].avgCount > delimiterStats[','].avgCount) {
+            // Check semicolon (common in European CSVs) - prefer over comma if more columns
+            if (isViableDelimiter(';') && delimiterStats[';'].avgCount > delimiterStats[','].avgCount) {
                 return ';';
             }
             return ',';
