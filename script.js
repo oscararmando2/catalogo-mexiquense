@@ -805,7 +805,7 @@ complete: (results) => {
         upc: sanitizeInput(String(cleanRow['UPC'] || '').trim()),
         nombre: sanitizeInput(String(cleanRow['NOMBRE'] || '').trim()),
         size: cleanRow['SIZE'] ? sanitizeInput(String(cleanRow['SIZE']).trim()) : null,
-        qty: cleanRow['QTY'] && !isNaN(cleanRow['QTY']) ? parseInt(cleanRow['QTY']) : 0,
+        qty: cleanRow['QTY'] && !isNaN(cleanRow['QTY']) ? parseFloat(cleanRow['QTY']) : 0,
         costo: cleanRow['COSTO'] && !isNaN(parseFloat(String(cleanRow['COSTO']).replace(',', '.')))
           ? parseFloat(String(cleanRow['COSTO']).replace(',', '.'))
           : 0,
@@ -1059,7 +1059,7 @@ function setupEventListeners(){
             { id:'upc', label:'UPC', required:true },
             { id:'nombre', label:'Nombre', required:true },
             { id:'size', label:'Tamaño', required:true },
-            { id:'qty', label:'Cantidad', required:true, type:'int', min:0 },
+            { id:'qty', label:'Cantidad', required:true, type:'number', min:0 },
             { id:'costo', label:'Costo', required:true, type:'number', min:0 },
             { id:'description', label:'Descripción', required:true }
         ];
@@ -1072,7 +1072,7 @@ function setupEventListeners(){
             upc: sanitizeInput(upcInput.value),
             nombre: sanitizeInput(nombreInput.value),
             size: sanitizeInput(sizeInput.value),
-            qty: parseInt(qtyInput.value),
+            qty: parseFloat(qtyInput.value),
             costo: parseFloat(costoInput.value),
             url: urlInput.value || '',
             customFields: {},
@@ -1847,7 +1847,7 @@ function addProductFieldToForm() {
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad*</label>
-                <input type="number" class="product-qty w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required min="1" />
+                <input type="number" class="product-qty w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" required min="0.01" step="any" />
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -2093,7 +2093,7 @@ function renderPendingCredits(searchTerm = '', filter = 'all') {
         const days = getDaysElapsed(credit.date);
         const urgencyClass = getUrgencyClass(days);
         const timeText = getTimeElapsedText(days);
-        const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
+        const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
         const firstPhoto = credit.products[0]?.photo;
         
         // Build products list HTML
@@ -2153,7 +2153,7 @@ function renderPendingCredits(searchTerm = '', filter = 'all') {
             if (!credit) return;
             
             // Show confirmation dialog
-            const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
+            const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
             const confirmMsg = `¿Deseas marcar como entregado el crédito?\n\nID: ${credit.id}\nProveedor: ${credit.provider || 'Sin proveedor'}\nTotal Productos: ${totalProducts}\n\nPresiona "Aceptar" para continuar o "Cancelar" para volver.`;
             
             if (confirm(confirmMsg)) {
@@ -2182,7 +2182,7 @@ function showDeliverForm(creditId) {
     document.getElementById('deliveryPhotoPreview').innerHTML = '';
     
     // Show credit summary with all details
-    const totalProducts = credit.products.reduce((sum, p) => sum + parseInt(p.qty, 10), 0);
+    const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
     
     // Build products list HTML with all details
     const productsListHTML = credit.products.map(p => `
@@ -2501,7 +2501,7 @@ function setupCreditsEventListeners() {
                     
                     // Guardar producto con UPC completo y últimos 4 dígitos para compatibilidad
                     products.push({
-                        qty: parseInt(qty),
+                        qty: parseFloat(qty),
                         desc,
                         upc: upc, // UPC completo
                         digits: upc.slice(-4), // Últimos 4 dígitos para compatibilidad con vistas existentes
