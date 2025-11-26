@@ -778,6 +778,7 @@ delimiter: delimiter,
 transformHeader: (header) => header.trim().replace(/["']/g, '').toUpperCase(), // 💪 Limpieza total de encabezados
 complete: (results) => {
   const imported = [];
+  let updated = 0;
   let errors = 0;
 
   if (!results.data || results.data.length === 0) {
@@ -829,13 +830,30 @@ complete: (results) => {
       }
 
       // Actualizar o agregar producto
-      const existing = products.find(p =>
+      // First check in existing products array
+      let existing = products.find(p =>
         (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
         (p.upc && p.upc === newProduct.upc)
       );
+      
+      // Also check in already imported products (to handle duplicates within the CSV)
+      if (!existing) {
+        existing = imported.find(p =>
+          (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
+          (p.upc && p.upc === newProduct.upc)
+        );
+      }
 
       if (existing) {
-        Object.assign(existing, { ...newProduct, dateAdded: existing.dateAdded || newProduct.dateAdded });
+        // Preserve the existing ID and merge customFields
+        const existingId = existing.id;
+        const existingDateAdded = existing.dateAdded || newProduct.dateAdded;
+        const mergedCustomFields = { ...existing.customFields, ...newProduct.customFields };
+        Object.assign(existing, newProduct);
+        existing.id = existingId;
+        existing.dateAdded = existingDateAdded;
+        existing.customFields = mergedCustomFields;
+        updated++;
       } else {
         imported.push(newProduct);
       }
@@ -851,9 +869,18 @@ complete: (results) => {
   renderAdminProducts();
   renderPublicTabs();
 
-  const msg = errors > 0
-    ? `Importados ${imported.length} productos, ${errors} errores.`
-    : `Importados ${imported.length} productos correctamente.`;
+  // Build comprehensive message showing new, updated, and errors
+  const totalProcessed = imported.length + updated;
+  let msg = '';
+  if (errors > 0) {
+    msg = `Procesados ${totalProcessed} productos (${imported.length} nuevos, ${updated} actualizados), ${errors} errores.`;
+  } else if (updated > 0 && imported.length > 0) {
+    msg = `Importados ${imported.length} productos nuevos y ${updated} actualizados correctamente.`;
+  } else if (updated > 0) {
+    msg = `Actualizados ${updated} productos correctamente.`;
+  } else {
+    msg = `Importados ${imported.length} productos correctamente.`;
+  }
   showToast(msg, errors > 0);
 
   importModal.classList.add('hidden');
