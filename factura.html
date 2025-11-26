@@ -251,7 +251,55 @@
         }
         
         .invoice-table .product-cell {
+            position: relative;
             min-width: 200px;
+        }
+        
+        /* Product Name Dropdown */
+        .product-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .product-dropdown.show {
+            display: block;
+        }
+        
+        .product-dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .product-dropdown-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .product-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-dropdown-item .product-name-match {
+            font-weight: bold;
+            color: #006847;
+        }
+        
+        .product-dropdown-item .product-upc-info {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
         }
         
         .invoice-table .price-cell,
@@ -1059,7 +1107,7 @@
             
             // Close dropdowns on outside click
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.upc-cell')) {
+                if (!e.target.closest('.upc-cell') && !e.target.closest('.product-cell')) {
                     closeAllDropdowns();
                 }
             });
@@ -1083,7 +1131,8 @@
                     <input type="text" class="qty-input" inputmode="numeric" pattern="[0-9]*" value="1" data-row-id="${rowId}">
                 </td>
                 <td class="product-cell">
-                    <input type="text" class="product-input" placeholder="Producto" data-row-id="${rowId}">
+                    <input type="text" class="product-input" placeholder="Buscar nombre..." data-row-id="${rowId}">
+                    <div class="product-dropdown" id="product-dropdown-${rowId}"></div>
                 </td>
                 <td class="price-cell">
                     <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" data-row-id="${rowId}">
@@ -1109,7 +1158,8 @@
             upcInput.addEventListener('focus', (e) => handleUpcInput(e, rowId));
             qtyInput.addEventListener('input', () => calculateRowTotal(rowId, false));
             qtyInput.addEventListener('blur', () => calculateRowTotal(rowId, true));
-            productInput.addEventListener('input', () => handleProductInput(rowId));
+            productInput.addEventListener('input', (e) => handleProductNameInput(e, rowId));
+            productInput.addEventListener('focus', (e) => handleProductNameInput(e, rowId));
             priceInput.addEventListener('input', () => handlePriceInput(rowId));
             priceInput.addEventListener('blur', () => {
                 // Check if product should be added to database when leaving price field
@@ -1252,30 +1302,113 @@
             document.querySelectorAll('.upc-dropdown').forEach(d => {
                 d.classList.remove('show');
             });
+            document.querySelectorAll('.product-dropdown').forEach(d => {
+                d.classList.remove('show');
+            });
         }
         
         // ============================================
-        // MANUAL INPUT HANDLERS
+        // PRODUCT NAME AUTOCOMPLETE
         // ============================================
         
-        function handleProductInput(rowId) {
-            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
-            if (!row) return;
+        function handleProductNameInput(e, rowId) {
+            const input = e.target;
+            const value = input.value.trim();
+            const dropdown = document.getElementById(`product-dropdown-${rowId}`);
             
-            const productInput = row.querySelector('.product-input');
-            const product = productInput.value.trim();
-            
-            // Update row data
+            // Update row data with the typed product name
             const rowData = invoiceRows.find(r => r.id === rowId);
             if (rowData) {
-                rowData.product = product;
-                // Reset autocomplete flag if user manually edits the product name
+                rowData.product = value;
+                // Reset autocomplete flag when manually typing product name
                 rowData.fromAutocomplete = false;
             }
             
             // Check if we need to add a new row
             checkAndAddNewRow();
+            
+            // Close all other dropdowns first
+            closeAllDropdowns();
+            
+            if (value.length < 2) {
+                dropdown.classList.remove('show');
+                dropdown.innerHTML = '';
+                return;
+            }
+            
+            // Search for matching products by name
+            const searchTerms = value.toLowerCase().split(/\s+/);
+            const matches = products.filter(p => {
+                const productName = (p.name || '').toLowerCase();
+                // All search terms must be found in the product name
+                return searchTerms.every(term => productName.includes(term));
+            });
+            
+            if (matches.length === 0) {
+                dropdown.classList.remove('show');
+                dropdown.innerHTML = '';
+                return;
+            }
+            
+            // Build dropdown items
+            dropdown.innerHTML = matches.slice(0, 10).map(p => `
+                <div class="product-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
+                    <div class="product-name-match">${highlightMatch(escapeHtml(p.name), value)}</div>
+                    <div class="product-upc-info">UPC: ${p.upc} - $${p.price.toFixed(2)}</div>
+                </div>
+            `).join('');
+            
+            dropdown.classList.add('show');
+            
+            // Add click handlers to dropdown items
+            dropdown.querySelectorAll('.product-dropdown-item').forEach(item => {
+                item.addEventListener('click', () => selectProductFromName(item, rowId));
+            });
         }
+        
+        function selectProductFromName(item, rowId) {
+            const upc = item.dataset.upc;
+            const name = item.dataset.name;
+            const price = parseFloat(item.dataset.price);
+            
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const upcInput = row.querySelector('.upc-input');
+            const productInput = row.querySelector('.product-input');
+            const priceInput = row.querySelector('.price-input');
+            
+            upcInput.value = upc;
+            productInput.value = name;
+            priceInput.value = price.toFixed(2);
+            
+            // Update row data
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.upc = upc;
+                rowData.product = name;
+                rowData.price = price;
+                rowData.fromAutocomplete = true; // Mark as selected from autocomplete
+            }
+            
+            // Close dropdown
+            closeAllDropdowns();
+            
+            // Calculate row total
+            calculateRowTotal(rowId);
+            
+            // Check if we need to add a new row automatically
+            checkAndAddNewRow();
+            
+            // Focus on qty input
+            const qtyInput = row.querySelector('.qty-input');
+            qtyInput.focus();
+            qtyInput.select();
+        }
+        
+        // ============================================
+        // MANUAL INPUT HANDLERS
+        // ============================================
         
         function handlePriceInput(rowId) {
             const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
