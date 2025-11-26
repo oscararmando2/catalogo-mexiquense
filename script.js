@@ -2093,7 +2093,7 @@ function renderPendingCredits(searchTerm = '', filter = 'all') {
         const days = getDaysElapsed(credit.date);
         const urgencyClass = getUrgencyClass(days);
         const timeText = getTimeElapsedText(days);
-        const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
+        const totalProducts = credit.products.reduce((sum, p) => sum + (parseFloat(p.qty) || 0), 0);
         const firstPhoto = credit.products[0]?.photo;
         
         // Build products list HTML
@@ -2153,7 +2153,7 @@ function renderPendingCredits(searchTerm = '', filter = 'all') {
             if (!credit) return;
             
             // Show confirmation dialog
-            const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
+            const totalProducts = credit.products.reduce((sum, p) => sum + (parseFloat(p.qty) || 0), 0);
             const confirmMsg = `¿Deseas marcar como entregado el crédito?\n\nID: ${credit.id}\nProveedor: ${credit.provider || 'Sin proveedor'}\nTotal Productos: ${totalProducts}\n\nPresiona "Aceptar" para continuar o "Cancelar" para volver.`;
             
             if (confirm(confirmMsg)) {
@@ -2182,7 +2182,7 @@ function showDeliverForm(creditId) {
     document.getElementById('deliveryPhotoPreview').innerHTML = '';
     
     // Show credit summary with all details
-    const totalProducts = credit.products.reduce((sum, p) => sum + parseFloat(p.qty), 0);
+    const totalProducts = credit.products.reduce((sum, p) => sum + (parseFloat(p.qty) || 0), 0);
     
     // Build products list HTML with all details
     const productsListHTML = credit.products.map(p => `
