@@ -1312,17 +1312,29 @@
             // Key: upc + name (JSON stringified), Value: { upc, name, price }
             const csvProducts = new Map();
             
+            // Detect delimiter: try tab first, then comma
+            const firstDataLine = lines.find(line => line.trim() && !line.toLowerCase().startsWith('upc'));
+            const delimiter = detectDelimiter(firstDataLine || lines[0] || '');
+            
             lines.forEach((line, index) => {
                 // Skip empty lines
                 if (!line.trim()) return;
                 
-                // Parse CSV line (handle quoted values)
-                const values = parseCSVLine(line);
+                // Skip header line (case-insensitive check for "UPC" in first column)
+                const trimmedLine = line.trim();
+                if (index === 0 && trimmedLine.toLowerCase().startsWith('upc')) return;
+                
+                // Parse CSV/TSV line (handle quoted values and detected delimiter)
+                const values = parseCSVLine(line, delimiter);
                 
                 if (values.length >= 3) {
                     const upc = values[0].trim();
                     const name = values[1].trim();
-                    const priceStr = values[2].trim().replace(',', '.');
+                    // Remove currency symbols ($, €, etc.) and handle comma as decimal separator
+                    const priceStr = values[2].trim()
+                        .replace(/[$€£¥]/g, '')  // Remove currency symbols
+                        .replace(/,/g, '.')       // Replace comma with dot for decimal
+                        .replace(/\s/g, '');      // Remove any whitespace
                     const price = parseFloat(priceStr);
                     
                     // Skip products without UPC
@@ -1381,7 +1393,34 @@
             showToast(message, 'success');
         }
         
-        function parseCSVLine(line) {
+        /**
+         * Detects the delimiter used in a CSV/TSV line
+         * Supports: tab (\t), comma (,), semicolon (;)
+         * @param {string} line - A sample line from the file
+         * @returns {string} The detected delimiter character
+         */
+        function detectDelimiter(line) {
+            // Count occurrences of potential delimiters
+            const tabCount = (line.match(/\t/g) || []).length;
+            const commaCount = (line.match(/,/g) || []).length;
+            const semicolonCount = (line.match(/;/g) || []).length;
+            
+            // Return the most common delimiter, defaulting to comma
+            if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
+                return '\t';
+            } else if (semicolonCount > commaCount && semicolonCount > 0) {
+                return ';';
+            }
+            return ',';
+        }
+        
+        /**
+         * Parses a CSV/TSV line handling quoted values
+         * @param {string} line - The line to parse
+         * @param {string} delimiter - The delimiter character (default: comma)
+         * @returns {string[]} Array of values
+         */
+        function parseCSVLine(line, delimiter = ',') {
             const result = [];
             let current = '';
             let inQuotes = false;
@@ -1391,7 +1430,7 @@
                 
                 if (char === '"') {
                     inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
+                } else if (char === delimiter && !inQuotes) {
                     result.push(current);
                     current = '';
                 } else {
