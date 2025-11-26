@@ -1015,7 +1015,7 @@
                     <div class="upc-dropdown" id="dropdown-${rowId}"></div>
                 </td>
                 <td class="qty-cell">
-                    <input type="number" class="qty-input" min="1" value="1" data-row-id="${rowId}">
+                    <input type="text" class="qty-input" inputmode="numeric" pattern="[0-9]*" value="1" data-row-id="${rowId}">
                 </td>
                 <td class="product-cell">
                     <input type="text" class="product-input" placeholder="Producto" data-row-id="${rowId}">
@@ -1042,7 +1042,8 @@
             
             upcInput.addEventListener('input', (e) => handleUpcInput(e, rowId));
             upcInput.addEventListener('focus', (e) => handleUpcInput(e, rowId));
-            qtyInput.addEventListener('input', () => calculateRowTotal(rowId));
+            qtyInput.addEventListener('input', () => calculateRowTotal(rowId, false));
+            qtyInput.addEventListener('blur', () => calculateRowTotal(rowId, true));
             productInput.addEventListener('input', () => handleProductInput(rowId));
             priceInput.addEventListener('input', () => handlePriceInput(rowId));
             priceInput.addEventListener('keydown', (e) => {
@@ -1247,7 +1248,7 @@
         // CALCULATIONS
         // ============================================
         
-        function calculateRowTotal(rowId) {
+        function calculateRowTotal(rowId, enforceMin = true) {
             const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
             if (!row) return;
             
@@ -1258,7 +1259,11 @@
             let qty = parseInt(qtyInput.value, 10);
             if (isNaN(qty) || qty < 1) {
                 qty = 1;
-                qtyInput.value = 1;
+                // Only update the input value when enforceMin is true (on blur)
+                // This allows the user to clear the field while typing
+                if (enforceMin) {
+                    qtyInput.value = 1;
+                }
             }
             const price = parseFloat(priceInput.value) || 0;
             const total = qty * price;
