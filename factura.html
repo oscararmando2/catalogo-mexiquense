@@ -715,6 +715,17 @@
             padding: 5px 10px;
             font-size: 12px;
         }
+        
+        /* Add to Database Modal Styles */
+        .confirm-product-value {
+            font-weight: bold;
+            color: #006847;
+            margin: 0;
+        }
+        
+        .confirm-modal-intro {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -872,6 +883,35 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
     
+    <!-- Add Product to Database Confirmation Modal -->
+    <div class="modal" id="addToDbModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>¿Agregar producto a base de datos?</h3>
+                <button class="modal-close" id="closeAddToDbModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-modal-intro">Este producto no está en la base de datos. ¿Deseas agregarlo para futuras facturas?</p>
+                <div class="form-group">
+                    <label>UPC:</label>
+                    <p id="confirmProductUpc" class="confirm-product-value"></p>
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Producto:</label>
+                    <p id="confirmProductName" class="confirm-product-value"></p>
+                </div>
+                <div class="form-group">
+                    <label>Precio:</label>
+                    <p id="confirmProductPrice" class="confirm-product-value"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelAddToDbBtn">No, gracias</button>
+                <button class="btn btn-success" id="confirmAddToDbBtn">Sí, agregar</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // ============================================
         // SISTEMA DE FACTURACIÓN - MEXIQUENSE MARKET LLC
@@ -881,6 +921,10 @@
         let products = [];
         let invoiceNumber = 25;
         let invoiceRows = [];
+        let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
+        
+        // Constants
+        const MIN_VALID_PRICE = 0; // Minimum valid price to trigger add-to-database prompt
         
         // DOM Elements
         const invoiceBody = document.getElementById('invoiceBody');
@@ -909,6 +953,15 @@
         const productsDbCount = document.getElementById('productsDbCount');
         const productsDbEmpty = document.getElementById('productsDbEmpty');
         const productsDbTableContainer = document.getElementById('productsDbTableContainer');
+        
+        // Add to Database Confirmation Modal Elements
+        const addToDbModal = document.getElementById('addToDbModal');
+        const closeAddToDbModal = document.getElementById('closeAddToDbModal');
+        const cancelAddToDbBtn = document.getElementById('cancelAddToDbBtn');
+        const confirmAddToDbBtn = document.getElementById('confirmAddToDbBtn');
+        const confirmProductUpc = document.getElementById('confirmProductUpc');
+        const confirmProductName = document.getElementById('confirmProductName');
+        const confirmProductPrice = document.getElementById('confirmProductPrice');
         
         // ============================================
         // INITIALIZATION
@@ -992,6 +1045,18 @@
                 }
             });
             
+            // Add to Database Confirmation Modal events
+            closeAddToDbModal.addEventListener('click', closeAddToDbConfirmModal);
+            cancelAddToDbBtn.addEventListener('click', closeAddToDbConfirmModal);
+            confirmAddToDbBtn.addEventListener('click', confirmAddProductToDb);
+            
+            // Close add to database modal on outside click
+            addToDbModal.addEventListener('click', (e) => {
+                if (e.target === addToDbModal) {
+                    closeAddToDbConfirmModal();
+                }
+            });
+            
             // Close dropdowns on outside click
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.upc-cell')) {
@@ -1046,11 +1111,17 @@
             qtyInput.addEventListener('blur', () => calculateRowTotal(rowId, true));
             productInput.addEventListener('input', () => handleProductInput(rowId));
             priceInput.addEventListener('input', () => handlePriceInput(rowId));
+            priceInput.addEventListener('blur', () => {
+                // Check if product should be added to database when leaving price field
+                checkAndPromptAddToDatabase(rowId);
+            });
             priceInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     // Recalculate row total before adding new row
                     calculateRowTotal(rowId);
+                    // Check if product should be added to database
+                    checkAndPromptAddToDatabase(rowId);
                     // Create new row below
                     addNewRow();
                 }
@@ -1064,7 +1135,8 @@
                 qty: 1,
                 product: '',
                 price: 0,
-                total: 0
+                total: 0,
+                fromAutocomplete: false // Track if product was selected from autocomplete
             });
             
             // Focus on UPC input only when autoFocus is true
@@ -1091,6 +1163,14 @@
             const input = e.target;
             const value = input.value.trim();
             const dropdown = document.getElementById(`dropdown-${rowId}`);
+            
+            // Update row data with the typed UPC
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (rowData) {
+                rowData.upc = value;
+                // Reset autocomplete flag when manually typing UPC
+                rowData.fromAutocomplete = false;
+            }
             
             // Close all other dropdowns first
             closeAllDropdowns();
@@ -1150,6 +1230,7 @@
                 rowData.upc = upc;
                 rowData.product = name;
                 rowData.price = price;
+                rowData.fromAutocomplete = true; // Mark as selected from autocomplete
             }
             
             // Close dropdown
@@ -1188,6 +1269,8 @@
             const rowData = invoiceRows.find(r => r.id === rowId);
             if (rowData) {
                 rowData.product = product;
+                // Reset autocomplete flag if user manually edits the product name
+                rowData.fromAutocomplete = false;
             }
             
             // Check if we need to add a new row
@@ -1205,6 +1288,8 @@
             const rowData = invoiceRows.find(r => r.id === rowId);
             if (rowData) {
                 rowData.price = price;
+                // Reset autocomplete flag if user manually edits the price
+                rowData.fromAutocomplete = false;
             }
             
             // Recalculate row total
@@ -1563,6 +1648,96 @@
         
         function closeProductsDbModalFn() {
             productsDbModal.classList.remove('show');
+        }
+        
+        // ============================================
+        // ADD TO DATABASE CONFIRMATION MODAL
+        // ============================================
+        
+        function openAddToDbConfirmModal(upc, name, price) {
+            pendingProductToAdd = { upc, name, price };
+            confirmProductUpc.textContent = upc || 'N/A';
+            confirmProductName.textContent = name;
+            confirmProductPrice.textContent = '$' + price.toFixed(2);
+            addToDbModal.classList.add('show');
+        }
+        
+        function closeAddToDbConfirmModal() {
+            addToDbModal.classList.remove('show');
+            pendingProductToAdd = null;
+        }
+        
+        function confirmAddProductToDb() {
+            if (!pendingProductToAdd) {
+                closeAddToDbConfirmModal();
+                return;
+            }
+            
+            const { upc, name, price } = pendingProductToAdd;
+            
+            // Check if product already exists (by UPC or name) - case insensitive
+            const existingByUpc = upc ? products.findIndex(p => p.upc && p.upc.toLowerCase() === upc.toLowerCase()) : -1;
+            const existingByName = products.findIndex(p => p.name && p.name.toLowerCase() === name.toLowerCase());
+            
+            if (existingByUpc >= 0) {
+                // Update existing product by UPC
+                products[existingByUpc] = { upc, name, price };
+                showToast('Producto actualizado en la base de datos', 'success');
+            } else if (existingByName >= 0) {
+                // Update existing product by name
+                products[existingByName] = { upc: upc || products[existingByName].upc, name, price };
+                showToast('Producto actualizado en la base de datos', 'success');
+            } else {
+                // Add new product
+                products.push({ upc: upc || '', name, price });
+                showToast('Producto agregado a la base de datos', 'success');
+            }
+            
+            saveProductsToLocalStorage();
+            closeAddToDbConfirmModal();
+        }
+        
+        /**
+         * Checks if a product exists in the database
+         * @param {string} upc - The UPC code
+         * @param {string} name - The product name
+         * @returns {boolean} - True if product exists
+         */
+        function productExistsInDatabase(upc, name) {
+            if (!upc && !name) return false;
+            
+            return products.some(p => 
+                // Check by UPC if provided
+                (upc && p.upc && p.upc.toLowerCase() === upc.toLowerCase()) ||
+                // Check by name if provided
+                (name && p.name && p.name.toLowerCase() === name.toLowerCase())
+            );
+        }
+        
+        /**
+         * Called when a row's data is complete (has product name and price)
+         * Checks if the product exists and prompts to add if not
+         * @param {string} rowId - The row ID
+         */
+        function checkAndPromptAddToDatabase(rowId) {
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (!rowData) return;
+            
+            // If product was selected from autocomplete, it already exists in database
+            if (rowData.fromAutocomplete) return;
+            
+            const upc = rowData.upc || '';
+            const name = rowData.product || '';
+            const price = rowData.price || 0;
+            
+            // Only check if we have at least a product name and a valid price
+            if (!name.trim() || price <= MIN_VALID_PRICE) return;
+            
+            // Check if product already exists in database
+            if (productExistsInDatabase(upc, name)) return;
+            
+            // Product doesn't exist - prompt to add
+            openAddToDbConfirmModal(upc, name, price);
         }
         
         function renderProductsDb(searchTerm = '') {
