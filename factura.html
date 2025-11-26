@@ -715,6 +715,17 @@
             padding: 5px 10px;
             font-size: 12px;
         }
+        
+        /* Add to Database Modal Styles */
+        .confirm-product-value {
+            font-weight: bold;
+            color: #006847;
+            margin: 0;
+        }
+        
+        .confirm-modal-intro {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -880,18 +891,18 @@
                 <button class="modal-close" id="closeAddToDbModal">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 15px;">Este producto no está en la base de datos. ¿Deseas agregarlo para futuras facturas?</p>
+                <p class="confirm-modal-intro">Este producto no está en la base de datos. ¿Deseas agregarlo para futuras facturas?</p>
                 <div class="form-group">
                     <label>UPC:</label>
-                    <p id="confirmProductUpc" style="font-weight: bold; color: #006847;"></p>
+                    <p id="confirmProductUpc" class="confirm-product-value"></p>
                 </div>
                 <div class="form-group">
                     <label>Nombre del Producto:</label>
-                    <p id="confirmProductName" style="font-weight: bold; color: #006847;"></p>
+                    <p id="confirmProductName" class="confirm-product-value"></p>
                 </div>
                 <div class="form-group">
                     <label>Precio:</label>
-                    <p id="confirmProductPrice" style="font-weight: bold; color: #006847;"></p>
+                    <p id="confirmProductPrice" class="confirm-product-value"></p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -911,6 +922,9 @@
         let invoiceNumber = 25;
         let invoiceRows = [];
         let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
+        
+        // Constants
+        const MIN_VALID_PRICE = 0; // Minimum valid price to trigger add-to-database prompt
         
         // DOM Elements
         const invoiceBody = document.getElementById('invoiceBody');
@@ -1661,9 +1675,9 @@
             
             const { upc, name, price } = pendingProductToAdd;
             
-            // Check if product already exists (by UPC or name)
-            const existingByUpc = upc ? products.findIndex(p => p.upc === upc) : -1;
-            const existingByName = products.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+            // Check if product already exists (by UPC or name) - case insensitive
+            const existingByUpc = upc ? products.findIndex(p => p.upc && p.upc.toLowerCase() === upc.toLowerCase()) : -1;
+            const existingByName = products.findIndex(p => p.name && p.name.toLowerCase() === name.toLowerCase());
             
             if (existingByUpc >= 0) {
                 // Update existing product by UPC
@@ -1692,17 +1706,12 @@
         function productExistsInDatabase(upc, name) {
             if (!upc && !name) return false;
             
-            return products.some(p => {
+            return products.some(p => 
                 // Check by UPC if provided
-                if (upc && p.upc && p.upc.toLowerCase() === upc.toLowerCase()) {
-                    return true;
-                }
-                // Check by name if no UPC match
-                if (name && p.name && p.name.toLowerCase() === name.toLowerCase()) {
-                    return true;
-                }
-                return false;
-            });
+                (upc && p.upc && p.upc.toLowerCase() === upc.toLowerCase()) ||
+                // Check by name if provided
+                (name && p.name && p.name.toLowerCase() === name.toLowerCase())
+            );
         }
         
         /**
@@ -1721,8 +1730,8 @@
             const name = rowData.product || '';
             const price = rowData.price || 0;
             
-            // Only check if we have at least a product name and price
-            if (!name.trim() || price <= 0) return;
+            // Only check if we have at least a product name and a valid price
+            if (!name.trim() || price <= MIN_VALID_PRICE) return;
             
             // Check if product already exists in database
             if (productExistsInDatabase(upc, name)) return;
