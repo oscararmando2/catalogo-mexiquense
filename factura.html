@@ -1312,9 +1312,9 @@
             // Key: upc + name (JSON stringified), Value: { upc, name, price }
             const csvProducts = new Map();
             
-            // Detect delimiter: try tab first, then comma
-            const firstDataLine = lines.find(line => line.trim() && !line.toLowerCase().startsWith('upc'));
-            const delimiter = detectDelimiter(firstDataLine || lines[0] || '');
+            // Detect delimiter by analyzing multiple lines for more reliable detection
+            const dataLines = lines.filter(line => line.trim() && !line.toLowerCase().startsWith('upc')).slice(0, 5);
+            const delimiter = detectDelimiter(dataLines);
             
             lines.forEach((line, index) => {
                 // Skip empty lines
@@ -1330,11 +1330,25 @@
                 if (values.length >= 3) {
                     const upc = values[0].trim();
                     const name = values[1].trim();
-                    // Remove currency symbols ($, €, etc.) and handle comma as decimal separator
-                    const priceStr = values[2].trim()
-                        .replace(/[$€£¥]/g, '')  // Remove currency symbols
-                        .replace(/,/g, '.')       // Replace comma with dot for decimal
-                        .replace(/\s/g, '');      // Remove any whitespace
+                    // Remove currency symbols ($, €, etc.) and clean up price format
+                    // Handle both European (1.234,56) and US (1,234.56) formats
+                    let priceStr = values[2].trim()
+                        .replace(/[$€£¥]/g, '')       // Remove currency symbols
+                        .replace(/\s/g, '');           // Remove any whitespace
+                    
+                    // Determine decimal separator: if there's a comma after a dot, it's European format
+                    // Otherwise assume US format
+                    if (/\d\.\d{3},\d{1,2}$/.test(priceStr)) {
+                        // European format: 1.234,56 -> 1234.56
+                        priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+                    } else {
+                        // US format: 1,234.56 -> 1234.56 (remove thousand separators)
+                        priceStr = priceStr.replace(/,(?=\d{3})/g, '');
+                        // If comma is used as decimal separator (e.g., 4,62), replace it
+                        if (priceStr.includes(',') && !priceStr.includes('.')) {
+                            priceStr = priceStr.replace(',', '.');
+                        }
+                    }
                     const price = parseFloat(priceStr);
                     
                     // Skip products without UPC
@@ -1394,21 +1408,32 @@
         }
         
         /**
-         * Detects the delimiter used in a CSV/TSV line
+         * Detects the delimiter used in CSV/TSV data by analyzing multiple lines
          * Supports: tab (\t), comma (,), semicolon (;)
-         * @param {string} line - A sample line from the file
+         * @param {string[]} lines - Array of sample lines from the file
          * @returns {string} The detected delimiter character
          */
-        function detectDelimiter(line) {
-            // Count occurrences of potential delimiters
-            const tabCount = (line.match(/\t/g) || []).length;
-            const commaCount = (line.match(/,/g) || []).length;
-            const semicolonCount = (line.match(/;/g) || []).length;
+        function detectDelimiter(lines) {
+            if (!lines || lines.length === 0) {
+                return ',';
+            }
             
-            // Return the most common delimiter, defaulting to comma
-            if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
+            // Count occurrences across all sample lines
+            let tabCount = 0;
+            let commaCount = 0;
+            let semicolonCount = 0;
+            
+            lines.forEach(line => {
+                tabCount += (line.match(/\t/g) || []).length;
+                commaCount += (line.match(/,/g) || []).length;
+                semicolonCount += (line.match(/;/g) || []).length;
+            });
+            
+            // Tab is most reliable indicator (rarely appears in data)
+            // Require at least 2 occurrences across all lines for tab detection
+            if (tabCount >= 2 && tabCount > commaCount && tabCount > semicolonCount) {
                 return '\t';
-            } else if (semicolonCount > commaCount && semicolonCount > 0) {
+            } else if (semicolonCount > commaCount && semicolonCount >= 2) {
                 return ';';
             }
             return ',';
