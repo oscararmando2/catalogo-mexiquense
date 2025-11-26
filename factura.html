@@ -1312,17 +1312,50 @@
             // Key: upc + name (JSON stringified), Value: { upc, name, price }
             const csvProducts = new Map();
             
+            // Detect delimiter by analyzing multiple lines for more reliable detection
+            const dataLines = lines.filter(line => line.trim() && !line.toLowerCase().startsWith('upc')).slice(0, 5);
+            const delimiter = detectDelimiter(dataLines);
+            
             lines.forEach((line, index) => {
                 // Skip empty lines
                 if (!line.trim()) return;
                 
-                // Parse CSV line (handle quoted values)
-                const values = parseCSVLine(line);
+                // Skip header line (case-insensitive check for "UPC" in first column)
+                const trimmedLine = line.trim();
+                if (index === 0 && trimmedLine.toLowerCase().startsWith('upc')) return;
+                
+                // Parse CSV/TSV line (handle quoted values and detected delimiter)
+                const values = parseCSVLine(line, delimiter);
                 
                 if (values.length >= 3) {
                     const upc = values[0].trim();
                     const name = values[1].trim();
-                    const priceStr = values[2].trim().replace(',', '.');
+                    // Remove currency symbols ($, €, etc.) and clean up price format
+                    // Handle both European (1.234,56) and US (1,234.56) formats
+                    let priceStr = values[2].trim()
+                        .replace(/[$€£¥]/g, '')       // Remove currency symbols
+                        .replace(/\s/g, '');           // Remove any whitespace
+                    
+                    // Determine decimal separator:
+                    // European format: uses comma as decimal separator, dot as thousand separator
+                    // US format: uses dot as decimal separator, comma as thousand separator
+                    // Pattern explanation:
+                    //   \d+ - one or more digits before optional thousand separators
+                    //   (?:\.\d{3})* - zero or more groups of dot + exactly 3 digits (thousand separators)
+                    //   ,\d{1,2}$ - comma followed by 1-2 digits at end (decimal portion)
+                    if (/\d+(?:\.\d{3})*,\d{1,2}$/.test(priceStr)) {
+                        // European format: 1.234,56 or 12.345.678,90 -> 1234.56 or 12345678.90
+                        priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+                    } else {
+                        // US format: remove thousand separators
+                        // Pattern: comma followed by exactly 3 digits, but NOT followed by more digits
+                        // This ensures we only remove thousand separators (1,234) not decimal commas (1,23)
+                        priceStr = priceStr.replace(/,(?=\d{3}(?!\d))/g, '');
+                        // If comma is used as decimal separator (e.g., 4,62 with no dot present), replace it
+                        if (priceStr.includes(',') && !priceStr.includes('.')) {
+                            priceStr = priceStr.replace(',', '.');
+                        }
+                    }
                     const price = parseFloat(priceStr);
                     
                     // Skip products without UPC
@@ -1381,7 +1414,77 @@
             showToast(message, 'success');
         }
         
-        function parseCSVLine(line) {
+        /**
+         * Detects the delimiter used in CSV/TSV data by analyzing multiple lines
+         * Supports: tab (\t), comma (,), semicolon (;)
+         * @param {string[]} lines - Array of sample lines from the file
+         * @returns {string} The detected delimiter character
+         */
+        function detectDelimiter(lines) {
+            if (!lines || lines.length === 0) {
+                return ',';
+            }
+            
+            // Analyze delimiter consistency across lines
+            // Count how many columns each delimiter would produce per line
+            const delimiterStats = {
+                '\t': { counts: [], consistent: true },
+                ',': { counts: [], consistent: true },
+                ';': { counts: [], consistent: true }
+            };
+            
+            // Map delimiters to their regex patterns for matching
+            const delimiterPatterns = {
+                '\t': /\t/g,
+                ',': /,/g,
+                ';': /;/g
+            };
+            
+            lines.forEach(line => {
+                // Count columns for each delimiter
+                Object.keys(delimiterStats).forEach(delim => {
+                    const matches = line.match(delimiterPatterns[delim]) || [];
+                    const count = matches.length + 1; // columns = delimiters + 1
+                    delimiterStats[delim].counts.push(count);
+                });
+            });
+            
+            // Check consistency: same number of columns across all lines
+            Object.keys(delimiterStats).forEach(delim => {
+                const counts = delimiterStats[delim].counts;
+                if (counts.length > 1) {
+                    delimiterStats[delim].consistent = counts.every(c => c === counts[0]);
+                    delimiterStats[delim].avgCount = counts.reduce((a, b) => a + b, 0) / counts.length;
+                } else if (counts.length === 1) {
+                    delimiterStats[delim].avgCount = counts[0];
+                } else {
+                    delimiterStats[delim].avgCount = 1;
+                }
+            });
+            
+            // Helper function to check if a delimiter is viable
+            const isViableDelimiter = (delim) => 
+                delimiterStats[delim].consistent && delimiterStats[delim].avgCount >= 3;
+            
+            // Prioritize tab (most reliable), then check for consistency
+            // Tab is preferred if it produces consistent column counts >= 3 (UPC, Name, Price)
+            if (isViableDelimiter('\t')) {
+                return '\t';
+            }
+            // Check semicolon (common in European CSVs) - prefer over comma if more columns
+            if (isViableDelimiter(';') && delimiterStats[';'].avgCount > delimiterStats[','].avgCount) {
+                return ';';
+            }
+            return ',';
+        }
+        
+        /**
+         * Parses a CSV/TSV line handling quoted values
+         * @param {string} line - The line to parse
+         * @param {string} delimiter - The delimiter character (default: comma)
+         * @returns {string[]} Array of values
+         */
+        function parseCSVLine(line, delimiter = ',') {
             const result = [];
             let current = '';
             let inQuotes = false;
@@ -1391,7 +1494,7 @@
                 
                 if (char === '"') {
                     inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
+                } else if (char === delimiter && !inQuotes) {
                     result.push(current);
                     current = '';
                 } else {
