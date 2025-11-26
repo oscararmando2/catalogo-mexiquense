@@ -1336,15 +1336,16 @@
                         .replace(/[$€£¥]/g, '')       // Remove currency symbols
                         .replace(/\s/g, '');           // Remove any whitespace
                     
-                    // Determine decimal separator: if there's a comma after a dot, it's European format
-                    // Otherwise assume US format
-                    if (/\d\.\d{3},\d{1,2}$/.test(priceStr)) {
-                        // European format: 1.234,56 -> 1234.56
+                    // Determine decimal separator:
+                    // European format: uses comma as decimal separator, dot as thousand separator
+                    // US format: uses dot as decimal separator, comma as thousand separator
+                    if (/\d+(?:\.\d{3})*,\d{1,2}$/.test(priceStr)) {
+                        // European format: 1.234,56 or 12.345.678,90 -> 1234.56 or 12345678.90
                         priceStr = priceStr.replace(/\./g, '').replace(',', '.');
                     } else {
-                        // US format: 1,234.56 -> 1234.56 (remove thousand separators)
-                        priceStr = priceStr.replace(/,(?=\d{3})/g, '');
-                        // If comma is used as decimal separator (e.g., 4,62), replace it
+                        // US format: remove thousand separators (commas followed by 3 digits not followed by more digits)
+                        priceStr = priceStr.replace(/,(?=\d{3}(?!\d))/g, '');
+                        // If comma is used as decimal separator (e.g., 4,62 with no dot present), replace it
                         if (priceStr.includes(',') && !priceStr.includes('.')) {
                             priceStr = priceStr.replace(',', '.');
                         }
@@ -1418,22 +1419,43 @@
                 return ',';
             }
             
-            // Count occurrences across all sample lines
-            let tabCount = 0;
-            let commaCount = 0;
-            let semicolonCount = 0;
+            // Analyze delimiter consistency across lines
+            // Count how many columns each delimiter would produce per line
+            const delimiterStats = {
+                '\t': { counts: [], consistent: true },
+                ',': { counts: [], consistent: true },
+                ';': { counts: [], consistent: true }
+            };
             
             lines.forEach(line => {
-                tabCount += (line.match(/\t/g) || []).length;
-                commaCount += (line.match(/,/g) || []).length;
-                semicolonCount += (line.match(/;/g) || []).length;
+                // Count columns for each delimiter
+                Object.keys(delimiterStats).forEach(delim => {
+                    const count = (line.match(new RegExp(delim === '\t' ? '\\t' : (delim === ',' ? ',' : ';'), 'g')) || []).length + 1;
+                    delimiterStats[delim].counts.push(count);
+                });
             });
             
-            // Tab is most reliable indicator (rarely appears in data)
-            // Require at least 2 occurrences across all lines for tab detection
-            if (tabCount >= 2 && tabCount > commaCount && tabCount > semicolonCount) {
+            // Check consistency: same number of columns across all lines
+            Object.keys(delimiterStats).forEach(delim => {
+                const counts = delimiterStats[delim].counts;
+                if (counts.length > 1) {
+                    delimiterStats[delim].consistent = counts.every(c => c === counts[0]);
+                    delimiterStats[delim].avgCount = counts.reduce((a, b) => a + b, 0) / counts.length;
+                } else if (counts.length === 1) {
+                    delimiterStats[delim].avgCount = counts[0];
+                } else {
+                    delimiterStats[delim].avgCount = 1;
+                }
+            });
+            
+            // Prioritize tab (most reliable), then check for consistency
+            // Tab is preferred if it produces consistent column counts >= 3 (UPC, Name, Price)
+            if (delimiterStats['\t'].consistent && delimiterStats['\t'].avgCount >= 3) {
                 return '\t';
-            } else if (semicolonCount > commaCount && semicolonCount >= 2) {
+            }
+            // Check semicolon (common in European CSVs)
+            if (delimiterStats[';'].consistent && delimiterStats[';'].avgCount >= 3 && 
+                delimiterStats[';'].avgCount > delimiterStats[','].avgCount) {
                 return ';';
             }
             return ',';
