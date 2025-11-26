@@ -1128,7 +1128,7 @@
                     <div class="upc-dropdown" id="dropdown-${rowId}"></div>
                 </td>
                 <td class="qty-cell">
-                    <input type="text" class="qty-input" inputmode="numeric" pattern="[0-9]*" value="1" data-row-id="${rowId}">
+                    <input type="number" class="qty-input" step="any" min="0.01" value="1" data-row-id="${rowId}">
                 </td>
                 <td class="product-cell">
                     <input type="text" class="product-input" placeholder="Buscar nombre..." data-row-id="${rowId}">
@@ -1474,8 +1474,8 @@
             const priceInput = row.querySelector('.price-input');
             const totalInput = row.querySelector('.total-input');
             
-            let qty = parseInt(qtyInput.value, 10);
-            if (isNaN(qty) || qty < 1) {
+            let qty = parseFloat(qtyInput.value);
+            if (isNaN(qty) || qty <= 0) {
                 qty = 1;
                 // Only update the input value when enforceMin is true (on blur)
                 // This allows the user to clear the field while typing
