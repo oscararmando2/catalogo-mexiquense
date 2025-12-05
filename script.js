@@ -1489,7 +1489,7 @@ function renderEspeciales(searchTerm = '') {
             <div class="pt-3 border-t border-gray-200">
                 ${especial.antes ? `
                     <div class="mb-3">
-                        <span class="text-sm text-gray-600">Ultima Compra:</span>
+                        <span class="text-sm text-gray-600">Última Compra:</span>
                         <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
                     </div>
                 ` : ''}
