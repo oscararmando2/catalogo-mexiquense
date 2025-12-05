@@ -1405,6 +1405,7 @@ function renderEspeciales(searchTerm = '') {
             (e.nombre && e.nombre.toLowerCase().includes(term)) ||
             (e.upc && e.upc.toLowerCase().includes(term)) ||
             (e.provider && e.provider.toLowerCase().includes(term)) ||
+            (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
             (e.product && e.product.toLowerCase().includes(term))
         );
     }
@@ -1433,12 +1434,21 @@ function renderEspeciales(searchTerm = '') {
             discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
         }
         
+        // Image section
+        const imageHTML = especial.imageUrl ? `
+            <div class="mb-4">
+                <img src="${sanitizeInput(especial.imageUrl)}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="w-full h-40 object-contain rounded-lg bg-gray-100" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+            </div>
+        ` : '';
+        
         card.innerHTML = `
+            ${imageHTML}
             <div class="mb-4">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex-grow">
                         <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
-                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-2">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-1">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                        ${especial.proveedor ? `<p class="text-sm text-gray-600 mb-2"><strong>Proveedor:</strong> ${sanitizeInput(especial.proveedor)}</p>` : ''}
                     </div>
                     <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1450,7 +1460,7 @@ function renderEspeciales(searchTerm = '') {
             <div class="pt-3 border-t border-gray-200">
                 ${especial.antes ? `
                     <div class="mb-3">
-                        <span class="text-sm text-gray-600">Precio Antes:</span>
+                        <span class="text-sm text-gray-600">Ultima Compra:</span>
                         <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
                     </div>
                 ` : ''}
@@ -1488,13 +1498,15 @@ function getNextId(array, idField, defaultStart = 1) {
 }
 
 // Add new especial
-async function addEspecial(nombre, upc, antes, precio) {
+async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor) {
     const newEspecial = {
         id_price: getNextId(especiales, 'id_price', 1),
         nombre: nombre,
         upc: upc,
         antes: parseFloat(antes),
-        price: parseFloat(precio)
+        price: parseFloat(precio),
+        imageUrl: imageUrl,
+        proveedor: proveedor
     };
     
     especiales.push(newEspecial);
@@ -1568,6 +1580,8 @@ function setupEspecialesEventListeners() {
             document.getElementById('especialUpc').value = '';
             document.getElementById('especialAntes').value = '';
             document.getElementById('especialPrice').value = '';
+            document.getElementById('especialImageUrl').value = '';
+            document.getElementById('especialProveedor').value = '';
             especialFormModal.classList.remove('hidden');
         });
     }
@@ -1599,9 +1613,11 @@ function setupEspecialesEventListeners() {
                 const upc = document.getElementById('especialUpc').value.trim();
                 const antes = document.getElementById('especialAntes').value;
                 const precio = document.getElementById('especialPrice').value;
+                const imageUrl = document.getElementById('especialImageUrl').value.trim();
+                const proveedor = document.getElementById('especialProveedor').value.trim();
                 
                 // Validate all required fields
-                if (!nombre || !upc || !antes || !precio) {
+                if (!nombre || !upc || !antes || !precio || !imageUrl || !proveedor) {
                     showToast('Por favor completa todos los campos obligatorios', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
@@ -1612,7 +1628,7 @@ function setupEspecialesEventListeners() {
                 const antesNum = parseFloat(antes);
                 const precioNum = parseFloat(precio);
                 if (isNaN(antesNum) || antesNum < 0) {
-                    showToast('Por favor ingresa un precio antes válido (mayor o igual a 0)', true);
+                    showToast('Por favor ingresa una ultima compra válida (mayor o igual a 0)', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
@@ -1624,7 +1640,7 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                await addEspecial(nombre, upc, antes, precio);
+                await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor);
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
