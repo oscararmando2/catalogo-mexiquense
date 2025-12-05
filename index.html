@@ -331,6 +331,31 @@
             <div id="especialesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
+        <!-- Especiales en Tienda View -->
+        <section id="especialesTiendaView" class="flex-grow container mx-auto px-4 py-8 hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-mexican-red mb-2">Especiales en Tienda</h2>
+                        <p class="text-sm text-gray-600">Registra productos en especial exclusivos de tienda física con precios anteriores</p>
+                    </div>
+                    <button id="addEspecialTiendaBtn" class="bg-mexican-red hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium flex items-center transition-all mt-4 md:mt-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Agregar Nuevo Especial Tienda
+                    </button>
+                </div>
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <input id="especialesTiendaSearchInput" type="text" placeholder="Buscar por nombre o UPC..." aria-label="Buscar precios especiales en tienda" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="especialesTiendaContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
         <!-- Créditos View -->
         <section id="creditosView" class="flex-grow container mx-auto px-4 py-8 hidden">
             <!-- Pending Credits View -->
@@ -662,6 +687,43 @@
                         <div class="pt-4 flex justify-end space-x-2">
                             <button type="button" id="cancelEspecialBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
                             <button type="submit" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Add/Edit Especial Tienda -->
+        <div id="especialTiendaFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-mexican-red text-white px-6 py-4 flex justify-between items-center">
+                    <h3 id="especialTiendaFormTitle" class="text-xl font-bold">Nuevo Especial Tienda</h3>
+                    <button id="closeEspecialTiendaFormModal" class="text-white hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto custom-scrollbar">
+                    <form id="especialTiendaForm" class="space-y-4">
+                        <input type="hidden" id="especialTiendaId" />
+                        <div>
+                            <label for="especialTiendaNombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre*</label>
+                            <input type="text" id="especialTiendaNombre" name="especialTiendaNombre" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label for="especialTiendaUpc" class="block text-sm font-medium text-gray-700 mb-1">UPC*</label>
+                            <input type="text" id="especialTiendaUpc" name="especialTiendaUpc" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label for="especialTiendaAntes" class="block text-sm font-medium text-gray-700 mb-1">Precio Antes*</label>
+                            <input type="number" id="especialTiendaAntes" name="especialTiendaAntes" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label for="especialTiendaPrice" class="block text-sm font-medium text-gray-700 mb-1">Precio Especial*</label>
+                            <input type="number" id="especialTiendaPrice" name="especialTiendaPrice" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                        </div>
+                        <div class="pt-4 flex justify-end space-x-2">
+                            <button type="button" id="cancelEspecialTiendaBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
+                            <button type="submit" class="bg-mexican-red hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
                         </div>
                     </form>
                 </div>
@@ -1246,6 +1308,7 @@ function importFromCSV(file) {
             currentView=view; 
             document.getElementById('creditosView').classList.add('hidden');
             document.getElementById('especialesView').classList.add('hidden');
+            document.getElementById('especialesTiendaView').classList.add('hidden');
             if(view==='admin'){ 
                 adminView.classList.remove('hidden'); 
                 publicView.classList.add('hidden'); 
@@ -1646,6 +1709,7 @@ function importFromCSV(file) {
             adminView.classList.add('hidden');
             publicView.classList.add('hidden');
             document.getElementById('creditosView').classList.add('hidden');
+            document.getElementById('especialesTiendaView').classList.add('hidden');
             document.getElementById('especialesView').classList.remove('hidden');
             
             renderEspeciales();
@@ -1810,7 +1874,7 @@ function importFromCSV(file) {
             const especialesEnTiendaBtnMobile = document.getElementById('especialesEnTiendaBtnMobile');
             if (especialesEnTiendaBtnMobile) {
                 especialesEnTiendaBtnMobile.addEventListener('click', () => {
-                    showEspecialesView();
+                    showEspecialesTiendaView();
                     closeMobileMenu();
                 });
             }
@@ -1912,6 +1976,423 @@ function importFromCSV(file) {
                 especialFormModal.addEventListener('click', (e) => {
                     if (e.target === especialFormModal) {
                         especialFormModal.classList.add('hidden');
+                    }
+                });
+            }
+        }
+
+        // ==== ESPECIALES EN TIENDA FUNCTIONALITY ====
+        let especialesTienda = [];
+        let especialesTiendaListeners = null;
+
+        // Load especiales tienda from Firebase with localStorage fallback
+        function loadEspecialesTienda() {
+            try {
+                if (database) {
+                    const especialesTiendaRef = database.ref('especialesTienda');
+                    
+                    especialesTienda = [];
+                    
+                    especialesTiendaRef.once('value').then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data && Array.isArray(data) && data.length > 0) {
+                            especialesTienda = data.filter(e => e != null && typeof e === 'object');
+                        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                            especialesTienda = Object.values(data).filter(e => e != null && typeof e === 'object');
+                        } else {
+                            especialesTienda = [];
+                        }
+                        
+                        if (currentView === 'especialesTienda') {
+                            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+                        }
+                        console.log('Especiales Tienda initial load:', especialesTienda.length, 'items');
+                        
+                        setupEspecialesTiendaListeners();
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
+            } catch (err) {
+                console.warn('Using localStorage for especiales tienda', err);
+                if (isLocalStorageAvailable()) {
+                    const stored = localStorage.getItem('especialesTienda');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        especialesTienda = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
+                    } else {
+                        especialesTienda = [];
+                    }
+                }
+            }
+        }
+
+        // Setup Firebase listeners for especiales tienda
+        function setupEspecialesTiendaListeners() {
+            if (!database) return;
+            
+            const especialesTiendaRef = database.ref('especialesTienda');
+            
+            especialesTiendaListeners = {
+                childAdded: null,
+                childRemoved: null,
+                childChanged: null
+            };
+            
+            let initialLoadComplete = false;
+            
+            especialesTiendaListeners.childAdded = especialesTiendaRef.on('child_added', (snapshot, prevChildKey) => {
+                if (!initialLoadComplete) return;
+                
+                const newItem = snapshot.val();
+                const index = parseInt(snapshot.key, 10);
+                
+                if (newItem && typeof newItem === 'object') {
+                    const existingIndex = especialesTienda.findIndex(e => 
+                        e.id_price === newItem.id_price || 
+                        (e.nombre === newItem.nombre && e.upc === newItem.upc)
+                    );
+                    
+                    if (existingIndex === -1) {
+                        if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
+                            especialesTienda.splice(index, 0, newItem);
+                        } else {
+                            especialesTienda.push(newItem);
+                        }
+                        
+                        console.log('Especial Tienda added from Firebase:', newItem.nombre);
+                        
+                        if (isLocalStorageAvailable()) {
+                            localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                        }
+                        
+                        if (currentView === 'especialesTienda') {
+                            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+                        }
+                    }
+                }
+            });
+            
+            especialesTiendaListeners.childRemoved = especialesTiendaRef.on('child_removed', (snapshot) => {
+                const removedItem = snapshot.val();
+                const index = parseInt(snapshot.key, 10);
+                
+                if (removedItem) {
+                    if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
+                        especialesTienda.splice(index, 1);
+                    } else {
+                        especialesTienda = especialesTienda.filter(e => 
+                            !(e.id_price === removedItem.id_price || 
+                              (e.nombre === removedItem.nombre && e.upc === removedItem.upc))
+                        );
+                    }
+                    
+                    console.log('Especial Tienda removed from Firebase:', removedItem.nombre || 'Unknown');
+                    
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                    }
+                    
+                    if (currentView === 'especialesTienda') {
+                        renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+                    }
+                }
+            });
+            
+            especialesTiendaListeners.childChanged = especialesTiendaRef.on('child_changed', (snapshot) => {
+                const updatedItem = snapshot.val();
+                const index = parseInt(snapshot.key, 10);
+                
+                if (updatedItem && typeof updatedItem === 'object') {
+                    if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
+                        especialesTienda[index] = updatedItem;
+                    } else {
+                        const existingIndex = especialesTienda.findIndex(e => e.id_price === updatedItem.id_price);
+                        if (existingIndex !== -1) {
+                            especialesTienda[existingIndex] = updatedItem;
+                        }
+                    }
+                    
+                    console.log('Especial Tienda updated from Firebase:', updatedItem.nombre);
+                    
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                    }
+                    
+                    if (currentView === 'especialesTienda') {
+                        renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+                    }
+                }
+            });
+            
+            setTimeout(() => {
+                initialLoadComplete = true;
+                console.log('Especiales Tienda Firebase listeners active');
+            }, 1000);
+        }
+
+        // Save especiales tienda to Firebase and localStorage
+        function saveEspecialesTienda() {
+            return new Promise((resolve) => {
+                try {
+                    if (database) {
+                        database.ref('especialesTienda').set(especialesTienda)
+                            .then(() => {
+                                console.log('Especiales Tienda saved to Firebase successfully');
+                                if (isLocalStorageAvailable()) {
+                                    localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                                }
+                                resolve();
+                            })
+                            .catch((err) => {
+                                console.warn('Firebase save error for especiales tienda, using localStorage as fallback', err);
+                                if (isLocalStorageAvailable()) {
+                                    localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                                }
+                                resolve();
+                            });
+                    } else {
+                        if (isLocalStorageAvailable()) {
+                            localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                        }
+                        resolve();
+                    }
+                } catch (err) {
+                    console.error('Error saving especiales tienda:', err);
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                    }
+                    resolve();
+                }
+            });
+        }
+
+        // Show especiales tienda view
+        function showEspecialesTiendaView() {
+            currentView = 'especialesTienda';
+            
+            adminView.classList.add('hidden');
+            publicView.classList.add('hidden');
+            document.getElementById('especialesView').classList.add('hidden');
+            document.getElementById('creditosView').classList.add('hidden');
+            document.getElementById('especialesTiendaView').classList.remove('hidden');
+            
+            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+            updateHeaderButtons();
+        }
+
+        // Render especiales tienda
+        function renderEspecialesTienda(searchTerm = '') {
+            const container = document.getElementById('especialesTiendaContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            let filtered = [...especialesTienda];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(e => 
+                    (e.nombre || '').toLowerCase().includes(term) ||
+                    (e.upc || '').toLowerCase().includes(term)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">No hay especiales en tienda</h3>
+                        <p class="mt-1 text-gray-500">Agrega un nuevo especial para comenzar.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filtered.forEach(especial => {
+                const ahorro = especial.antes - especial.price;
+                const porcentajeAhorro = ((ahorro / especial.antes) * 100).toFixed(0);
+                
+                const card = document.createElement('div');
+                card.className = 'especiales-card';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-lg font-bold text-gray-900">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
+                        <span class="price-indicator" title="Precio especial activo"></span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">UPC: ${sanitizeInput(especial.upc || 'N/A')}</p>
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-gray-500 line-through text-lg">${formatCurrency(especial.antes)}</span>
+                        <span class="text-mexican-red font-bold text-2xl">${formatCurrency(especial.price)}</span>
+                    </div>
+                    <div class="bg-mexican-red bg-opacity-10 text-mexican-red px-3 py-1 rounded-full text-sm inline-block mb-3">
+                        Ahorro: ${formatCurrency(ahorro)} (${porcentajeAhorro}%)
+                    </div>
+                    <div class="flex justify-end">
+                        <button class="delete-especial-tienda bg-mexican-red hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}">
+                            Eliminar
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            
+            // Setup delete button event listeners
+            container.querySelectorAll('.delete-especial-tienda').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const especialIdRaw = e.target.dataset.id;
+                    const especialId = parseInt(especialIdRaw, 10);
+                    
+                    if (isNaN(especialId) || especialId <= 0) {
+                        showToast('Error: ID de especial inválido', true);
+                        return;
+                    }
+                    deleteEspecialTienda(especialId);
+                });
+            });
+        }
+        
+        // Add new especial tienda
+        async function addEspecialTienda(nombre, upc, antes, precio) {
+            const newEspecial = {
+                id_price: getNextId(especialesTienda, 'id_price', 1),
+                nombre: nombre,
+                upc: upc,
+                antes: parseFloat(antes),
+                price: parseFloat(precio)
+            };
+            
+            especialesTienda.push(newEspecial);
+            
+            await saveEspecialesTienda();
+            
+            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+            showToast('Especial en tienda agregado correctamente');
+        }
+        
+        // Delete especial tienda
+        async function deleteEspecialTienda(especialId) {
+            if (typeof especialId !== 'number' || isNaN(especialId) || especialId <= 0) {
+                showToast('Error: ID de especial inválido', true);
+                return;
+            }
+            
+            const especial = especialesTienda.find(e => e.id_price === especialId);
+            if (!especial) {
+                showToast('Error: Especial no encontrado', true);
+                return;
+            }
+            
+            const nombreProducto = especial.nombre || especial.product || 'este producto';
+            if (!confirm(`¿Estás seguro de eliminar el especial de "${nombreProducto}"?`)) {
+                return;
+            }
+            
+            especialesTienda = especialesTienda.filter(e => e.id_price !== especialId);
+            
+            await saveEspecialesTienda();
+            
+            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+            showToast('Especial en tienda eliminado correctamente');
+        }
+        
+        // Setup especiales tienda event listeners
+        function setupEspecialesTiendaEventListeners() {
+            // Search functionality
+            const especialesTiendaSearchInput = document.getElementById('especialesTiendaSearchInput');
+            if (especialesTiendaSearchInput) {
+                especialesTiendaSearchInput.addEventListener('input', debounce(() => {
+                    renderEspecialesTienda(especialesTiendaSearchInput.value);
+                }, 300));
+            }
+            
+            // Add especial tienda button
+            const addEspecialTiendaBtn = document.getElementById('addEspecialTiendaBtn');
+            const especialTiendaFormModal = document.getElementById('especialTiendaFormModal');
+            const closeEspecialTiendaFormModal = document.getElementById('closeEspecialTiendaFormModal');
+            const cancelEspecialTiendaBtn = document.getElementById('cancelEspecialTiendaBtn');
+            const especialTiendaForm = document.getElementById('especialTiendaForm');
+            
+            if (addEspecialTiendaBtn) {
+                addEspecialTiendaBtn.addEventListener('click', () => {
+                    document.getElementById('especialTiendaFormTitle').textContent = 'Nuevo Especial Tienda';
+                    document.getElementById('especialTiendaId').value = '';
+                    document.getElementById('especialTiendaNombre').value = '';
+                    document.getElementById('especialTiendaUpc').value = '';
+                    document.getElementById('especialTiendaAntes').value = '';
+                    document.getElementById('especialTiendaPrice').value = '';
+                    especialTiendaFormModal.classList.remove('hidden');
+                });
+            }
+            
+            if (closeEspecialTiendaFormModal) {
+                closeEspecialTiendaFormModal.addEventListener('click', () => {
+                    especialTiendaFormModal.classList.add('hidden');
+                });
+            }
+            
+            if (cancelEspecialTiendaBtn) {
+                cancelEspecialTiendaBtn.addEventListener('click', () => {
+                    especialTiendaFormModal.classList.add('hidden');
+                });
+            }
+            
+            if (especialTiendaForm) {
+                especialTiendaForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Guardando...';
+                    
+                    try {
+                        const nombre = document.getElementById('especialTiendaNombre').value.trim();
+                        const upc = document.getElementById('especialTiendaUpc').value.trim();
+                        const antes = document.getElementById('especialTiendaAntes').value;
+                        const precio = document.getElementById('especialTiendaPrice').value;
+                        
+                        if (!nombre || !upc || !antes || !precio) {
+                            showToast('Por favor completa todos los campos obligatorios', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
+                        const antesNum = parseFloat(antes);
+                        const precioNum = parseFloat(precio);
+                        if (isNaN(antesNum) || antesNum < 0) {
+                            showToast('Por favor ingresa un precio antes válido (mayor o igual a 0)', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        if (isNaN(precioNum) || precioNum < 0) {
+                            showToast('Por favor ingresa un precio especial válido (mayor o igual a 0)', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
+                        await addEspecialTienda(nombre, upc, antes, precio);
+                        especialTiendaFormModal.classList.add('hidden');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    } catch (error) {
+                        console.error('Error saving especial tienda:', error);
+                        showToast('Error al guardar el especial. Por favor, intenta de nuevo.', true);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                });
+            }
+            
+            // Close modal on outside click
+            if (especialTiendaFormModal) {
+                especialTiendaFormModal.addEventListener('click', (e) => {
+                    if (e.target === especialTiendaFormModal) {
+                        especialTiendaFormModal.classList.add('hidden');
                     }
                 });
             }
@@ -2033,6 +2514,8 @@ function importFromCSV(file) {
             // Hide all main sections
             adminView.classList.add('hidden');
             publicView.classList.add('hidden');
+            document.getElementById('especialesView').classList.add('hidden');
+            document.getElementById('especialesTiendaView').classList.add('hidden');
             document.getElementById('creditosView').classList.remove('hidden');
             
             // Hide all credit subsections
@@ -2063,6 +2546,7 @@ function importFromCSV(file) {
         function updateHeaderButtons() {
             const publicBtn = document.getElementById('publicViewBtnMobile');
             const especialesBtn = document.getElementById('especialesViewBtnMobile');
+            const especialesTiendaBtn = document.getElementById('especialesEnTiendaBtnMobile');
             const creditosBtn = document.getElementById('creditosViewBtnMobile');
             const adminBtn = document.getElementById('adminViewBtnMobile');
             
@@ -2070,6 +2554,10 @@ function importFromCSV(file) {
             
             publicBtn.classList.remove('bg-mexican-green', 'text-white');
             especialesBtn.classList.remove('bg-mexican-green', 'text-white');
+            if (especialesTiendaBtn) {
+                especialesTiendaBtn.classList.remove('bg-mexican-red', 'text-white');
+                especialesTiendaBtn.classList.add('bg-white', 'text-mexican-green');
+            }
             creditosBtn.classList.remove('bg-mexican-green', 'text-white');
             adminBtn.classList.remove('bg-mexican-green', 'text-white', 'bg-mexican-red');
             
@@ -2084,6 +2572,11 @@ function importFromCSV(file) {
             } else if (currentView === 'especiales') {
                 especialesBtn.classList.remove('bg-white', 'text-mexican-green');
                 especialesBtn.classList.add('bg-mexican-green', 'text-white');
+            } else if (currentView === 'especialesTienda') {
+                if (especialesTiendaBtn) {
+                    especialesTiendaBtn.classList.remove('bg-white', 'text-mexican-green');
+                    especialesTiendaBtn.classList.add('bg-mexican-red', 'text-white');
+                }
             } else if (currentView === 'creditos') {
                 creditosBtn.classList.remove('bg-white', 'text-mexican-green');
                 creditosBtn.classList.add('bg-mexican-green', 'text-white');
@@ -2882,9 +3375,11 @@ function importFromCSV(file) {
         function init(){ 
             loadData(); 
             loadEspeciales();
+            loadEspecialesTienda();
             loadCredits();
             setupEventListeners(); 
             setupEspecialesEventListeners();
+            setupEspecialesTiendaEventListeners();
             setupCreditsEventListeners();
             checkLibraries(); 
             showView('public');
