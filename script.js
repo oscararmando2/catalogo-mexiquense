@@ -439,6 +439,34 @@ function formatCurrency(amount){ return currencyFormatter.format(amount); }
 function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
 function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
 
+/**
+ * Validates if a URL is safe for use as an image source.
+ * Only allows http:, https: protocols. Blocks javascript:, data:, etc.
+ * @param {string} url - The URL to validate
+ * @returns {boolean} - True if URL is safe, false otherwise
+ */
+function isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url);
+        // Only allow http and https protocols
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Sanitizes an image URL for safe use in img src.
+ * Returns empty string if URL is invalid or potentially malicious.
+ * @param {string} url - The URL to sanitize
+ * @returns {string} - Sanitized URL or empty string
+ */
+function sanitizeImageUrl(url) {
+    if (!isValidImageUrl(url)) return '';
+    return sanitizeInput(url);
+}
+
 // === NUEVO: ¿producto es "NEW"? (7 días) ===
 function isNewProduct(product){
     if(!product || !product.dateAdded) return false;
@@ -1434,10 +1462,11 @@ function renderEspeciales(searchTerm = '') {
             discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
         }
         
-        // Image section
-        const imageHTML = especial.imageUrl ? `
+        // Image section - use sanitizeImageUrl to validate and sanitize URL
+        const safeImageUrl = sanitizeImageUrl(especial.imageUrl);
+        const imageHTML = safeImageUrl ? `
             <div class="mb-4">
-                <img src="${sanitizeInput(especial.imageUrl)}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="w-full h-40 object-contain rounded-lg bg-gray-100" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+                <img src="${safeImageUrl}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="w-full h-40 object-contain rounded-lg bg-gray-100" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
             </div>
         ` : '';
         
@@ -1624,11 +1653,19 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
+                // Validate image URL is safe (http/https only)
+                if (!isValidImageUrl(imageUrl)) {
+                    showToast('Por favor ingresa una URL de imagen válida (debe comenzar con http:// o https://)', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+                
                 // Validate prices are valid positive numbers
                 const antesNum = parseFloat(antes);
                 const precioNum = parseFloat(precio);
                 if (isNaN(antesNum) || antesNum < 0) {
-                    showToast('Por favor ingresa una ultima compra válida (mayor o igual a 0)', true);
+                    showToast('Por favor ingresa una última compra válida (mayor o igual a 0)', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
