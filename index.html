@@ -2241,7 +2241,7 @@ function importFromCSV(file) {
             // Setup delete button event listeners
             container.querySelectorAll('.delete-especial-tienda').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const especialIdRaw = e.target.dataset.id;
+                    const especialIdRaw = e.currentTarget.dataset.id;
                     const especialId = parseInt(especialIdRaw, 10);
                     
                     if (isNaN(especialId) || especialId <= 0) {
