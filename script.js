@@ -439,6 +439,34 @@ function formatCurrency(amount){ return currencyFormatter.format(amount); }
 function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
 function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
 
+/**
+ * Validates if a URL is safe for use as an image source.
+ * Only allows http:, https: protocols. Blocks javascript:, data:, etc.
+ * @param {string} url - The URL to validate
+ * @returns {boolean} - True if URL is safe, false otherwise
+ */
+function isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url);
+        // Only allow http and https protocols
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Sanitizes an image URL for safe use in img src.
+ * Returns empty string if URL is invalid or potentially malicious.
+ * @param {string} url - The URL to sanitize
+ * @returns {string} - Sanitized URL or empty string
+ */
+function sanitizeImageUrl(url) {
+    if (!isValidImageUrl(url)) return '';
+    return sanitizeInput(url);
+}
+
 // === NUEVO: ¿producto es "NEW"? (7 días) ===
 function isNewProduct(product){
     if(!product || !product.dateAdded) return false;
@@ -1405,6 +1433,7 @@ function renderEspeciales(searchTerm = '') {
             (e.nombre && e.nombre.toLowerCase().includes(term)) ||
             (e.upc && e.upc.toLowerCase().includes(term)) ||
             (e.provider && e.provider.toLowerCase().includes(term)) ||
+            (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
             (e.product && e.product.toLowerCase().includes(term))
         );
     }
@@ -1433,12 +1462,22 @@ function renderEspeciales(searchTerm = '') {
             discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
         }
         
+        // Image section - use sanitizeImageUrl to validate and sanitize URL
+        const safeImageUrl = sanitizeImageUrl(especial.imageUrl);
+        const imageHTML = safeImageUrl ? `
+            <div class="mb-4">
+                <img src="${safeImageUrl}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="w-full h-40 object-contain rounded-lg bg-gray-100" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+            </div>
+        ` : '';
+        
         card.innerHTML = `
+            ${imageHTML}
             <div class="mb-4">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex-grow">
                         <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
-                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-2">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-1">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                        ${especial.proveedor ? `<p class="text-sm text-gray-600 mb-2"><strong>Proveedor:</strong> ${sanitizeInput(especial.proveedor)}</p>` : ''}
                     </div>
                     <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1450,7 +1489,7 @@ function renderEspeciales(searchTerm = '') {
             <div class="pt-3 border-t border-gray-200">
                 ${especial.antes ? `
                     <div class="mb-3">
-                        <span class="text-sm text-gray-600">Precio Antes:</span>
+                        <span class="text-sm text-gray-600">Última Compra:</span>
                         <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
                     </div>
                 ` : ''}
@@ -1488,13 +1527,15 @@ function getNextId(array, idField, defaultStart = 1) {
 }
 
 // Add new especial
-async function addEspecial(nombre, upc, antes, precio) {
+async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor) {
     const newEspecial = {
         id_price: getNextId(especiales, 'id_price', 1),
         nombre: nombre,
         upc: upc,
         antes: parseFloat(antes),
-        price: parseFloat(precio)
+        price: parseFloat(precio),
+        imageUrl: imageUrl,
+        proveedor: proveedor
     };
     
     especiales.push(newEspecial);
@@ -1568,6 +1609,8 @@ function setupEspecialesEventListeners() {
             document.getElementById('especialUpc').value = '';
             document.getElementById('especialAntes').value = '';
             document.getElementById('especialPrice').value = '';
+            document.getElementById('especialImageUrl').value = '';
+            document.getElementById('especialProveedor').value = '';
             especialFormModal.classList.remove('hidden');
         });
     }
@@ -1599,10 +1642,20 @@ function setupEspecialesEventListeners() {
                 const upc = document.getElementById('especialUpc').value.trim();
                 const antes = document.getElementById('especialAntes').value;
                 const precio = document.getElementById('especialPrice').value;
+                const imageUrl = document.getElementById('especialImageUrl').value.trim();
+                const proveedor = document.getElementById('especialProveedor').value.trim();
                 
                 // Validate all required fields
-                if (!nombre || !upc || !antes || !precio) {
+                if (!nombre || !upc || !antes || !precio || !imageUrl || !proveedor) {
                     showToast('Por favor completa todos los campos obligatorios', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+                
+                // Validate image URL is safe (http/https only)
+                if (!isValidImageUrl(imageUrl)) {
+                    showToast('Por favor ingresa una URL de imagen válida (debe comenzar con http:// o https://)', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
@@ -1612,7 +1665,7 @@ function setupEspecialesEventListeners() {
                 const antesNum = parseFloat(antes);
                 const precioNum = parseFloat(precio);
                 if (isNaN(antesNum) || antesNum < 0) {
-                    showToast('Por favor ingresa un precio antes válido (mayor o igual a 0)', true);
+                    showToast('Por favor ingresa una última compra válida (mayor o igual a 0)', true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
@@ -1624,7 +1677,7 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                await addEspecial(nombre, upc, antes, precio);
+                await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor);
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
