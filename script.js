@@ -1434,7 +1434,8 @@ function renderEspeciales(searchTerm = '') {
             (e.upc && e.upc.toLowerCase().includes(term)) ||
             (e.provider && e.provider.toLowerCase().includes(term)) ||
             (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
-            (e.product && e.product.toLowerCase().includes(term))
+            (e.product && e.product.toLowerCase().includes(term)) ||
+            (e.notas && e.notas.toLowerCase().includes(term))
         );
     }
     
@@ -1453,53 +1454,88 @@ function renderEspeciales(searchTerm = '') {
     
     filtered.forEach(especial => {
         const card = document.createElement('div');
-        card.className = 'especiales-card';
+        card.className = 'especial-card-pro bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1';
         
         // Show discount percentage if we have both prices
-        let discountHTML = '';
+        let discountBadge = '';
         if (especial.antes && especial.price) {
             const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
-            discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
+            discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${discount}%</span>`;
         }
         
-        // Image section - use sanitizeImageUrl to validate and sanitize URL
+        // Image section - prioritize image with full-width hero style
         const safeImageUrl = sanitizeImageUrl(especial.imageUrl);
-        const imageHTML = safeImageUrl ? `
-            <div class="mb-4">
-                <img src="${safeImageUrl}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="w-full h-40 object-contain rounded-lg bg-gray-100" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
+        const imageSection = safeImageUrl ? `
+            <div class="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
+                ${discountBadge}
+                <img 
+                    src="${safeImageUrl}" 
+                    alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" 
+                    class="w-full h-full object-contain p-4 transition-transform duration-300 hover:scale-105" 
+                    onerror="this.onerror=null; this.src='https://placehold.co/400x400/png?text=Imagen+no+disponible';" 
+                />
+            </div>
+        ` : `
+            <div class="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                ${discountBadge}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+        `;
+        
+        // Notas section - only show if notas exist
+        const notasSection = especial.notas ? `
+            <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-start gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    <p class="text-sm text-amber-800">${sanitizeInput(especial.notas)}</p>
+                </div>
             </div>
         ` : '';
         
         card.innerHTML = `
-            ${imageHTML}
-            <div class="mb-4">
-                <div class="flex justify-between items-start mb-2">
-                    <div class="flex-grow">
-                        <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
-                        ${especial.upc ? `<p class="text-sm text-gray-500 mb-1">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
-                        ${especial.proveedor ? `<p class="text-sm text-gray-600 mb-2"><strong>Proveedor:</strong> ${sanitizeInput(especial.proveedor)}</p>` : ''}
+            ${imageSection}
+            <div class="p-5">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-grow pr-2">
+                        <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
+                        ${especial.upc ? `<p class="text-xs text-gray-500 font-mono">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
                     </div>
-                    <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <button class="delete-especial bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-all flex-shrink-0" data-id="${especial.id_price}" title="Eliminar especial">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 </div>
-            </div>
-            <div class="pt-3 border-t border-gray-200">
-                ${especial.antes ? `
-                    <div class="mb-3">
-                        <span class="text-sm text-gray-600">Última Compra:</span>
-                        <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
+                
+                ${especial.proveedor ? `
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-mexican-green bg-opacity-10 text-mexican-green">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" />
+                            </svg>
+                            ${sanitizeInput(especial.proveedor)}
+                        </span>
                     </div>
                 ` : ''}
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <span class="text-sm text-gray-600 mr-2">Precio Especial:</span>
-                        <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
-                        ${discountHTML}
+                
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-3">
+                    ${especial.antes ? `
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-500 uppercase tracking-wide">Última Compra</span>
+                            <span class="text-sm font-medium text-gray-400 line-through">${formatCurrency(especial.antes)}</span>
+                        </div>
+                    ` : ''}
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-mexican-green uppercase tracking-wide font-semibold">Precio Especial</span>
+                        <span class="text-2xl font-extrabold text-mexican-green">${formatCurrency(especial.price)}</span>
                     </div>
                 </div>
+                
+                ${notasSection}
             </div>
         `;
         
@@ -1527,7 +1563,7 @@ function getNextId(array, idField, defaultStart = 1) {
 }
 
 // Add new especial
-async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor) {
+async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas = '') {
     const newEspecial = {
         id_price: getNextId(especiales, 'id_price', 1),
         nombre: nombre,
@@ -1535,7 +1571,8 @@ async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor) {
         antes: parseFloat(antes),
         price: parseFloat(precio),
         imageUrl: imageUrl,
-        proveedor: proveedor
+        proveedor: proveedor,
+        notas: notas
     };
     
     especiales.push(newEspecial);
@@ -1611,6 +1648,8 @@ function setupEspecialesEventListeners() {
             document.getElementById('especialPrice').value = '';
             document.getElementById('especialImageUrl').value = '';
             document.getElementById('especialProveedor').value = '';
+            document.getElementById('especialNotas').value = '';
+            document.getElementById('especialNotasCount').textContent = '0';
             especialFormModal.classList.remove('hidden');
         });
     }
@@ -1624,6 +1663,14 @@ function setupEspecialesEventListeners() {
     if (cancelEspecialBtn) {
         cancelEspecialBtn.addEventListener('click', () => {
             especialFormModal.classList.add('hidden');
+        });
+    }
+    
+    // Character counter for notas field
+    const especialNotasInput = document.getElementById('especialNotas');
+    if (especialNotasInput) {
+        especialNotasInput.addEventListener('input', (e) => {
+            document.getElementById('especialNotasCount').textContent = e.target.value.length;
         });
     }
     
@@ -1644,6 +1691,7 @@ function setupEspecialesEventListeners() {
                 const precio = document.getElementById('especialPrice').value;
                 const imageUrl = document.getElementById('especialImageUrl').value.trim();
                 const proveedor = document.getElementById('especialProveedor').value.trim();
+                const notas = document.getElementById('especialNotas').value.trim();
                 
                 // Validate all required fields
                 if (!nombre || !upc || !antes || !precio || !imageUrl || !proveedor) {
@@ -1677,7 +1725,7 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor);
+                await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas);
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;

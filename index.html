@@ -24,6 +24,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180x180.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
+    <!-- External Styles -->
+    <link rel="stylesheet" href="styles.css" />
+
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
@@ -692,6 +695,11 @@
                             <label for="especialProveedor" class="block text-sm font-medium text-gray-700 mb-1">Proveedor*</label>
                             <input type="text" id="especialProveedor" name="especialProveedor" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
                         </div>
+                        <div>
+                            <label for="especialNotas" class="block text-sm font-medium text-gray-700 mb-1">Notas (opcional, máx 200 caracteres)</label>
+                            <textarea id="especialNotas" name="especialNotas" maxlength="200" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" placeholder="Agregar notas personalizadas..."></textarea>
+                            <p class="text-sm text-gray-500 mt-1"><span id="especialNotasCount">0</span>/200 caracteres</p>
+                        </div>
                         <div class="pt-4 flex justify-end space-x-2">
                             <button type="button" id="cancelEspecialBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
                             <button type="submit" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
@@ -854,6 +862,33 @@
         function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
         function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
+        
+        /**
+         * Validates if a URL is safe for use as an image source.
+         * Only allows http:, https: protocols. Blocks javascript:, data:, etc.
+         * @param {string} url - The URL to validate
+         * @returns {boolean} - True if URL is safe, false otherwise
+         */
+        function isValidImageUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+            } catch {
+                return false;
+            }
+        }
+        
+        /**
+         * Sanitizes an image URL for safe use in img src.
+         * Returns empty string if URL is invalid or potentially malicious.
+         * @param {string} url - The URL to sanitize
+         * @returns {string} - Sanitized URL or empty string
+         */
+        function sanitizeImageUrl(url) {
+            if (!isValidImageUrl(url)) return '';
+            return sanitizeInput(url);
+        }
 
         // === NUEVO: ¿producto es "NEW"? (7 días) ===
         function isNewProduct(product){
@@ -1738,7 +1773,9 @@ function importFromCSV(file) {
                     (e.nombre && e.nombre.toLowerCase().includes(term)) ||
                     (e.upc && e.upc.toLowerCase().includes(term)) ||
                     (e.provider && e.provider.toLowerCase().includes(term)) ||
-                    (e.product && e.product.toLowerCase().includes(term))
+                    (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
+                    (e.product && e.product.toLowerCase().includes(term)) ||
+                    (e.notas && e.notas.toLowerCase().includes(term))
                 );
             }
             
@@ -1749,7 +1786,7 @@ function importFromCSV(file) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <h3 class="mt-4 text-lg font-medium text-gray-900">No se encontraron precios especiales</h3>
-                        <p class="mt-1 text-gray-500">Intenta con otra búsqueda.</p>
+                        <p class="mt-1 text-gray-500">Agrega un nuevo especial para comenzar.</p>
                     </div>
                 `;
                 return;
@@ -1757,43 +1794,89 @@ function importFromCSV(file) {
             
             filtered.forEach(especial => {
                 const card = document.createElement('div');
-                card.className = 'especiales-card';
+                card.className = 'especial-card-pro bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1';
                 
                 // Show discount percentage if we have both prices
-                let discountHTML = '';
+                let discountBadge = '';
                 if (especial.antes && especial.price) {
                     const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
-                    discountHTML = `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full ml-2">-${discount}%</span>`;
+                    discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${discount}%</span>`;
                 }
                 
+                // Image section - prioritize image with full-width hero style
+                // Use sanitizeImageUrl for security (validates http/https protocols)
+                const safeImageUrl = sanitizeImageUrl(especial.imageUrl);
+                const imageSection = safeImageUrl ? `
+                    <div class="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
+                        ${discountBadge}
+                        <img 
+                            src="${safeImageUrl}" 
+                            alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" 
+                            class="w-full h-full object-contain p-4 transition-transform duration-300 hover:scale-105" 
+                            onerror="this.onerror=null; this.src='https://placehold.co/400x400/png?text=Imagen+no+disponible';" 
+                        />
+                    </div>
+                ` : `
+                    <div class="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        ${discountBadge}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                `;
+                
+                // Notas section - only show if notas exist
+                const notasSection = especial.notas ? `
+                    <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div class="flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            <p class="text-sm text-amber-800">${sanitizeInput(especial.notas)}</p>
+                        </div>
+                    </div>
+                ` : '';
+                
                 card.innerHTML = `
-                    <div class="mb-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex-grow">
-                                <h3 class="text-xl font-bold text-mexican-green mb-1">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
-                                ${especial.upc ? `<p class="text-sm text-gray-500 mb-2">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                    ${imageSection}
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-grow pr-2">
+                                <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
+                                ${especial.upc ? `<p class="text-xs text-gray-500 font-mono">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
                             </div>
-                            <button class="delete-especial bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}" title="Eliminar especial">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <button class="delete-especial bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-all flex-shrink-0" data-id="${especial.id_price}" title="Eliminar especial">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                                 </svg>
                             </button>
                         </div>
-                    </div>
-                    <div class="pt-3 border-t border-gray-200">
-                        ${especial.antes ? `
-                            <div class="mb-3">
-                                <span class="text-sm text-gray-600">Precio Antes:</span>
-                                <span class="text-lg font-semibold text-gray-500 line-through ml-2">${formatCurrency(especial.antes)}</span>
+                        
+                        ${especial.proveedor ? `
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-mexican-green bg-opacity-10 text-mexican-green">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" />
+                                    </svg>
+                                    ${sanitizeInput(especial.proveedor)}
+                                </span>
                             </div>
                         ` : ''}
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <span class="text-sm text-gray-600 mr-2">Precio Especial:</span>
-                                <span class="text-2xl font-bold text-mexican-green">${formatCurrency(especial.price)}</span>
-                                ${discountHTML}
+                        
+                        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-3">
+                            ${especial.antes ? `
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs text-gray-500 uppercase tracking-wide">Última Compra</span>
+                                    <span class="text-sm font-medium text-gray-400 line-through">${formatCurrency(especial.antes)}</span>
+                                </div>
+                            ` : ''}
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-mexican-green uppercase tracking-wide font-semibold">Precio Especial</span>
+                                <span class="text-2xl font-extrabold text-mexican-green">${formatCurrency(especial.price)}</span>
                             </div>
                         </div>
+                        
+                        ${notasSection}
                     </div>
                 `;
                 
@@ -1821,13 +1904,16 @@ function importFromCSV(file) {
         }
         
         // Add new especial
-        async function addEspecial(nombre, upc, antes, precio) {
+        async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas) {
             const newEspecial = {
                 id_price: getNextId(especiales, 'id_price', 1),
                 nombre: nombre,
                 upc: upc,
                 antes: parseFloat(antes),
-                price: parseFloat(precio)
+                price: parseFloat(precio),
+                imageUrl: imageUrl || '',
+                proveedor: proveedor || '',
+                notas: notas || ''
             };
             
             especiales.push(newEspecial);
@@ -1910,6 +1996,10 @@ function importFromCSV(file) {
                     document.getElementById('especialUpc').value = '';
                     document.getElementById('especialAntes').value = '';
                     document.getElementById('especialPrice').value = '';
+                    document.getElementById('especialImageUrl').value = '';
+                    document.getElementById('especialProveedor').value = '';
+                    document.getElementById('especialNotas').value = '';
+                    document.getElementById('especialNotasCount').textContent = '0';
                     especialFormModal.classList.remove('hidden');
                 });
             }
@@ -1923,6 +2013,14 @@ function importFromCSV(file) {
             if (cancelEspecialBtn) {
                 cancelEspecialBtn.addEventListener('click', () => {
                     especialFormModal.classList.add('hidden');
+                });
+            }
+            
+            // Character counter for notas field
+            const especialNotasInput = document.getElementById('especialNotas');
+            if (especialNotasInput) {
+                especialNotasInput.addEventListener('input', (e) => {
+                    document.getElementById('especialNotasCount').textContent = e.target.value.length;
                 });
             }
             
@@ -1941,10 +2039,21 @@ function importFromCSV(file) {
                         const upc = document.getElementById('especialUpc').value.trim();
                         const antes = document.getElementById('especialAntes').value;
                         const precio = document.getElementById('especialPrice').value;
+                        const imageUrl = document.getElementById('especialImageUrl').value.trim();
+                        const proveedor = document.getElementById('especialProveedor').value.trim();
+                        const notas = document.getElementById('especialNotas').value.trim();
                         
                         // Validate all required fields
-                        if (!nombre || !upc || !antes || !precio) {
+                        if (!nombre || !upc || !antes || !precio || !imageUrl || !proveedor) {
                             showToast('Por favor completa todos los campos obligatorios', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
+                        // Validate image URL is safe (http/https only)
+                        if (!isValidImageUrl(imageUrl)) {
+                            showToast('Por favor ingresa una URL de imagen válida (debe comenzar con http:// o https://)', true);
                             submitBtn.disabled = false;
                             submitBtn.textContent = originalText;
                             return;
@@ -1966,7 +2075,7 @@ function importFromCSV(file) {
                             return;
                         }
                         
-                        await addEspecial(nombre, upc, antes, precio);
+                        await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas);
                         especialFormModal.classList.add('hidden');
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;

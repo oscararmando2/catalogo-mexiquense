@@ -159,6 +159,61 @@ body {
     box-shadow: 0 8px 16px rgba(0,0,0,0.15); 
 }
 
+/* Professional Especiales Card - Image-First Design */
+.especial-card-pro {
+    display: flex;
+    flex-direction: column;
+}
+
+.especial-card-pro .aspect-square {
+    aspect-ratio: 1 / 1;
+}
+
+/* Line clamp for text truncation */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Mobile Responsive for Especiales Cards */
+@media screen and (max-width: 640px) {
+    #especialesContainer {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+        padding: 0 0.5rem !important;
+    }
+    
+    .especial-card-pro {
+        margin-bottom: 0.5rem;
+    }
+    
+    .especial-card-pro .p-5 {
+        padding: 1rem !important;
+    }
+    
+    .especial-card-pro .text-2xl {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Tablet Responsive for Especiales Cards */
+@media screen and (min-width: 641px) and (max-width: 1023px) {
+    #especialesContainer {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.25rem !important;
+    }
+}
+
+/* Desktop Responsive for Especiales Cards */
+@media screen and (min-width: 1024px) {
+    #especialesContainer {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1.5rem !important;
+    }
+}
+
 .price-indicator { 
     width: 16px; 
     height: 16px; 
