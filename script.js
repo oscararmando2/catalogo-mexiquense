@@ -95,6 +95,16 @@ try {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
         
+        // Monitor Firebase connection state for especiales
+        const connectedRef = database.ref('.info/connected');
+        connectedRef.on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('🟢 Firebase connected - especiales data will sync');
+            } else {
+                console.log('🔴 Firebase disconnected - using cached data');
+            }
+        });
+        
         // Inicializar Firebase Cloud Messaging (FCM)
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
@@ -1163,54 +1173,99 @@ function setupEventListeners(){
 let especiales = [];
 let especialesListeners = null; // Store listener references for cleanup
 
+// Helper function to process especiales data from Firebase snapshot
+function processEspecialesData(data) {
+    if (data && Array.isArray(data) && data.length > 0) {
+        // Filter out any null or undefined values that Firebase might have stored
+        return data.filter(e => e != null && typeof e === 'object');
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Firebase sometimes converts arrays with gaps to objects, convert back
+        return Object.values(data).filter(e => e != null && typeof e === 'object');
+    } else {
+        // Initialize with empty data - user will add their own especiales
+        return [];
+    }
+}
+
+// Helper function to load especiales from localStorage with error handling
+function loadEspecialesFromLocalStorage() {
+    if (!isLocalStorageAvailable()) {
+        return [];
+    }
+    
+    try {
+        const stored = localStorage.getItem('especiales');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
+        }
+    } catch (err) {
+        console.error('Error parsing especiales from localStorage:', err);
+        // Clear corrupted data
+        localStorage.removeItem('especiales');
+    }
+    return [];
+}
+
+// Helper function to render especiales if in the correct view
+function renderEspecialesIfNeeded() {
+    if (currentView === 'especiales') {
+        renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+    }
+}
+
 // Load especiales from Firebase with localStorage fallback using granular listeners
 function loadEspeciales() {
     try {
         if (database) {
             const especialesRef = database.ref('especiales');
             
+            // Enable offline persistence for better mobile connectivity
+            try {
+                especialesRef.keepSynced(true);
+                console.log('Firebase keepSynced enabled for especiales');
+            } catch (e) {
+                // keepSynced can fail if already enabled or if offline persistence is not available
+                if (e.code === 'already-enabled') {
+                    console.log('keepSynced already enabled for especiales');
+                } else {
+                    console.warn('keepSynced not available for especiales:', e.message);
+                }
+            }
+            
             // Initialize empty array on first load
             especiales = [];
             
             // Use once() to get initial data without setting up a value listener
             especialesRef.once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if (data && Array.isArray(data) && data.length > 0) {
-                    // Filter out any null or undefined values that Firebase might have stored
-                    especiales = data.filter(e => e != null && typeof e === 'object');
-                } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-                    // Firebase sometimes converts arrays with gaps to objects, convert back
-                    especiales = Object.values(data).filter(e => e != null && typeof e === 'object');
-                } else {
-                    // Initialize with empty data - user will add their own especiales
-                    especiales = [];
-                }
-                
-                // Initial render
-                if (currentView === 'especiales') {
-                    renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
-                }
+                especiales = processEspecialesData(snapshot.val());
+                renderEspecialesIfNeeded();
                 console.log('Especiales initial load:', especiales.length, 'items');
-                
-                // Now set up granular listeners for real-time updates
                 setupEspecialesListeners();
+            }).catch((err) => {
+                console.error('Firebase initial load error for especiales:', err);
+                // Retry once after a short delay
+                setTimeout(() => {
+                    console.log('Retrying especiales load...');
+                    especialesRef.once('value').then((snapshot) => {
+                        especiales = processEspecialesData(snapshot.val());
+                        renderEspecialesIfNeeded();
+                        console.log('Especiales retry load:', especiales.length, 'items');
+                        setupEspecialesListeners();
+                    }).catch((retryErr) => {
+                        console.error('Especiales retry failed, using localStorage:', retryErr);
+                        // Fall back to localStorage
+                        especiales = loadEspecialesFromLocalStorage();
+                        renderEspecialesIfNeeded();
+                    });
+                }, 2000);
             });
         } else {
             throw new Error('Firebase not available');
         }
     } catch (err) {
         console.warn('Using localStorage for especiales', err);
-        if (isLocalStorageAvailable()) {
-            const stored = localStorage.getItem('especiales');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Ensure we have a clean array
-                especiales = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
-            } else {
-                // Initialize with empty data - user will add their own especiales
-                especiales = [];
-            }
-        }
+        especiales = loadEspecialesFromLocalStorage();
     }
 }
 
@@ -1461,8 +1516,17 @@ function renderEspeciales(searchTerm = '') {
         // Show discount percentage if we have both prices
         let discountBadge = '';
         if (especial.antes && especial.price) {
-            const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
-            discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${discount}%</span>`;
+            const priceDiff = especial.antes - especial.price;
+            const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
+            
+            if (priceDiff > 0) {
+                // Price decreased - show discount with minus sign
+                discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${percentChange}%</span>`;
+            } else if (priceDiff < 0) {
+                // Price increased - show increase with x and plus sign
+                discountBadge = `<span class="absolute top-3 left-3 bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">✕ +${percentChange}%</span>`;
+            }
+            // If prices are equal, no badge
         }
         
         // Image section - prioritize image with full-width hero style
