@@ -2116,7 +2116,7 @@ function importFromCSV(file) {
                     submitBtn.textContent = 'Guardando...';
                     
                     try {
-                        const especialId = document.getElementById('especialId').value;
+                        const especialIdStr = document.getElementById('especialId').value;
                         const nombre = document.getElementById('especialNombre').value.trim();
                         const upc = document.getElementById('especialUpc').value.trim();
                         const antes = document.getElementById('especialAntes').value;
@@ -2158,9 +2158,16 @@ function importFromCSV(file) {
                         }
                         
                         // Check if we're editing or adding
-                        if (especialId) {
-                            // Edit mode
-                            await updateEspecial(parseInt(especialId, 10), nombre, upc, antes, precio, imageUrl, proveedor, notas);
+                        if (especialIdStr) {
+                            // Edit mode - parse and validate ID
+                            const especialId = parseInt(especialIdStr, 10);
+                            if (isNaN(especialId) || especialId <= 0) {
+                                showToast('Error: ID de especial inválido', true);
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                                return;
+                            }
+                            await updateEspecial(especialId, nombre, upc, antes, precio, imageUrl, proveedor, notas);
                         } else {
                             // Add mode
                             await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas);
