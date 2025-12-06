@@ -231,7 +231,7 @@ body {
     overflow: hidden;
 }
 
-/* Mobile Responsive for Especiales Cards */
+/* Mobile Responsive for Especiales Cards - Horizontal Scroll */
 @media screen and (max-width: 640px) {
     /* Hide the header section (title, description, button, search) on mobile */
     /* Only show the cards in the Especiales view on mobile */
@@ -239,14 +239,41 @@ body {
         display: none !important;
     }
     
+    /* Convert grid to horizontal scroll flexbox on mobile */
     #especialesContainer {
-        grid-template-columns: 1fr !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
         gap: 1rem !important;
-        padding: 0 0.5rem !important;
+        padding: 0.5rem !important;
+        scroll-snap-type: x mandatory !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: thin !important;
+    }
+    
+    /* Hide scrollbar on mobile for cleaner look */
+    #especialesContainer::-webkit-scrollbar {
+        height: 6px;
+    }
+    
+    #especialesContainer::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    #especialesContainer::-webkit-scrollbar-thumb {
+        background: #006847;
+        border-radius: 3px;
     }
     
     .especial-card-pro {
-        margin-bottom: 0.5rem;
+        flex: 0 0 280px !important;
+        min-width: 280px !important;
+        max-width: 280px !important;
+        scroll-snap-align: start !important;
+        margin-bottom: 0 !important;
     }
     
     .especial-card-pro .p-5 {
