@@ -428,6 +428,8 @@ const paginationControls = document.getElementById('paginationControls');
 
 // ==== Constants ====
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const CREDIT_INITIAL_CHECK_DELAY = 3000; // 3 seconds delay before first check
+const CREDIT_NOTIFICATION_INTERVAL = 300000; // 5 minutes between checks
 
 // ==== Utils ====
 // Reusable currency formatter for better performance
@@ -1752,6 +1754,7 @@ function setupEspecialesEventListeners() {
 let credits = [];
 let currentCreditView = 'pending';
 let creditNotificationInterval = null;
+let creditNotificationShown = false; // Flag to track if notification was already shown this session
 
 // Load credits from Firebase with localStorage fallback
 function loadCredits() {
@@ -2444,8 +2447,13 @@ function showPhotoModal(photoUrl) {
     modal.classList.remove('hidden');
 }
 
-// Check for overdue credits
+// Check for overdue credits - only show notification once per session
 function checkOverdueCredits() {
+    // Skip if notification was already shown this session
+    if (creditNotificationShown) {
+        return;
+    }
+    
     const overdue = credits.filter(c => {
         if (c.status !== 'pending') return false;
         const days = getDaysElapsed(c.date);
@@ -2453,6 +2461,8 @@ function checkOverdueCredits() {
     });
     
     if (overdue.length > 0) {
+        creditNotificationShown = true; // Mark as shown
+        stopCreditNotifications(); // Stop the interval since we've shown the notification
         alert(`⚠️ Tienes ${overdue.length} crédito${overdue.length > 1 ? 's' : ''} con más de 7 días pendiente${overdue.length > 1 ? 's' : ''}.`);
     }
 }
@@ -2462,8 +2472,13 @@ function startCreditNotifications() {
     if (creditNotificationInterval) {
         clearInterval(creditNotificationInterval);
     }
-    // Check every minute (60000 ms)
-    creditNotificationInterval = setInterval(checkOverdueCredits, 60000);
+    // Only start if notification hasn't been shown yet
+    if (!creditNotificationShown) {
+        // Check immediately on first load (after a brief delay to let credits load)
+        setTimeout(checkOverdueCredits, CREDIT_INITIAL_CHECK_DELAY);
+        // Also set up periodic check (reduced frequency since we only show once)
+        creditNotificationInterval = setInterval(checkOverdueCredits, CREDIT_NOTIFICATION_INTERVAL);
+    }
 }
 
 // Stop notification interval
