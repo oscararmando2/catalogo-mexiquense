@@ -1173,6 +1173,47 @@ function setupEventListeners(){
 let especiales = [];
 let especialesListeners = null; // Store listener references for cleanup
 
+// Helper function to process especiales data from Firebase snapshot
+function processEspecialesData(data) {
+    if (data && Array.isArray(data) && data.length > 0) {
+        // Filter out any null or undefined values that Firebase might have stored
+        return data.filter(e => e != null && typeof e === 'object');
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Firebase sometimes converts arrays with gaps to objects, convert back
+        return Object.values(data).filter(e => e != null && typeof e === 'object');
+    } else {
+        // Initialize with empty data - user will add their own especiales
+        return [];
+    }
+}
+
+// Helper function to load especiales from localStorage with error handling
+function loadEspecialesFromLocalStorage() {
+    if (!isLocalStorageAvailable()) {
+        return [];
+    }
+    
+    try {
+        const stored = localStorage.getItem('especiales');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
+        }
+    } catch (err) {
+        console.error('Error parsing especiales from localStorage:', err);
+        // Clear corrupted data
+        localStorage.removeItem('especiales');
+    }
+    return [];
+}
+
+// Helper function to render especiales if in the correct view
+function renderEspecialesIfNeeded() {
+    if (currentView === 'especiales') {
+        renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+    }
+}
+
 // Load especiales from Firebase with localStorage fallback using granular listeners
 function loadEspeciales() {
     try {
@@ -1184,7 +1225,12 @@ function loadEspeciales() {
                 especialesRef.keepSynced(true);
                 console.log('Firebase keepSynced enabled for especiales');
             } catch (e) {
-                console.warn('keepSynced not available or already enabled:', e);
+                // keepSynced can fail if already enabled or if offline persistence is not available
+                if (e.code === 'already-enabled') {
+                    console.log('keepSynced already enabled for especiales');
+                } else {
+                    console.warn('keepSynced not available for especiales:', e.message);
+                }
             }
             
             // Initialize empty array on first load
@@ -1192,25 +1238,9 @@ function loadEspeciales() {
             
             // Use once() to get initial data without setting up a value listener
             especialesRef.once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if (data && Array.isArray(data) && data.length > 0) {
-                    // Filter out any null or undefined values that Firebase might have stored
-                    especiales = data.filter(e => e != null && typeof e === 'object');
-                } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-                    // Firebase sometimes converts arrays with gaps to objects, convert back
-                    especiales = Object.values(data).filter(e => e != null && typeof e === 'object');
-                } else {
-                    // Initialize with empty data - user will add their own especiales
-                    especiales = [];
-                }
-                
-                // Initial render
-                if (currentView === 'especiales') {
-                    renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
-                }
+                especiales = processEspecialesData(snapshot.val());
+                renderEspecialesIfNeeded();
                 console.log('Especiales initial load:', especiales.length, 'items');
-                
-                // Now set up granular listeners for real-time updates
                 setupEspecialesListeners();
             }).catch((err) => {
                 console.error('Firebase initial load error for especiales:', err);
@@ -1218,32 +1248,15 @@ function loadEspeciales() {
                 setTimeout(() => {
                     console.log('Retrying especiales load...');
                     especialesRef.once('value').then((snapshot) => {
-                        const data = snapshot.val();
-                        if (data && Array.isArray(data) && data.length > 0) {
-                            especiales = data.filter(e => e != null && typeof e === 'object');
-                        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-                            especiales = Object.values(data).filter(e => e != null && typeof e === 'object');
-                        } else {
-                            especiales = [];
-                        }
-                        if (currentView === 'especiales') {
-                            renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
-                        }
+                        especiales = processEspecialesData(snapshot.val());
+                        renderEspecialesIfNeeded();
                         console.log('Especiales retry load:', especiales.length, 'items');
                         setupEspecialesListeners();
                     }).catch((retryErr) => {
                         console.error('Especiales retry failed, using localStorage:', retryErr);
                         // Fall back to localStorage
-                        if (isLocalStorageAvailable()) {
-                            const stored = localStorage.getItem('especiales');
-                            if (stored) {
-                                const parsed = JSON.parse(stored);
-                                especiales = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
-                            }
-                        }
-                        if (currentView === 'especiales') {
-                            renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
-                        }
+                        especiales = loadEspecialesFromLocalStorage();
+                        renderEspecialesIfNeeded();
                     });
                 }, 2000);
             });
@@ -1252,17 +1265,7 @@ function loadEspeciales() {
         }
     } catch (err) {
         console.warn('Using localStorage for especiales', err);
-        if (isLocalStorageAvailable()) {
-            const stored = localStorage.getItem('especiales');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Ensure we have a clean array
-                especiales = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
-            } else {
-                // Initialize with empty data - user will add their own especiales
-                especiales = [];
-            }
-        }
+        especiales = loadEspecialesFromLocalStorage();
     }
 }
 
