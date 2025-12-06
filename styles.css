@@ -233,6 +233,12 @@ body {
 
 /* Mobile Responsive for Especiales Cards */
 @media screen and (max-width: 640px) {
+    /* Hide the header section (title, description, button, search) on mobile */
+    /* Only show the cards in the Especiales view on mobile */
+    .especiales-header-wrapper {
+        display: none !important;
+    }
+    
     #especialesContainer {
         grid-template-columns: 1fr !important;
         gap: 1rem !important;
