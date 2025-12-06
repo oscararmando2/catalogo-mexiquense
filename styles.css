@@ -114,6 +114,34 @@ body {
     display: block; 
 }
 
+/* Mobile hamburger menu improvements */
+@media screen and (max-width: 768px) {
+    .hamburger-menu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 16px;
+        min-width: 48px;
+        min-height: 48px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+    }
+    
+    .hamburger-menu:hover,
+    .hamburger-menu:active {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Increase hamburger icon size for better visibility on mobile */
+    button.hamburger-menu svg {
+        width: 32px;
+        height: 32px;
+        stroke-width: 2.5;
+    }
+}
+
 /* Hide desktop menu completely */
 .desktop-menu { 
     display: none !important; 
