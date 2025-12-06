@@ -862,6 +862,33 @@
         function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
         function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
+        
+        /**
+         * Validates if a URL is safe for use as an image source.
+         * Only allows http:, https: protocols. Blocks javascript:, data:, etc.
+         * @param {string} url - The URL to validate
+         * @returns {boolean} - True if URL is safe, false otherwise
+         */
+        function isValidImageUrl(url) {
+            if (!url || typeof url !== 'string') return false;
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+            } catch {
+                return false;
+            }
+        }
+        
+        /**
+         * Sanitizes an image URL for safe use in img src.
+         * Returns empty string if URL is invalid or potentially malicious.
+         * @param {string} url - The URL to sanitize
+         * @returns {string} - Sanitized URL or empty string
+         */
+        function sanitizeImageUrl(url) {
+            if (!isValidImageUrl(url)) return '';
+            return sanitizeInput(url);
+        }
 
         // === NUEVO: ¿producto es "NEW"? (7 días) ===
         function isNewProduct(product){
@@ -1777,12 +1804,13 @@ function importFromCSV(file) {
                 }
                 
                 // Image section - prioritize image with full-width hero style
-                const imageUrl = especial.imageUrl || '';
-                const imageSection = imageUrl ? `
+                // Use sanitizeImageUrl for security (validates http/https protocols)
+                const safeImageUrl = sanitizeImageUrl(especial.imageUrl);
+                const imageSection = safeImageUrl ? `
                     <div class="relative w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
                         ${discountBadge}
                         <img 
-                            src="${sanitizeInput(imageUrl)}" 
+                            src="${safeImageUrl}" 
                             alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" 
                             class="w-full h-full object-contain p-4 transition-transform duration-300 hover:scale-105" 
                             onerror="this.onerror=null; this.src='https://placehold.co/400x400/png?text=Imagen+no+disponible';" 
@@ -2018,6 +2046,14 @@ function importFromCSV(file) {
                         // Validate all required fields
                         if (!nombre || !upc || !antes || !precio || !imageUrl || !proveedor) {
                             showToast('Por favor completa todos los campos obligatorios', true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
+                        // Validate image URL is safe (http/https only)
+                        if (!isValidImageUrl(imageUrl)) {
+                            showToast('Por favor ingresa una URL de imagen válida (debe comenzar con http:// o https://)', true);
                             submitBtn.disabled = false;
                             submitBtn.textContent = originalText;
                             return;
