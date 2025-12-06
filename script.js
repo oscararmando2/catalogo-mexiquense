@@ -95,6 +95,16 @@ try {
         firebase.initializeApp(firebaseConfig);
         database = firebase.database();
         
+        // Monitor Firebase connection state for especiales
+        const connectedRef = database.ref('.info/connected');
+        connectedRef.on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('🟢 Firebase connected - especiales data will sync');
+            } else {
+                console.log('🔴 Firebase disconnected - using cached data');
+            }
+        });
+        
         // Inicializar Firebase Cloud Messaging (FCM)
         if (firebase.messaging.isSupported()) {
             messaging = firebase.messaging();
@@ -1169,6 +1179,14 @@ function loadEspeciales() {
         if (database) {
             const especialesRef = database.ref('especiales');
             
+            // Enable offline persistence for better mobile connectivity
+            try {
+                especialesRef.keepSynced(true);
+                console.log('Firebase keepSynced enabled for especiales');
+            } catch (e) {
+                console.warn('keepSynced not available or already enabled:', e);
+            }
+            
             // Initialize empty array on first load
             especiales = [];
             
@@ -1194,6 +1212,40 @@ function loadEspeciales() {
                 
                 // Now set up granular listeners for real-time updates
                 setupEspecialesListeners();
+            }).catch((err) => {
+                console.error('Firebase initial load error for especiales:', err);
+                // Retry once after a short delay
+                setTimeout(() => {
+                    console.log('Retrying especiales load...');
+                    especialesRef.once('value').then((snapshot) => {
+                        const data = snapshot.val();
+                        if (data && Array.isArray(data) && data.length > 0) {
+                            especiales = data.filter(e => e != null && typeof e === 'object');
+                        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                            especiales = Object.values(data).filter(e => e != null && typeof e === 'object');
+                        } else {
+                            especiales = [];
+                        }
+                        if (currentView === 'especiales') {
+                            renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+                        }
+                        console.log('Especiales retry load:', especiales.length, 'items');
+                        setupEspecialesListeners();
+                    }).catch((retryErr) => {
+                        console.error('Especiales retry failed, using localStorage:', retryErr);
+                        // Fall back to localStorage
+                        if (isLocalStorageAvailable()) {
+                            const stored = localStorage.getItem('especiales');
+                            if (stored) {
+                                const parsed = JSON.parse(stored);
+                                especiales = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
+                            }
+                        }
+                        if (currentView === 'especiales') {
+                            renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+                        }
+                    });
+                }, 2000);
             });
         } else {
             throw new Error('Firebase not available');
@@ -1461,8 +1513,17 @@ function renderEspeciales(searchTerm = '') {
         // Show discount percentage if we have both prices
         let discountBadge = '';
         if (especial.antes && especial.price) {
-            const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
-            discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${discount}%</span>`;
+            const priceDiff = especial.antes - especial.price;
+            const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
+            
+            if (priceDiff > 0) {
+                // Price decreased - show discount with minus sign
+                discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${percentChange}%</span>`;
+            } else if (priceDiff < 0) {
+                // Price increased - show increase with x and plus sign
+                discountBadge = `<span class="absolute top-3 left-3 bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">✕ +${percentChange}%</span>`;
+            }
+            // If prices are equal, no badge
         }
         
         // Image section - prioritize image with full-width hero style
