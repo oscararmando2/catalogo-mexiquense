@@ -1802,7 +1802,7 @@ function importFromCSV(file) {
                 
                 // Show discount percentage if we have both prices
                 let discountBadge = '';
-                if (especial.antes && especial.price) {
+                if (especial.antes != null && especial.price != null && especial.antes > 0) {
                     const priceDiff = especial.antes - especial.price;
                     const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
                     
@@ -2433,6 +2433,12 @@ function importFromCSV(file) {
             }
             
             filtered.forEach(especial => {
+                // Guard against invalid prices to prevent division by zero
+                if (especial.antes == null || especial.price == null || especial.antes <= 0) {
+                    // Skip this especial if prices are invalid
+                    return;
+                }
+                
                 const priceDiff = especial.antes - especial.price;
                 const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
                 
