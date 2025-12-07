@@ -1803,8 +1803,17 @@ function importFromCSV(file) {
                 // Show discount percentage if we have both prices
                 let discountBadge = '';
                 if (especial.antes && especial.price) {
-                    const discount = ((especial.antes - especial.price) / especial.antes * 100).toFixed(0);
-                    discountBadge = `<span class="absolute top-3 left-3 bg-mexican-red text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-${discount}%</span>`;
+                    const priceDiff = especial.antes - especial.price;
+                    const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
+                    
+                    if (priceDiff > 0) {
+                        // Price decreased - show discount in green (no minus sign needed)
+                        discountBadge = `<span class="absolute top-3 left-3 bg-green-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">${percentChange}%</span>`;
+                    } else if (priceDiff < 0) {
+                        // Price increased - show increase with plus sign in orange
+                        discountBadge = `<span class="absolute top-3 left-3 bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">+${percentChange}%</span>`;
+                    }
+                    // If prices are equal, no badge
                 }
                 
                 // Image section - prioritize image with full-width hero style
@@ -2424,8 +2433,27 @@ function importFromCSV(file) {
             }
             
             filtered.forEach(especial => {
-                const ahorro = especial.antes - especial.price;
-                const porcentajeAhorro = ((ahorro / especial.antes) * 100).toFixed(0);
+                const priceDiff = especial.antes - especial.price;
+                const percentChange = (Math.abs(priceDiff) / especial.antes * 100).toFixed(0);
+                
+                // Determine badge text and color based on price change
+                let badgeText, badgeClass, priceColorClass;
+                if (priceDiff > 0) {
+                    // Price decreased - discount in green
+                    badgeText = `Ahorro: ${formatCurrency(priceDiff)} (${percentChange}%)`;
+                    badgeClass = 'bg-green-600 bg-opacity-10 text-green-700';
+                    priceColorClass = 'text-green-600';
+                } else if (priceDiff < 0) {
+                    // Price increased - in orange
+                    badgeText = `Aumento: ${formatCurrency(Math.abs(priceDiff))} (+${percentChange}%)`;
+                    badgeClass = 'bg-orange-500 bg-opacity-10 text-orange-700';
+                    priceColorClass = 'text-orange-500';
+                } else {
+                    // No change
+                    badgeText = 'Sin cambio';
+                    badgeClass = 'bg-gray-300 bg-opacity-10 text-gray-700';
+                    priceColorClass = 'text-gray-700';
+                }
                 
                 const card = document.createElement('div');
                 card.className = 'especiales-card';
@@ -2437,10 +2465,10 @@ function importFromCSV(file) {
                     <p class="text-sm text-gray-600 mb-2">UPC: ${sanitizeInput(especial.upc || 'N/A')}</p>
                     <div class="flex items-center gap-3 mb-3">
                         <span class="text-gray-500 line-through text-lg">${formatCurrency(especial.antes)}</span>
-                        <span class="text-mexican-red font-bold text-2xl">${formatCurrency(especial.price)}</span>
+                        <span class="${priceColorClass} font-bold text-2xl">${formatCurrency(especial.price)}</span>
                     </div>
-                    <div class="bg-mexican-red bg-opacity-10 text-mexican-red px-3 py-1 rounded-full text-sm inline-block mb-3">
-                        Ahorro: ${formatCurrency(ahorro)} (${porcentajeAhorro}%)
+                    <div class="${badgeClass} px-3 py-1 rounded-full text-sm inline-block mb-3">
+                        ${badgeText}
                     </div>
                     <div class="flex justify-end">
                         <button class="delete-especial-tienda bg-mexican-red hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all" data-id="${especial.id_price}">
