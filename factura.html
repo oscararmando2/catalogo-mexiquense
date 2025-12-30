@@ -790,7 +790,7 @@
             </div>
             <div class="header-top">
                 <div class="left-section">
-                    <div class="invoice-badge">INVOICE #<span id="invoiceNumber">25</span></div>
+                    <div class="invoice-badge">INVOICE #<span id="invoiceNumber">31</span></div>
                     <div class="company-info">
                         <h1>MEXIQUENSE MARKET LLC</h1>
                         <p>9525 LACKLAND RD</p>
@@ -967,7 +967,7 @@
         
         // State
         let products = [];
-        let invoiceNumber = 25;
+        let invoiceNumber = 31;
         let invoiceRows = [];
         let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
         
@@ -1934,6 +1934,8 @@
                     
                     products[index].price = newPrice;
                     saveProductsToLocalStorage();
+                    // Update the input field to show the saved value
+                    input.value = newPrice.toFixed(2);
                     showToast('Precio actualizado correctamente', 'success');
                 });
             });
