@@ -832,6 +832,9 @@
             <button class="btn btn-info" id="showProductsDbBtn">
                 Productos
             </button>
+            <button class="btn btn-secondary" id="changeInvoiceNumberBtn">
+                Cambiar # Factura
+            </button>
         </div>
         
         <!-- Invoice Table -->
@@ -960,6 +963,27 @@
         </div>
     </div>
     
+    <!-- Change Invoice Number Modal -->
+    <div class="modal" id="changeInvoiceNumberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Cambiar Número de Factura</h3>
+                <button class="modal-close" id="closeChangeInvoiceModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-modal-intro">Ingresa el nuevo número de factura. El próximo número automático será este valor + 1.</p>
+                <div class="form-group">
+                    <label for="newInvoiceNumber">Nuevo Número de Factura *</label>
+                    <input type="number" id="newInvoiceNumber" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green" min="1" required />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelChangeInvoiceBtn">Cancelar</button>
+                <button class="btn btn-success" id="confirmChangeInvoiceBtn">Cambiar Número</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // ============================================
         // SISTEMA DE FACTURACIÓN - MEXIQUENSE MARKET LLC
@@ -1010,6 +1034,14 @@
         const confirmProductUpc = document.getElementById('confirmProductUpc');
         const confirmProductName = document.getElementById('confirmProductName');
         const confirmProductPrice = document.getElementById('confirmProductPrice');
+        
+        // Change Invoice Number Modal Elements
+        const changeInvoiceNumberModal = document.getElementById('changeInvoiceNumberModal');
+        const closeChangeInvoiceModal = document.getElementById('closeChangeInvoiceModal');
+        const cancelChangeInvoiceBtn = document.getElementById('cancelChangeInvoiceBtn');
+        const confirmChangeInvoiceBtn = document.getElementById('confirmChangeInvoiceBtn');
+        const newInvoiceNumberInput = document.getElementById('newInvoiceNumber');
+        const changeInvoiceNumberBtn = document.getElementById('changeInvoiceNumberBtn');
         
         // ============================================
         // INITIALIZATION
@@ -1102,6 +1134,19 @@
             addToDbModal.addEventListener('click', (e) => {
                 if (e.target === addToDbModal) {
                     closeAddToDbConfirmModal();
+                }
+            });
+            
+            // Change Invoice Number Modal events
+            changeInvoiceNumberBtn.addEventListener('click', openChangeInvoiceNumberModal);
+            closeChangeInvoiceModal.addEventListener('click', closeChangeInvoiceNumberModal);
+            cancelChangeInvoiceBtn.addEventListener('click', closeChangeInvoiceNumberModal);
+            confirmChangeInvoiceBtn.addEventListener('click', confirmChangeInvoiceNumber);
+            
+            // Close change invoice number modal on outside click
+            changeInvoiceNumberModal.addEventListener('click', (e) => {
+                if (e.target === changeInvoiceNumberModal) {
+                    closeChangeInvoiceNumberModal();
                 }
             });
             
@@ -1871,6 +1916,37 @@
             
             // Product doesn't exist - prompt to add
             openAddToDbConfirmModal(upc, name, price);
+        }
+        
+        // ============================================
+        // CHANGE INVOICE NUMBER MODAL
+        // ============================================
+        
+        function openChangeInvoiceNumberModal() {
+            newInvoiceNumberInput.value = invoiceNumber;
+            changeInvoiceNumberModal.classList.add('show');
+            newInvoiceNumberInput.focus();
+            newInvoiceNumberInput.select();
+        }
+        
+        function closeChangeInvoiceNumberModal() {
+            changeInvoiceNumberModal.classList.remove('show');
+        }
+        
+        function confirmChangeInvoiceNumber() {
+            const newNumber = parseInt(newInvoiceNumberInput.value, 10);
+            
+            if (isNaN(newNumber) || newNumber < 1) {
+                showToast('Por favor, ingresa un número válido (mínimo 1)', 'error');
+                return;
+            }
+            
+            invoiceNumber = newNumber;
+            saveInvoiceNumberToLocalStorage();
+            updateInvoiceNumber();
+            
+            showToast(`Número de factura cambiado a #${invoiceNumber}`, 'success');
+            closeChangeInvoiceNumberModal();
         }
         
         function renderProductsDb(searchTerm = '') {
