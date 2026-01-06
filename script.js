@@ -1071,6 +1071,30 @@ function setupEventListeners(){
         if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(); }
     });
 
+    // WhatsApp Chat Button
+    const whatsappChatBtn = document.getElementById('whatsappChatBtn');
+    if (whatsappChatBtn) {
+        whatsappChatBtn.addEventListener('click', () => {
+            const productId = deleteProductBtn.dataset.id;
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            // Prepare WhatsApp message with product details
+            const message = `Hola! Estoy interesado en este producto:\n\n` +
+                `Nombre: ${product.nombre || 'N/A'}\n` +
+                `UPC: ${product.upc || 'N/A'}\n` +
+                `Precio: ${formatCurrency(product.costo || 0)}\n\n` +
+                `¿Podrías darme más información?`;
+            
+            // Replace with your WhatsApp business number (format: country code + number, no spaces or special characters)
+            const phoneNumber = '523197000000'; // Update this with the actual phone number
+            const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+            
+            // Open WhatsApp in a new tab
+            window.open(whatsappUrl, '_blank');
+        });
+    }
+
     // Vista admin/public
     adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); closeMobileMenu(); });
     publicViewBtn.addEventListener('click', ()=> { showView('public'); closeMobileMenu(); });
