@@ -868,6 +868,28 @@
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
         
         /**
+         * Handles Firebase PERMISSION_DENIED errors with helpful user guidance
+         * @param {Error} err - The error object from Firebase
+         * @param {string} nodeName - The name of the Firebase node (e.g., 'products', 'especialesTienda')
+         */
+        function handleFirebasePermissionError(err, nodeName) {
+            if (err.code === 'PERMISSION_DENIED' || err.message?.includes('PERMISSION_DENIED')) {
+                console.error(`❌ FIREBASE PERMISSION DENIED: Las reglas de Firebase no permiten escritura en "${nodeName}"`);
+                console.info('📖 SOLUCIÓN: Consulta el archivo FIREBASE_RULES_SETUP.md para configurar las reglas correctamente');
+                console.info('🔗 O visita: https://console.firebase.google.com/ > Tu proyecto > Realtime Database > Reglas');
+                
+                // Show user-friendly notification (only once per session)
+                if (!window.firebasePermissionWarningShown) {
+                    window.firebasePermissionWarningShown = true;
+                    alert('⚠️ No se puede guardar en Firebase (PERMISSION_DENIED)\n\n' +
+                          'Los datos se guardarán solo en tu navegador (localStorage).\n\n' +
+                          'Para usar Firebase, configura las reglas de seguridad.\n' +
+                          'Consulta el archivo FIREBASE_RULES_SETUP.md para más información.');
+                }
+            }
+        }
+        
+        /**
          * Validates if a URL is safe for use as an image source.
          * Only allows http:, https: protocols. Blocks javascript:, data:, etc.
          * @param {string} url - The URL to validate
@@ -938,6 +960,8 @@
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error, using localStorage as fallback', err);
+                                handleFirebasePermissionError(err, 'products');
+                                
                                 if(isLocalStorageAvailable()) {
                                     localStorage.setItem('products', JSON.stringify(products));
                                 }
@@ -1727,6 +1751,8 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for especiales, using localStorage as fallback', err);
+                                handleFirebasePermissionError(err, 'especiales');
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especiales', JSON.stringify(especiales));
                                 }
@@ -2368,6 +2394,8 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for especiales tienda, using localStorage as fallback', err);
+                                handleFirebasePermissionError(err, 'especialesTienda');
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
                                 }
@@ -2693,6 +2721,8 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for credits, using localStorage as fallback', err);
+                                handleFirebasePermissionError(err, 'credits');
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('credits', JSON.stringify(credits));
                                 }
