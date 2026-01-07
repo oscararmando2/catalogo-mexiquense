@@ -938,6 +938,23 @@
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error, using localStorage as fallback', err);
+                                
+                                // Check if it's a permission denied error and provide helpful guidance
+                                if (err.code === 'PERMISSION_DENIED' || err.message?.includes('PERMISSION_DENIED')) {
+                                    console.error('❌ FIREBASE PERMISSION DENIED: Las reglas de Firebase no permiten escritura en "products"');
+                                    console.info('📖 SOLUCIÓN: Consulta el archivo FIREBASE_RULES_SETUP.md para configurar las reglas correctamente');
+                                    console.info('🔗 O visita: https://console.firebase.google.com/ > Tu proyecto > Realtime Database > Reglas');
+                                    
+                                    // Show user-friendly notification (only once per session)
+                                    if (!window.firebasePermissionWarningShown) {
+                                        window.firebasePermissionWarningShown = true;
+                                        alert('⚠️ No se puede guardar en Firebase (PERMISSION_DENIED)\n\n' +
+                                              'Los datos se guardarán solo en tu navegador (localStorage).\n\n' +
+                                              'Para usar Firebase, configura las reglas de seguridad.\n' +
+                                              'Consulta el archivo FIREBASE_RULES_SETUP.md para más información.');
+                                    }
+                                }
+                                
                                 if(isLocalStorageAvailable()) {
                                     localStorage.setItem('products', JSON.stringify(products));
                                 }
@@ -1727,6 +1744,23 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for especiales, using localStorage as fallback', err);
+                                
+                                // Check if it's a permission denied error and provide helpful guidance
+                                if (err.code === 'PERMISSION_DENIED' || err.message?.includes('PERMISSION_DENIED')) {
+                                    console.error('❌ FIREBASE PERMISSION DENIED: Las reglas de Firebase no permiten escritura en "especiales"');
+                                    console.info('📖 SOLUCIÓN: Consulta el archivo FIREBASE_RULES_SETUP.md para configurar las reglas correctamente');
+                                    console.info('🔗 O visita: https://console.firebase.google.com/ > Tu proyecto > Realtime Database > Reglas');
+                                    
+                                    // Show user-friendly notification (only once per session)
+                                    if (!window.firebasePermissionWarningShown) {
+                                        window.firebasePermissionWarningShown = true;
+                                        alert('⚠️ No se puede guardar en Firebase (PERMISSION_DENIED)\n\n' +
+                                              'Los datos se guardarán solo en tu navegador (localStorage).\n\n' +
+                                              'Para usar Firebase, configura las reglas de seguridad.\n' +
+                                              'Consulta el archivo FIREBASE_RULES_SETUP.md para más información.');
+                                    }
+                                }
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especiales', JSON.stringify(especiales));
                                 }
@@ -2368,6 +2402,23 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for especiales tienda, using localStorage as fallback', err);
+                                
+                                // Check if it's a permission denied error and provide helpful guidance
+                                if (err.code === 'PERMISSION_DENIED' || err.message?.includes('PERMISSION_DENIED')) {
+                                    console.error('❌ FIREBASE PERMISSION DENIED: Las reglas de Firebase no permiten escritura en "especialesTienda"');
+                                    console.info('📖 SOLUCIÓN: Consulta el archivo FIREBASE_RULES_SETUP.md para configurar las reglas correctamente');
+                                    console.info('🔗 O visita: https://console.firebase.google.com/ > Tu proyecto > Realtime Database > Reglas');
+                                    
+                                    // Show user-friendly notification (only once per session)
+                                    if (!window.firebasePermissionWarningShown) {
+                                        window.firebasePermissionWarningShown = true;
+                                        alert('⚠️ No se puede guardar en Firebase (PERMISSION_DENIED)\n\n' +
+                                              'Los datos se guardarán solo en tu navegador (localStorage).\n\n' +
+                                              'Para usar Firebase, configura las reglas de seguridad.\n' +
+                                              'Consulta el archivo FIREBASE_RULES_SETUP.md para más información.');
+                                    }
+                                }
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
                                 }
@@ -2693,6 +2744,23 @@ function importFromCSV(file) {
                             })
                             .catch((err) => {
                                 console.warn('Firebase save error for credits, using localStorage as fallback', err);
+                                
+                                // Check if it's a permission denied error and provide helpful guidance
+                                if (err.code === 'PERMISSION_DENIED' || err.message?.includes('PERMISSION_DENIED')) {
+                                    console.error('❌ FIREBASE PERMISSION DENIED: Las reglas de Firebase no permiten escritura en "credits"');
+                                    console.info('📖 SOLUCIÓN: Consulta el archivo FIREBASE_RULES_SETUP.md para configurar las reglas correctamente');
+                                    console.info('🔗 O visita: https://console.firebase.google.com/ > Tu proyecto > Realtime Database > Reglas');
+                                    
+                                    // Show user-friendly notification (only once per session)
+                                    if (!window.firebasePermissionWarningShown) {
+                                        window.firebasePermissionWarningShown = true;
+                                        alert('⚠️ No se puede guardar en Firebase (PERMISSION_DENIED)\n\n' +
+                                              'Los datos se guardarán solo en tu navegador (localStorage).\n\n' +
+                                              'Para usar Firebase, configura las reglas de seguridad.\n' +
+                                              'Consulta el archivo FIREBASE_RULES_SETUP.md para más información.');
+                                    }
+                                }
+                                
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('credits', JSON.stringify(credits));
                                 }
