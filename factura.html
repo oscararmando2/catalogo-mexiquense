@@ -1056,6 +1056,38 @@
         }
         
         function loadFromLocalStorage() {
+            // Migration: Check for old 'factura_products' key and migrate to 'products'
+            const oldFacturaProducts = localStorage.getItem('factura_products');
+            if (oldFacturaProducts) {
+                // If old key exists, migrate it to the new key
+                const existingProducts = localStorage.getItem('products');
+                if (!existingProducts) {
+                    // No conflict, just rename the key
+                    localStorage.setItem('products', oldFacturaProducts);
+                } else {
+                    // Both exist, merge them (prefer products from 'products' key to avoid duplicates)
+                    try {
+                        const oldProducts = JSON.parse(oldFacturaProducts);
+                        const currentProducts = JSON.parse(existingProducts);
+                        // Create a map of existing products by UPC to avoid duplicates
+                        const productMap = new Map();
+                        currentProducts.forEach(p => productMap.set(p.upc, p));
+                        // Add old products that don't exist in current products
+                        oldProducts.forEach(p => {
+                            if (!productMap.has(p.upc)) {
+                                productMap.set(p.upc, p);
+                            }
+                        });
+                        // Save merged products
+                        localStorage.setItem('products', JSON.stringify(Array.from(productMap.values())));
+                    } catch (e) {
+                        console.warn('Error merging products during migration:', e);
+                    }
+                }
+                // Remove old key after migration
+                localStorage.removeItem('factura_products');
+            }
+            
             // Load products database
             const storedProducts = localStorage.getItem('products');
             if (storedProducts) {
