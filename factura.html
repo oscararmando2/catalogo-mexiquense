@@ -1057,7 +1057,7 @@
         
         function loadFromLocalStorage() {
             // Load products database
-            const storedProducts = localStorage.getItem('factura_products');
+            const storedProducts = localStorage.getItem('products');
             if (storedProducts) {
                 products = JSON.parse(storedProducts);
             }
@@ -1070,7 +1070,7 @@
         }
         
         function saveProductsToLocalStorage() {
-            localStorage.setItem('factura_products', JSON.stringify(products));
+            localStorage.setItem('products', JSON.stringify(products));
         }
         
         function saveInvoiceNumberToLocalStorage() {
