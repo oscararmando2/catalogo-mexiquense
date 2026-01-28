@@ -1347,7 +1347,7 @@
             
             // Search for matching products
             const matches = products.filter(p => 
-                p.upc.toLowerCase().includes(value.toLowerCase())
+                p.upc && p.upc.toLowerCase().includes(value.toLowerCase())
             );
             
             if (matches.length === 0) {
@@ -2025,8 +2025,8 @@
             if (searchTerm) {
                 const term = searchTerm.toLowerCase();
                 filtered = products.filter(p => 
-                    p.upc.toLowerCase().includes(term) || 
-                    p.name.toLowerCase().includes(term)
+                    (p.upc && p.upc.toLowerCase().includes(term)) || 
+                    (p.name && p.name.toLowerCase().includes(term))
                 );
             }
             
