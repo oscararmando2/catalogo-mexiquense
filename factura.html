@@ -1056,10 +1056,79 @@
         }
         
         function loadFromLocalStorage() {
-            // Load products database
-            const storedProducts = localStorage.getItem('factura_products');
-            if (storedProducts) {
-                products = JSON.parse(storedProducts);
+            // Migration: Check for old 'factura_products' key and migrate to 'products'
+            const oldFacturaProducts = localStorage.getItem('factura_products');
+            if (oldFacturaProducts) {
+                let migrationSuccess = false;
+                
+                try {
+                    // If old key exists, migrate it to the new key
+                    const existingProducts = localStorage.getItem('products');
+                    
+                    if (!existingProducts) {
+                        // No conflict, validate and rename the key
+                        JSON.parse(oldFacturaProducts); // Validate JSON before storing
+                        localStorage.setItem('products', oldFacturaProducts);
+                        migrationSuccess = true;
+                    } else {
+                        // Both exist, merge them (prefer products from 'products' key to avoid duplicates)
+                        const oldProducts = JSON.parse(oldFacturaProducts);
+                        const currentProducts = JSON.parse(existingProducts);
+                        
+                        // Validate that products are arrays
+                        if (!Array.isArray(oldProducts) || !Array.isArray(currentProducts)) {
+                            console.warn('Invalid product data format during migration');
+                            migrationSuccess = true; // Still remove old key to prevent repeated attempts
+                        } else {
+                            // Create a map of existing products by UPC to avoid duplicates
+                            const productMap = new Map();
+                            currentProducts.forEach(p => {
+                                // Only add products with valid UPC
+                                if (p && p.upc) {
+                                    productMap.set(p.upc, p);
+                                }
+                            });
+                            
+                            // Add old products that don't exist in current products
+                            oldProducts.forEach(p => {
+                                // Only add products with valid UPC that aren't already in the map
+                                if (p && p.upc && !productMap.has(p.upc)) {
+                                    productMap.set(p.upc, p);
+                                }
+                            });
+                            
+                            // Save merged products
+                            localStorage.setItem('products', JSON.stringify(Array.from(productMap.values())));
+                            migrationSuccess = true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error during products migration:', e);
+                    // Don't set migrationSuccess to true if there was an error
+                }
+                
+                // Only remove old key after successful migration
+                if (migrationSuccess) {
+                    localStorage.removeItem('factura_products');
+                }
+            }
+            
+            // Load products database with error handling
+            try {
+                const storedProducts = localStorage.getItem('products');
+                if (storedProducts) {
+                    const parsedProducts = JSON.parse(storedProducts);
+                    // Validate that it's an array
+                    if (Array.isArray(parsedProducts)) {
+                        products = parsedProducts;
+                    } else {
+                        console.warn('Invalid products data format, using empty array');
+                        products = [];
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading products from localStorage:', e);
+                products = [];
             }
             
             // Load invoice number
@@ -1070,7 +1139,7 @@
         }
         
         function saveProductsToLocalStorage() {
-            localStorage.setItem('factura_products', JSON.stringify(products));
+            localStorage.setItem('products', JSON.stringify(products));
         }
         
         function saveInvoiceNumberToLocalStorage() {
