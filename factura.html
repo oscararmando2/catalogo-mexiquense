@@ -1088,6 +1088,37 @@
         // INITIALIZATION
         // ============================================
         
+        /**
+         * Normalizes product data to use consistent English field names
+         * Supports both English (name, price) and Spanish (nombre, costo) field names
+         * @param {Object} product - Product object to normalize
+         * @returns {Object} - Normalized product with English field names
+         */
+        function normalizeProduct(product) {
+            if (!product || typeof product !== 'object') return product;
+            
+            const normalized = { ...product };
+            
+            // Use nombre if name is missing or empty, then remove nombre
+            if ((!normalized.name || normalized.name === '') && normalized.nombre) {
+                normalized.name = normalized.nombre;
+            }
+            if (normalized.nombre !== undefined) {
+                delete normalized.nombre; // Always remove Spanish field to avoid confusion
+            }
+            
+            // Use costo if price is missing (undefined or null), then remove costo
+            if ((normalized.price === undefined || normalized.price === null) && 
+                typeof normalized.costo === 'number') {
+                normalized.price = normalized.costo;
+            }
+            if (normalized.costo !== undefined) {
+                delete normalized.costo; // Always remove Spanish field to avoid confusion
+            }
+            
+            return normalized;
+        }
+        
         function init() {
             loadFromLocalStorage();
             setCurrentDate();
@@ -1130,7 +1161,7 @@
                             const validProducts = firebaseProducts.filter(p => {
                                 if (!p || typeof p !== 'object') return false;
                                 
-                                // Check for name field (English or Spanish)
+                                // Check for name field (English or Spanish, non-empty)
                                 const hasName = (typeof p.name === 'string' && p.name.length > 0) || 
                                                (typeof p.nombre === 'string' && p.nombre.length > 0);
                                 
@@ -1139,22 +1170,7 @@
                                                      (typeof p.costo === 'number' && p.costo >= 0);
                                 
                                 return hasName && hasValidPrice;
-                            }).map(p => {
-                                // Normalize to English field names for consistent usage
-                                const normalized = { ...p };
-                                
-                                // Use nombre if name is missing
-                                if (!normalized.name && normalized.nombre) {
-                                    normalized.name = normalized.nombre;
-                                }
-                                
-                                // Use costo if price is missing
-                                if (typeof normalized.price !== 'number' && typeof normalized.costo === 'number') {
-                                    normalized.price = normalized.costo;
-                                }
-                                
-                                return normalized;
-                            });
+                            }).map(normalizeProduct); // Use shared normalization function
                             
                             if (validProducts.length > 0) {
                                 products = validProducts;
@@ -1275,23 +1291,7 @@
                     // Validate that it's an array
                     if (Array.isArray(parsedProducts)) {
                         // Normalize products to ensure consistent field names
-                        products = parsedProducts.map(p => {
-                            if (!p || typeof p !== 'object') return p;
-                            
-                            const normalized = { ...p };
-                            
-                            // Use nombre if name is missing
-                            if (!normalized.name && normalized.nombre) {
-                                normalized.name = normalized.nombre;
-                            }
-                            
-                            // Use costo if price is missing
-                            if (typeof normalized.price !== 'number' && typeof normalized.costo === 'number') {
-                                normalized.price = normalized.costo;
-                            }
-                            
-                            return normalized;
-                        });
+                        products = parsedProducts.map(normalizeProduct);
                         console.log('✅ Products loaded from localStorage:', products.length, 'products');
                     } else {
                         console.warn('Invalid products data format, using empty array');
