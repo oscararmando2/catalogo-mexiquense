@@ -7,6 +7,11 @@
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -986,6 +991,30 @@
     
     <script>
         // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        
+        let database = null;
+        try {
+            const firebaseConfig = {
+                apiKey: "TU_API_KEY_AQUI",
+                authDomain: "catalogomexiquense.firebaseapp.com",
+                databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+                projectId: "catalogomexiquense",
+                storageBucket: "catalogomexiquense.appspot.com",
+                messagingSenderId: "TU_SENDER_ID_AQUI",
+                appId: "TU_APP_ID_AQUI"
+            };
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                console.log('🟢 Firebase initialized for factura.html');
+            }
+        } catch(err) {
+            console.warn('Firebase not available, using localStorage only', err);
+        }
+        
+        // ============================================
         // SISTEMA DE FACTURACIÓN - MEXIQUENSE MARKET LLC
         // ============================================
         
@@ -1056,6 +1085,46 @@
         }
         
         function loadFromLocalStorage() {
+            // Try loading from Firebase first
+            if (database) {
+                try {
+                    database.ref('products').once('value')
+                        .then((snapshot) => {
+                            const firebaseProducts = snapshot.val();
+                            if (firebaseProducts && Array.isArray(firebaseProducts)) {
+                                products = firebaseProducts;
+                                console.log('✅ Products loaded from Firebase:', products.length, 'products');
+                                
+                                // Save to localStorage as cache
+                                localStorage.setItem('products', JSON.stringify(products));
+                            } else {
+                                // Firebase returned invalid data, fall back to localStorage
+                                console.warn('Invalid Firebase data, falling back to localStorage');
+                                loadFromLocalStorageOnly();
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error loading from Firebase:', error);
+                            // Fall back to localStorage
+                            loadFromLocalStorageOnly();
+                        });
+                } catch (error) {
+                    console.error('Error accessing Firebase:', error);
+                    loadFromLocalStorageOnly();
+                }
+            } else {
+                // Firebase not available, use localStorage
+                loadFromLocalStorageOnly();
+            }
+            
+            // Load invoice number (always from localStorage)
+            const storedInvoiceNumber = localStorage.getItem('factura_invoiceNumber');
+            if (storedInvoiceNumber) {
+                invoiceNumber = parseInt(storedInvoiceNumber, 10);
+            }
+        }
+        
+        function loadFromLocalStorageOnly() {
             // Migration: Check for old 'factura_products' key and migrate to 'products'
             const oldFacturaProducts = localStorage.getItem('factura_products');
             if (oldFacturaProducts) {
@@ -1121,6 +1190,7 @@
                     // Validate that it's an array
                     if (Array.isArray(parsedProducts)) {
                         products = parsedProducts;
+                        console.log('✅ Products loaded from localStorage:', products.length, 'products');
                     } else {
                         console.warn('Invalid products data format, using empty array');
                         products = [];
@@ -1130,16 +1200,27 @@
                 console.error('Error loading products from localStorage:', e);
                 products = [];
             }
-            
-            // Load invoice number
-            const storedInvoiceNumber = localStorage.getItem('factura_invoiceNumber');
-            if (storedInvoiceNumber) {
-                invoiceNumber = parseInt(storedInvoiceNumber, 10);
-            }
         }
         
         function saveProductsToLocalStorage() {
-            localStorage.setItem('products', JSON.stringify(products));
+            // Save to Firebase first (if available)
+            if (database) {
+                database.ref('products').set(products)
+                    .then(() => {
+                        console.log('✅ Products saved to Firebase successfully');
+                        // Also save to localStorage as cache
+                        localStorage.setItem('products', JSON.stringify(products));
+                    })
+                    .catch((error) => {
+                        console.error('❌ Error saving to Firebase:', error);
+                        // Fall back to localStorage only
+                        localStorage.setItem('products', JSON.stringify(products));
+                        showToast('Productos guardados localmente (sin conexión a Firebase)', 'warning');
+                    });
+            } else {
+                // Firebase not available, save to localStorage only
+                localStorage.setItem('products', JSON.stringify(products));
+            }
         }
         
         function saveInvoiceNumberToLocalStorage() {
