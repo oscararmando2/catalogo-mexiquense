@@ -1584,8 +1584,8 @@ function renderEspeciales(searchTerm = '') {
         const term = searchTerm.toLowerCase();
         filtered = filtered.filter(e => 
             (e.nombre && e.nombre.toLowerCase().includes(term)) ||
-            (e.upc && e.upc.toLowerCase().includes(term)) ||
-            (e.itemNumber && e.itemNumber.toLowerCase().includes(term)) ||
+            (e.upc && String(e.upc).toLowerCase().includes(term)) ||
+            (e.itemNumber && String(e.itemNumber).toLowerCase().includes(term)) ||
             (e.provider && e.provider.toLowerCase().includes(term)) ||
             (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
             (e.product && e.product.toLowerCase().includes(term)) ||
@@ -1746,7 +1746,16 @@ async function addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, pro
     await saveEspeciales();
     
     // Check if we need to create or update a product in the products catalog
-    const productAction = await syncProductFromEspecial(newEspecial);
+    let productAction = null;
+    try {
+        productAction = await syncProductFromEspecial(newEspecial);
+    } catch (error) {
+        console.error('Error syncing product from especial:', error);
+        // Still show success for especial, but warn about product sync failure
+        renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+        showToast('Especial agregado, pero hubo un error al sincronizar el producto', true);
+        return;
+    }
     
     renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
     
@@ -1760,13 +1769,18 @@ async function addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, pro
     }
 }
 
+// Helper function to find a product that matches an especial by UPC or itemNumber
+function findProductByEspecial(especial) {
+    return products.find(p => 
+        (especial.upc && p.upc && p.upc === especial.upc) || 
+        (especial.itemNumber && especial.itemNumber !== '' && p.itemNumber && p.itemNumber === especial.itemNumber)
+    );
+}
+
 // Sync product from especial - creates or updates product in products catalog
 async function syncProductFromEspecial(especial) {
     // Check if product exists by UPC or itemNumber
-    const existingProduct = products.find(p => 
-        (especial.upc && p.upc === especial.upc) || 
-        (especial.itemNumber && especial.itemNumber !== '' && p.itemNumber === especial.itemNumber)
-    );
+    const existingProduct = findProductByEspecial(especial);
     
     if (existingProduct) {
         // Product exists, update the custom field with special price
@@ -1795,12 +1809,12 @@ async function syncProductFromEspecial(especial) {
         const newProduct = {
             id: generateId(),
             itemNumber: especial.itemNumber || 'N/A',
-            description: especial.nombre,
-            upc: especial.upc,
-            nombre: especial.nombre,
+            description: especial.nombre || 'Sin descripción',
+            upc: especial.upc || 'N/A',
+            nombre: especial.nombre || 'Sin nombre',
             size: 'N/A', // Not provided in especial
             qty: 1, // Default value
-            costo: parseFloat(especial.antes), // Use "Última Compra" as the regular cost
+            costo: parseFloat(especial.antes) || 0, // Use "Última Compra" as the regular cost
             url: especial.imageUrl || '',
             customFields: {
                 'Precio Especial': formatCurrency(especial.price),
@@ -1843,14 +1857,16 @@ async function deleteEspecial(especialId) {
     }
     
     // Remove the special price custom field from the corresponding product
-    const correspondingProduct = products.find(p => 
-        (especial.upc && p.upc === especial.upc) || 
-        (especial.itemNumber && especial.itemNumber !== '' && p.itemNumber === especial.itemNumber)
-    );
+    const correspondingProduct = findProductByEspecial(especial);
     
     if (correspondingProduct && correspondingProduct.customFields && correspondingProduct.customFields['Precio Especial']) {
         delete correspondingProduct.customFields['Precio Especial'];
         await saveData();
+        
+        // Re-render views to show updated products
+        renderAdminProducts();
+        renderPublicTabs();
+        
         console.log('Removed special price from product:', correspondingProduct.nombre);
     }
     
