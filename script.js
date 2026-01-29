@@ -1585,6 +1585,7 @@ function renderEspeciales(searchTerm = '') {
         filtered = filtered.filter(e => 
             (e.nombre && e.nombre.toLowerCase().includes(term)) ||
             (e.upc && e.upc.toLowerCase().includes(term)) ||
+            (e.itemNumber && e.itemNumber.toLowerCase().includes(term)) ||
             (e.provider && e.provider.toLowerCase().includes(term)) ||
             (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
             (e.product && e.product.toLowerCase().includes(term)) ||
@@ -1665,6 +1666,7 @@ function renderEspeciales(searchTerm = '') {
                     <div class="flex-grow pr-2">
                         <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
                         ${especial.upc ? `<p class="text-xs text-gray-500 font-mono">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                        ${especial.itemNumber ? `<p class="text-xs text-gray-500 font-mono">Item Code: ${sanitizeInput(especial.itemNumber)}</p>` : ''}
                     </div>
                     <button class="delete-especial bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-all flex-shrink-0" data-id="${especial.id_price}" title="Eliminar especial">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1725,11 +1727,12 @@ function getNextId(array, idField, defaultStart = 1) {
 }
 
 // Add new especial
-async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas = '') {
+async function addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas = '') {
     const newEspecial = {
         id_price: getNextId(especiales, 'id_price', 1),
         nombre: nombre,
         upc: upc,
+        itemNumber: itemNumber || '',
         antes: parseFloat(antes),
         price: parseFloat(precio),
         imageUrl: imageUrl,
@@ -1742,8 +1745,63 @@ async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, nota
     // Wait for save to complete
     await saveEspeciales();
     
+    // Check if we need to create or update a product in the products catalog
+    await syncProductFromEspecial(newEspecial);
+    
     renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
     showToast('Especial agregado correctamente');
+}
+
+// Sync product from especial - creates or updates product in products catalog
+async function syncProductFromEspecial(especial) {
+    // Check if product exists by UPC or itemNumber
+    const existingProduct = products.find(p => 
+        (especial.upc && p.upc === especial.upc) || 
+        (especial.itemNumber && especial.itemNumber !== '' && p.itemNumber === especial.itemNumber)
+    );
+    
+    if (existingProduct) {
+        // Product exists, update the custom field with special price
+        if (!existingProduct.customFields) {
+            existingProduct.customFields = {};
+        }
+        existingProduct.customFields['Precio Especial'] = formatCurrency(especial.price);
+        
+        // Update the image URL if the especial has one and the product doesn't
+        if (especial.imageUrl && !existingProduct.url) {
+            existingProduct.url = especial.imageUrl;
+        }
+        
+        console.log('Product updated with special price:', existingProduct.nombre);
+    } else {
+        // Product doesn't exist, create a new one
+        const newProduct = {
+            id: generateId(),
+            itemNumber: especial.itemNumber || 'N/A',
+            description: especial.nombre,
+            upc: especial.upc,
+            nombre: especial.nombre,
+            size: 'N/A', // Not provided in especial
+            qty: 1, // Default value
+            costo: parseFloat(especial.antes), // Use "Última Compra" as the regular cost
+            url: especial.imageUrl || '',
+            customFields: {
+                'Precio Especial': formatCurrency(especial.price),
+                'Proveedor': especial.proveedor
+            },
+            dateAdded: Date.now()
+        };
+        
+        products.push(newProduct);
+        console.log('New product created from especial:', newProduct.nombre);
+    }
+    
+    // Save products to Firebase/localStorage
+    await saveData();
+    
+    // Re-render views to show updated products
+    renderAdminProducts();
+    renderPublicTabs();
 }
 
 // Delete especial
@@ -1806,6 +1864,7 @@ function setupEspecialesEventListeners() {
             document.getElementById('especialId').value = '';
             document.getElementById('especialNombre').value = '';
             document.getElementById('especialUpc').value = '';
+            document.getElementById('especialItemNumber').value = '';
             document.getElementById('especialAntes').value = '';
             document.getElementById('especialPrice').value = '';
             document.getElementById('especialImageUrl').value = '';
@@ -1849,6 +1908,7 @@ function setupEspecialesEventListeners() {
             try {
                 const nombre = document.getElementById('especialNombre').value.trim();
                 const upc = document.getElementById('especialUpc').value.trim();
+                const itemNumber = document.getElementById('especialItemNumber').value.trim();
                 const antes = document.getElementById('especialAntes').value;
                 const precio = document.getElementById('especialPrice').value;
                 const imageUrl = document.getElementById('especialImageUrl').value.trim();
@@ -1887,7 +1947,7 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas);
+                await addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
