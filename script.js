@@ -1337,6 +1337,14 @@ function loadEspeciales() {
                 especiales = processEspecialesData(snapshot.val());
                 renderEspecialesIfNeeded();
                 console.log('Especiales initial load:', especiales.length, 'items');
+                
+                // Sync all especiales with products catalog
+                syncAllEspecialesToProducts().then(() => {
+                    console.log('Initial especiales sync completed');
+                }).catch(error => {
+                    console.error('Error during initial especiales sync:', error);
+                });
+                
                 setupEspecialesListeners();
             }).catch((err) => {
                 console.error('Firebase initial load error for especiales:', err);
@@ -1347,12 +1355,29 @@ function loadEspeciales() {
                         especiales = processEspecialesData(snapshot.val());
                         renderEspecialesIfNeeded();
                         console.log('Especiales retry load:', especiales.length, 'items');
+                        
+                        // Sync all especiales with products catalog
+                        syncAllEspecialesToProducts().then(() => {
+                            console.log('Retry especiales sync completed');
+                        }).catch(error => {
+                            console.error('Error during retry especiales sync:', error);
+                        });
+                        
                         setupEspecialesListeners();
                     }).catch((retryErr) => {
                         console.error('Especiales retry failed, using localStorage:', retryErr);
                         // Fall back to localStorage
                         especiales = loadEspecialesFromLocalStorage();
                         renderEspecialesIfNeeded();
+                        
+                        // Sync loaded especiales with products catalog
+                        if (especiales && especiales.length > 0) {
+                            syncAllEspecialesToProducts().then(() => {
+                                console.log('Fallback localStorage especiales sync completed');
+                            }).catch(error => {
+                                console.error('Error during fallback especiales sync:', error);
+                            });
+                        }
                     });
                 }, 2000);
             });
@@ -1362,6 +1387,15 @@ function loadEspeciales() {
     } catch (err) {
         console.warn('Using localStorage for especiales', err);
         especiales = loadEspecialesFromLocalStorage();
+        
+        // Sync loaded especiales with products catalog
+        if (especiales && especiales.length > 0) {
+            syncAllEspecialesToProducts().then(() => {
+                console.log('localStorage especiales sync completed');
+            }).catch(error => {
+                console.error('Error during localStorage especiales sync:', error);
+            });
+        }
     }
 }
 
@@ -1406,6 +1440,15 @@ function setupEspecialesListeners() {
                 }
                 
                 console.log('Especial added from Firebase:', newItem.nombre);
+                
+                // Sync with products catalog
+                syncProductFromEspecial(newItem).then(productAction => {
+                    if (productAction) {
+                        console.log(`Product ${productAction} from especial in Firebase listener`);
+                    }
+                }).catch(error => {
+                    console.error('Error syncing product from Firebase especial:', error);
+                });
                 
                 // Update localStorage
                 if (isLocalStorageAvailable()) {
@@ -1475,6 +1518,15 @@ function setupEspecialesListeners() {
             }
             
             console.log('Especial changed in Firebase:', changedItem.nombre);
+            
+            // Sync with products catalog
+            syncProductFromEspecial(changedItem).then(productAction => {
+                if (productAction) {
+                    console.log(`Product ${productAction} from changed especial in Firebase listener`);
+                }
+            }).catch(error => {
+                console.error('Error syncing product from changed Firebase especial:', error);
+            });
             
             // Update localStorage
             if (isLocalStorageAvailable()) {
@@ -1835,6 +1887,32 @@ async function syncProductFromEspecial(especial) {
         
         return 'created';
     }
+}
+
+// Sync all especiales with products catalog
+async function syncAllEspecialesToProducts() {
+    if (!especiales || especiales.length === 0) {
+        console.log('No especiales to sync');
+        return;
+    }
+    
+    console.log(`Syncing ${especiales.length} especiales with products catalog...`);
+    let created = 0;
+    let updated = 0;
+    let errors = 0;
+    
+    for (const especial of especiales) {
+        try {
+            const action = await syncProductFromEspecial(especial);
+            if (action === 'created') created++;
+            else if (action === 'updated') updated++;
+        } catch (error) {
+            console.error('Error syncing especial:', especial.nombre, error);
+            errors++;
+        }
+    }
+    
+    console.log(`Especiales sync complete: ${created} created, ${updated} updated, ${errors} errors`);
 }
 
 // Delete especial
