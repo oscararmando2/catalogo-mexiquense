@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Productos - Mexiquense Market</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #c00;
+            margin-bottom: 10px;
+        }
+        .status-box {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        button {
+            background: #c00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #a00;
+        }
+        .product-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .product-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Verificador de Productos</h1>
+        <p>Esta herramienta verifica cuántos productos hay almacenados en tu navegador.</p>
+        
+        <div id="results"></div>
+        
+        <button onclick="checkProducts()">🔄 Verificar Productos</button>
+        <button onclick="showAllProducts()">📋 Ver Todos los Productos</button>
+        <button onclick="exportToJSON()">💾 Exportar a JSON</button>
+        <button onclick="clearTestData()">🗑️ Limpiar Datos de Prueba</button>
+        
+        <div id="productList" class="product-list" style="display:none;"></div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <h2>ℹ️ Información Importante</h2>
+        <div class="info status-box">
+            <p><strong>¿Por qué solo veo 5 productos?</strong></p>
+            <p>Si ves "5 productos", es posible que:</p>
+            <ol>
+                <li><strong>Son datos de prueba</strong> - Durante las pruebas se agregaron 5 productos de ejemplo</li>
+                <li><strong>Los productos reales están en Firebase</strong> - Tu base de datos real está en Firebase, no en localStorage</li>
+                <li><strong>Necesitas conectarte a Firebase</strong> - Configure las credenciales de Firebase en factura.html</li>
+            </ol>
+        </div>
+        
+        <h3>🔧 Solución: Conectar a Firebase</h3>
+        <div class="status-box warning">
+            <p><strong>Pasos para ver tus productos reales:</strong></p>
+            <ol>
+                <li>Abre <code>factura.html</code> en un editor de texto</li>
+                <li>Busca la línea que dice <code>apiKey: "TU_API_KEY_AQUI"</code></li>
+                <li>Reemplaza los valores con tus credenciales reales de Firebase</li>
+                <li>Guarda el archivo y recarga la página</li>
+            </ol>
+            <p><strong>Nota:</strong> Tus productos reales están guardados en Firebase, no se perdieron. Solo necesitas conectarte a tu base de datos.</p>
+        </div>
+        
+        <h3>📊 ¿Cómo verificar tus productos en Firebase?</h3>
+        <div class="status-box info">
+            <p><strong>Para ver tus productos en Firebase:</strong></p>
+            <ol>
+                <li>Ve a <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></li>
+                <li>Selecciona tu proyecto "catalogomexiquense"</li>
+                <li>En el menú izquierdo, haz clic en "Realtime Database"</li>
+                <li>Busca el nodo "products" - ahí estarán todos tus productos</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        function checkProducts() {
+            const results = document.getElementById('results');
+            let html = '<h2>📊 Resultados</h2>';
+            
+            // Check 'products' key
+            const productsStr = localStorage.getItem('products');
+            const facturaProductsStr = localStorage.getItem('factura_products');
+            
+            let productsCount = 0;
+            let facturaProductsCount = 0;
+            let products = [];
+            
+            if (productsStr) {
+                try {
+                    products = JSON.parse(productsStr);
+                    productsCount = Array.isArray(products) ? products.length : 0;
+                } catch (e) {
+                    html += '<div class="error status-box">❌ Error al leer "products" de localStorage</div>';
+                }
+            }
+            
+            if (facturaProductsStr) {
+                try {
+                    const facturaProducts = JSON.parse(facturaProductsStr);
+                    facturaProductsCount = Array.isArray(facturaProducts) ? facturaProducts.length : 0;
+                } catch (e) {
+                    html += '<div class="error status-box">❌ Error al leer "factura_products" de localStorage</div>';
+                }
+            }
+            
+            // Display results
+            if (productsCount > 0) {
+                html += `<div class="success status-box">
+                    ✅ <strong>Encontrados ${productsCount} productos</strong> en la clave 'products'
+                </div>`;
+            } else {
+                html += `<div class="warning status-box">
+                    ⚠️ <strong>No se encontraron productos</strong> en la clave 'products'<br>
+                    Esto es normal si tus productos están solo en Firebase.
+                </div>`;
+            }
+            
+            if (facturaProductsCount > 0) {
+                html += `<div class="info status-box">
+                    ℹ️ <strong>Encontrados ${facturaProductsCount} productos</strong> en la clave antigua 'factura_products'<br>
+                    Estos deberían migrar automáticamente a 'products'.
+                </div>`;
+            }
+            
+            // Check all localStorage keys
+            html += '<h3>🔑 Todas las claves en localStorage:</h3>';
+            html += '<table><tr><th>Clave</th><th>Tamaño</th></tr>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                const size = value ? value.length : 0;
+                html += `<tr><td>${key}</td><td>${size} caracteres</td></tr>`;
+            }
+            html += '</table>';
+            
+            results.innerHTML = html;
+        }
+        
+        function showAllProducts() {
+            const productsStr = localStorage.getItem('products');
+            const productList = document.getElementById('productList');
+            
+            if (!productsStr) {
+                productList.innerHTML = '<p>No hay productos en localStorage.</p>';
+                productList.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const products = JSON.parse(productsStr);
+                let html = `<h3>📦 Lista de Productos (${products.length})</h3>`;
+                
+                products.forEach((p, index) => {
+                    html += `<div class="product-item">
+                        <strong>${index + 1}.</strong> ${p.name || 'Sin nombre'} - 
+                        UPC: ${p.upc || 'N/A'} - 
+                        Precio: $${p.price ? p.price.toFixed(2) : '0.00'}
+                    </div>`;
+                });
+                
+                productList.innerHTML = html;
+                productList.style.display = 'block';
+            } catch (e) {
+                productList.innerHTML = '<p class="error">Error al leer productos: ' + e.message + '</p>';
+                productList.style.display = 'block';
+            }
+        }
+        
+        function exportToJSON() {
+            const productsStr = localStorage.getItem('products');
+            if (!productsStr) {
+                alert('No hay productos para exportar.');
+                return;
+            }
+            
+            const blob = new Blob([productsStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'productos-backup-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Productos exportados correctamente!');
+        }
+        
+        function clearTestData() {
+            if (confirm('⚠️ ¿Estás seguro de que quieres limpiar los datos de prueba?\n\nEsto eliminará los 5 productos de prueba de localStorage.\nTus productos reales en Firebase NO se verán afectados.')) {
+                // Only clear if there are exactly 5 products (test data)
+                const productsStr = localStorage.getItem('products');
+                if (productsStr) {
+                    try {
+                        const products = JSON.parse(productsStr);
+                        if (products.length === 5) {
+                            localStorage.removeItem('products');
+                            alert('✅ Datos de prueba eliminados.\n\nRecarga la página factura.html para cargar tus productos reales desde Firebase.');
+                            checkProducts();
+                        } else {
+                            alert(`❌ Tienes ${products.length} productos, no 5.\n\nNo se eliminará nada por seguridad.`);
+                        }
+                    } catch (e) {
+                        alert('Error al leer productos: ' + e.message);
+                    }
+                }
+            }
+        }
+        
+        // Auto-check on load
+        window.addEventListener('DOMContentLoaded', checkProducts);
+    </script>
+</body>
+</html>
