@@ -102,7 +102,14 @@ Si ves este error en la consola del navegador:
 }
 ```
 
-**Para Producción (Más Seguro):**
+⚠️ **ADVERTENCIA CRÍTICA DE SEGURIDAD:**
+- Estas reglas permiten acceso completo sin restricciones
+- **SOLO úsalas en desarrollo LOCAL** (nunca en producción)
+- **NUNCA** uses estas reglas si tu aplicación es accesible públicamente
+- Firebase puede requerir que actualices estas reglas después de 30 días
+- Cambia a reglas seguras antes de desplegar a producción
+
+**Para Producción (Recomendado para Entorno Confiable):**
 ```json
 {
   "rules": {
@@ -128,6 +135,13 @@ Si ves este error en la consola del navegador:
   }
 }
 ```
+
+⚠️ **NOTA DE SEGURIDAD:**
+- Estas reglas permiten escritura sin autenticación
+- Son apropiadas SOLO para aplicaciones de uso interno/confiable
+- Cualquier persona con acceso a la app puede modificar datos
+- Para aplicaciones públicas, implementa Firebase Authentication
+- Consulta FIREBASE_RULES_SETUP.md para reglas más seguras con autenticación
 
 3. Haz clic en **"Publicar"** (Publish)
 4. Espera 30 segundos para que se apliquen
@@ -181,6 +195,12 @@ const firebaseConfig = {
 ```
 
 ✅ **Esta configuración ya está lista y funcionando**
+
+ℹ️ **Nota sobre Seguridad:**
+- El API key de Firebase es público por diseño (está en el código cliente)
+- La seguridad real viene de las **Reglas de Firebase Database**
+- Asegúrate de configurar reglas apropiadas según tu caso de uso
+- El API key solo NO proporciona seguridad sin reglas adecuadas
 
 ### Sincronización en Tiempo Real (Ya está en tu código)
 
@@ -292,6 +312,12 @@ Ya tienes una cuenta de Firebase configurada con el proyecto "catalogomexiquense
 ### ¿Qué pasa si dos personas editan al mismo tiempo?
 Firebase maneja esto automáticamente. El último cambio guardado es el que se muestra en todos los dispositivos.
 
+⚠️ **Advertencia sobre Pérdida de Datos:**
+- Si dos usuarios editan el mismo producto simultáneamente, el último cambio sobrescribe el anterior
+- Esto puede causar pérdida accidental de cambios
+- **Recomendación:** Coordina las ediciones entre usuarios o implementa un sistema de bloqueo
+- Considera usar un sistema de notificaciones para alertar cuando otros usuarios están editando
+
 ### ¿Necesito descargar algo?
 **No**, Firebase se carga desde internet (CDN de Google). No necesitas instalar nada.
 
@@ -331,7 +357,7 @@ Para más información, consulta estos archivos en el repositorio:
 
 ---
 
-## 📞 Necesitas Ayuda?
+## 📞 ¿Necesitas Ayuda?
 
 Si tienes dudas o problemas:
 
