@@ -1125,14 +1125,35 @@
                     productsListener = (snapshot) => {
                         const firebaseProducts = snapshot.val();
                         if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                            // Validate products data
+                            // Validate and normalize products data
+                            // Support both English (name, price) and Spanish (nombre, costo) field names
                             const validProducts = firebaseProducts.filter(p => {
-                                // Each product should be an object with at least name and price
-                                return p && 
-                                       typeof p === 'object' && 
-                                       typeof p.name === 'string' && 
-                                       typeof p.price === 'number' && 
-                                       p.price >= 0;
+                                if (!p || typeof p !== 'object') return false;
+                                
+                                // Check for name field (English or Spanish)
+                                const hasName = (typeof p.name === 'string' && p.name.length > 0) || 
+                                               (typeof p.nombre === 'string' && p.nombre.length > 0);
+                                
+                                // Check for price field (English or Spanish)
+                                const hasValidPrice = (typeof p.price === 'number' && p.price >= 0) || 
+                                                     (typeof p.costo === 'number' && p.costo >= 0);
+                                
+                                return hasName && hasValidPrice;
+                            }).map(p => {
+                                // Normalize to English field names for consistent usage
+                                const normalized = { ...p };
+                                
+                                // Use nombre if name is missing
+                                if (!normalized.name && normalized.nombre) {
+                                    normalized.name = normalized.nombre;
+                                }
+                                
+                                // Use costo if price is missing
+                                if (typeof normalized.price !== 'number' && typeof normalized.costo === 'number') {
+                                    normalized.price = normalized.costo;
+                                }
+                                
+                                return normalized;
                             });
                             
                             if (validProducts.length > 0) {
@@ -1253,7 +1274,24 @@
                     const parsedProducts = JSON.parse(storedProducts);
                     // Validate that it's an array
                     if (Array.isArray(parsedProducts)) {
-                        products = parsedProducts;
+                        // Normalize products to ensure consistent field names
+                        products = parsedProducts.map(p => {
+                            if (!p || typeof p !== 'object') return p;
+                            
+                            const normalized = { ...p };
+                            
+                            // Use nombre if name is missing
+                            if (!normalized.name && normalized.nombre) {
+                                normalized.name = normalized.nombre;
+                            }
+                            
+                            // Use costo if price is missing
+                            if (typeof normalized.price !== 'number' && typeof normalized.costo === 'number') {
+                                normalized.price = normalized.costo;
+                            }
+                            
+                            return normalized;
+                        });
                         console.log('✅ Products loaded from localStorage:', products.length, 'products');
                     } else {
                         console.warn('Invalid products data format, using empty array');
