@@ -487,21 +487,6 @@ function isNewProduct(product){
     return (Date.now() - product.dateAdded) < sevenDays;
 }
 
-// ==== Helper function to process products data from Firebase snapshot ====
-// Firebase sometimes converts arrays with gaps to objects, this function handles both cases
-function processProductsData(data) {
-    if (data && Array.isArray(data) && data.length > 0) {
-        // Filter out any null or undefined values that Firebase might have stored
-        return data.filter(p => p != null && typeof p === 'object');
-    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-        // Firebase sometimes converts arrays with gaps to objects, convert back
-        return Object.values(data).filter(p => p != null && typeof p === 'object');
-    } else {
-        // Initialize with empty array
-        return [];
-    }
-}
-
 // ==== Sincronizar catálogo de UPC desde productos ====
 // Esta función actualiza el catálogo con los UPCs de los productos actuales
 function syncCatalogo() {
@@ -523,7 +508,7 @@ function loadData(){
     try{
         if(database){
             database.ref('products').on('value', (snapshot)=>{
-                products = processProductsData(snapshot.val());
+                products = snapshot.val() || [];
                 syncCatalogo(); // Sincronizar catálogo después de cargar productos
                 renderAdminProducts();
                 renderPublicTabs();

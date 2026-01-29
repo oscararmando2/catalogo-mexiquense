@@ -1167,20 +1167,10 @@
                     // Set up real-time listener for products
                     productsListener = (snapshot) => {
                         const firebaseProducts = snapshot.val();
-                        let validProducts = [];
-                        
-                        // Handle different data formats from Firebase
                         if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                            validProducts = firebaseProducts.filter(p => p != null && typeof p === 'object');
-                        } else if (firebaseProducts && typeof firebaseProducts === 'object' && !Array.isArray(firebaseProducts)) {
-                            // Firebase sometimes converts arrays with gaps to objects, convert back
-                            validProducts = Object.values(firebaseProducts).filter(p => p != null && typeof p === 'object');
-                        }
-                        
-                        if (validProducts.length > 0) {
                             // Validate and normalize products data
                             // Support both English (name, price) and Spanish (nombre, costo) field names
-                            validProducts = validProducts.filter(p => {
+                            const validProducts = firebaseProducts.filter(p => {
                                 if (!p || typeof p !== 'object') return false;
                                 
                                 // Check for name field (English or Spanish, non-empty)
