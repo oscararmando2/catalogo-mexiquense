@@ -1746,10 +1746,18 @@ async function addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, pro
     await saveEspeciales();
     
     // Check if we need to create or update a product in the products catalog
-    await syncProductFromEspecial(newEspecial);
+    const productAction = await syncProductFromEspecial(newEspecial);
     
     renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
-    showToast('Especial agregado correctamente');
+    
+    // Show appropriate message based on what happened
+    if (productAction === 'created') {
+        showToast('Especial agregado y producto nuevo creado en el catálogo');
+    } else if (productAction === 'updated') {
+        showToast('Especial agregado y producto actualizado con precio especial');
+    } else {
+        showToast('Especial agregado correctamente');
+    }
 }
 
 // Sync product from especial - creates or updates product in products catalog
@@ -1773,6 +1781,15 @@ async function syncProductFromEspecial(especial) {
         }
         
         console.log('Product updated with special price:', existingProduct.nombre);
+        
+        // Save products to Firebase/localStorage
+        await saveData();
+        
+        // Re-render views to show updated products
+        renderAdminProducts();
+        renderPublicTabs();
+        
+        return 'updated';
     } else {
         // Product doesn't exist, create a new one
         const newProduct = {
@@ -1794,14 +1811,16 @@ async function syncProductFromEspecial(especial) {
         
         products.push(newProduct);
         console.log('New product created from especial:', newProduct.nombre);
+        
+        // Save products to Firebase/localStorage
+        await saveData();
+        
+        // Re-render views to show updated products
+        renderAdminProducts();
+        renderPublicTabs();
+        
+        return 'created';
     }
-    
-    // Save products to Firebase/localStorage
-    await saveData();
-    
-    // Re-render views to show updated products
-    renderAdminProducts();
-    renderPublicTabs();
 }
 
 // Delete especial
@@ -1821,6 +1840,18 @@ async function deleteEspecial(especialId) {
     const nombreProducto = especial.nombre || especial.product || 'este producto';
     if (!confirm(`¿Estás seguro de eliminar el especial de "${nombreProducto}"?`)) {
         return;
+    }
+    
+    // Remove the special price custom field from the corresponding product
+    const correspondingProduct = products.find(p => 
+        (especial.upc && p.upc === especial.upc) || 
+        (especial.itemNumber && especial.itemNumber !== '' && p.itemNumber === especial.itemNumber)
+    );
+    
+    if (correspondingProduct && correspondingProduct.customFields && correspondingProduct.customFields['Precio Especial']) {
+        delete correspondingProduct.customFields['Precio Especial'];
+        await saveData();
+        console.log('Removed special price from product:', correspondingProduct.nombre);
     }
     
     especiales = especiales.filter(e => e.id_price !== especialId);
