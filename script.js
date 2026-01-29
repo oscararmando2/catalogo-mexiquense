@@ -83,14 +83,13 @@ let fcmToken = null;
 
 try {
     const firebaseConfig = {
-        apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
+        apiKey: "TU_API_KEY_AQUI",
         authDomain: "catalogomexiquense.firebaseapp.com",
         databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
         projectId: "catalogomexiquense",
-        storageBucket: "catalogomexiquense.firebasestorage.app",
-        messagingSenderId: "105727682757",
-        appId: "1:105727682757:web:2887f0de033b857786e8ac",
-        measurementId: "G-PRXPTEW7WL"
+        storageBucket: "catalogomexiquense.appspot.com",
+        messagingSenderId: "TU_SENDER_ID_AQUI",
+        appId: "TU_APP_ID_AQUI"
     };
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
