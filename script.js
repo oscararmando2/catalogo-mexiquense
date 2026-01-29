@@ -1268,7 +1268,33 @@ function setupEventListeners(){
 // ==== ESPECIALES FUNCTIONALITY ====
 let especiales = [];
 let especialesListeners = null; // Store listener references for cleanup
-let especialesSyncPending = false; // Flag to prevent concurrent syncs
+let especialesSyncQueue = []; // Queue for pending sync operations
+let especialesSyncInProgress = false; // Flag to track if sync is in progress
+
+// Process queued especiales syncs
+async function processEspecialesSyncQueue() {
+    if (especialesSyncInProgress || especialesSyncQueue.length === 0) {
+        return;
+    }
+    
+    especialesSyncInProgress = true;
+    const especial = especialesSyncQueue.shift();
+    
+    try {
+        const action = await syncProductFromEspecial(especial);
+        if (action) {
+            console.log(`Product ${action} from queued especial: ${especial.nombre}`);
+        }
+    } catch (error) {
+        console.error('Error syncing queued especial:', especial.nombre, error);
+    } finally {
+        especialesSyncInProgress = false;
+        // Process next item in queue if any
+        if (especialesSyncQueue.length > 0) {
+            setTimeout(() => processEspecialesSyncQueue(), 0);
+        }
+    }
+}
 
 // Helper function to process especiales data from Firebase snapshot
 function processEspecialesData(data) {
@@ -1313,8 +1339,9 @@ function renderEspecialesIfNeeded() {
 
 // Load especiales from Firebase with localStorage fallback using granular listeners
 // Helper function to sync especiales with products catalog and handle errors
+// Returns the promise so callers can await if needed
 function syncEspecialesWithLogging(syncPromise, context) {
-    syncPromise.then(() => {
+    return syncPromise.then(() => {
         console.log(`${context} especiales sync completed`);
     }).catch(error => {
         console.error(`Error during ${context} especiales sync:`, error);
@@ -1431,19 +1458,9 @@ function setupEspecialesListeners() {
                 
                 console.log('Especial added from Firebase:', newItem.nombre);
                 
-                // Sync with products catalog (with race condition protection)
-                if (!especialesSyncPending) {
-                    especialesSyncPending = true;
-                    syncProductFromEspecial(newItem).then(productAction => {
-                        if (productAction) {
-                            console.log(`Product ${productAction} from especial in Firebase listener`);
-                        }
-                        especialesSyncPending = false;
-                    }).catch(error => {
-                        console.error('Error syncing product from Firebase especial:', error);
-                        especialesSyncPending = false;
-                    });
-                }
+                // Queue the especial for syncing with products catalog
+                especialesSyncQueue.push(newItem);
+                processEspecialesSyncQueue();
                 
                 // Update localStorage
                 if (isLocalStorageAvailable()) {
@@ -1514,19 +1531,9 @@ function setupEspecialesListeners() {
             
             console.log('Especial changed in Firebase:', changedItem.nombre);
             
-            // Sync with products catalog (with race condition protection)
-            if (!especialesSyncPending) {
-                especialesSyncPending = true;
-                syncProductFromEspecial(changedItem).then(productAction => {
-                    if (productAction) {
-                        console.log(`Product ${productAction} from changed especial in Firebase listener`);
-                    }
-                    especialesSyncPending = false;
-                }).catch(error => {
-                    console.error('Error syncing product from changed Firebase especial:', error);
-                    especialesSyncPending = false;
-                });
-            }
+            // Queue the changed especial for syncing with products catalog
+            especialesSyncQueue.push(changedItem);
+            processEspecialesSyncQueue();
             
             // Update localStorage
             if (isLocalStorageAvailable()) {
@@ -1830,7 +1837,8 @@ function findProductByEspecial(especial) {
 }
 
 // Sync product from especial - creates or updates product in products catalog
-// Note: This function does NOT save to Firebase/localStorage - caller is responsible
+// When skipSave=true, batch mode is enabled (no save/re-render, caller handles it)
+// When skipSave=false (default), immediately saves to Firebase/localStorage
 async function syncProductFromEspecial(especial, skipSave = false) {
     // Check if product exists by UPC or itemNumber
     const existingProduct = findProductByEspecial(especial);
