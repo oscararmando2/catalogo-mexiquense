@@ -2198,8 +2198,8 @@
         function renderProductsDb(searchTerm = '') {
             productsDbBody.innerHTML = '';
             
-            // Show loading state only if Firebase hasn't synced yet AND we have no products loaded
-            if (!firebaseSyncCompleted && products.length === 0) {
+            // Show loading state if Firebase hasn't synced yet
+            if (!firebaseSyncCompleted) {
                 productsDbTableContainer.style.display = 'none';
                 productsDbEmpty.style.display = 'none';
                 productsDbLoading.style.display = 'block';
