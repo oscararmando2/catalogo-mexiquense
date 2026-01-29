@@ -1727,11 +1727,18 @@ function renderEspeciales(searchTerm = '') {
                         ${especial.upc ? `<p class="text-xs text-gray-500 font-mono">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
                         ${especial.itemNumber ? `<p class="text-xs text-gray-500 font-mono">Item Code: ${sanitizeInput(especial.itemNumber)}</p>` : ''}
                     </div>
-                    <button class="delete-especial bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-all flex-shrink-0" data-id="${especial.id_price}" title="Eliminar especial">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button class="edit-especial bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-all" data-id="${especial.id_price}" title="Editar especial">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                        </button>
+                        <button class="delete-especial bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-all" data-id="${especial.id_price}" title="Eliminar especial">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 
                 ${especial.proveedor ? `
@@ -1775,6 +1782,19 @@ function renderEspeciales(searchTerm = '') {
                 return;
             }
             deleteEspecial(especialId);
+        });
+    });
+    
+    // Setup edit button event listeners
+    container.querySelectorAll('.edit-especial').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const especialId = parseInt(e.currentTarget.dataset.id, 10);
+            // Validate that the parse was successful and ID is positive
+            if (isNaN(especialId) || especialId <= 0) {
+                showToast('Error: ID de especial inválido', true);
+                return;
+            }
+            openEditEspecialModal(especialId);
         });
     });
 }
@@ -2019,6 +2039,13 @@ function setupEspecialesEventListeners() {
             document.getElementById('especialProveedor').value = '';
             document.getElementById('especialNotas').value = '';
             document.getElementById('especialNotasCount').textContent = '0';
+            
+            // Hide the "Add to Catalog" button in add mode
+            const addToCatalogBtn = document.getElementById('addToCatalogBtn');
+            if (addToCatalogBtn) {
+                addToCatalogBtn.classList.add('hidden');
+            }
+            
             especialFormModal.classList.remove('hidden');
         });
     }
@@ -2054,6 +2081,7 @@ function setupEspecialesEventListeners() {
             submitBtn.textContent = 'Guardando...';
             
             try {
+                const especialId = document.getElementById('especialId').value;
                 const nombre = document.getElementById('especialNombre').value.trim();
                 const upc = document.getElementById('especialUpc').value.trim();
                 const itemNumber = document.getElementById('especialItemNumber').value.trim();
@@ -2095,7 +2123,15 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                await addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
+                // Check if editing or adding
+                if (especialId) {
+                    // Edit mode
+                    await updateEspecial(parseInt(especialId, 10), nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
+                } else {
+                    // Add mode
+                    await addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
+                }
+                
                 especialFormModal.classList.add('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
@@ -2116,6 +2152,195 @@ function setupEspecialesEventListeners() {
             }
         });
     }
+    
+    // Add to catalog button handler
+    const addToCatalogBtn = document.getElementById('addToCatalogBtn');
+    if (addToCatalogBtn) {
+        addToCatalogBtn.addEventListener('click', () => {
+            const especialId = document.getElementById('especialId').value;
+            if (especialId) {
+                openProductFormFromEspecial(parseInt(especialId, 10));
+            }
+        });
+    }
+}
+
+// Open edit especial modal
+function openEditEspecialModal(especialId) {
+    // Validate especialId
+    if (!especialId || isNaN(especialId) || especialId <= 0) {
+        showToast('Error: ID de especial inválido', true);
+        return;
+    }
+    
+    const especial = especiales.find(e => e.id_price === especialId);
+    if (!especial) {
+        showToast('Especial no encontrado', true);
+        return;
+    }
+    
+    // Fill the form with especial data
+    document.getElementById('especialFormTitle').textContent = 'Editar Especial';
+    document.getElementById('especialId').value = especial.id_price;
+    document.getElementById('especialNombre').value = especial.nombre || '';
+    document.getElementById('especialUpc').value = especial.upc || '';
+    document.getElementById('especialItemNumber').value = especial.itemNumber || '';
+    document.getElementById('especialAntes').value = especial.antes || '';
+    document.getElementById('especialPrice').value = especial.price || '';
+    document.getElementById('especialImageUrl').value = especial.imageUrl || '';
+    document.getElementById('especialProveedor').value = especial.proveedor || '';
+    document.getElementById('especialNotas').value = especial.notas || '';
+    document.getElementById('especialNotasCount').textContent = (especial.notas || '').length;
+    
+    // Show the "Add to Catalog" button only in edit mode
+    const addToCatalogBtn = document.getElementById('addToCatalogBtn');
+    if (addToCatalogBtn) {
+        addToCatalogBtn.classList.remove('hidden');
+    }
+    
+    // Open the modal
+    const especialFormModal = document.getElementById('especialFormModal');
+    if (especialFormModal) {
+        especialFormModal.classList.remove('hidden');
+    }
+}
+
+// Open product form with data from especial
+function openProductFormFromEspecial(especialId) {
+    // Validate especialId
+    if (!especialId || isNaN(especialId) || especialId <= 0) {
+        showToast('Error: ID de especial inválido', true);
+        return;
+    }
+    
+    const especial = especiales.find(e => e.id_price === especialId);
+    if (!especial) {
+        showToast('Especial no encontrado', true);
+        return;
+    }
+    
+    // Close the especial form modal
+    const especialFormModal = document.getElementById('especialFormModal');
+    if (especialFormModal) {
+        especialFormModal.classList.add('hidden');
+    }
+    
+    // Check if we need to switch to admin view
+    if (currentView !== 'admin') {
+        showToast('Redirigiendo a la vista de administración...', false);
+        setTimeout(() => {
+            showView('admin');
+            // Wait for view transition and product form modal to be available
+            setTimeout(() => {
+                fillProductFormFromEspecial(especial);
+            }, 500);
+        }, 300);
+    } else {
+        fillProductFormFromEspecial(especial);
+    }
+}
+
+// Fill product form with data from especial
+function fillProductFormFromEspecial(especial) {
+    // Reset the form first
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        productForm.reset();
+    }
+    
+    // Set form title
+    const formTitle = document.getElementById('formTitle');
+    if (formTitle) {
+        formTitle.textContent = 'Nuevo Producto (desde Especial)';
+    }
+    
+    // Clear product ID to ensure we're creating a new product
+    const productIdInput = document.getElementById('productId');
+    if (productIdInput) {
+        productIdInput.value = '';
+    }
+    
+    // Fill in available data from especial with null checks
+    if (especial.itemNumber) {
+        const itemNumberInput = document.getElementById('itemNumber');
+        if (itemNumberInput) {
+            itemNumberInput.value = especial.itemNumber;
+        }
+    }
+    if (especial.upc) {
+        const upcInput = document.getElementById('upc');
+        if (upcInput) {
+            upcInput.value = especial.upc;
+        }
+    }
+    if (especial.nombre) {
+        const nombreInput = document.getElementById('nombre');
+        if (nombreInput) {
+            nombreInput.value = especial.nombre;
+        }
+    }
+    if (especial.imageUrl) {
+        const urlInput = document.getElementById('url');
+        if (urlInput) {
+            urlInput.value = especial.imageUrl;
+        }
+    }
+    if (especial.price) {
+        const costoInput = document.getElementById('costo');
+        if (costoInput) {
+            costoInput.value = especial.price;
+        }
+    }
+    
+    // Set description from nombre + provider if available
+    let description = especial.nombre || '';
+    if (especial.proveedor) {
+        description += ` - ${especial.proveedor}`;
+    }
+    if (especial.notas) {
+        description += ` (${especial.notas})`;
+    }
+    const descriptionInput = document.getElementById('description');
+    if (descriptionInput) {
+        descriptionInput.value = description;
+    }
+    
+    // Open the product form modal
+    const productFormModal = document.getElementById('productFormModal');
+    if (productFormModal) {
+        productFormModal.classList.remove('hidden');
+    }
+    
+    showToast('Completa los campos faltantes y guarda el producto', false);
+}
+
+// Update especial (edit functionality)
+// Note: This function does not automatically sync to the product catalog.
+// Users can explicitly add to catalog by clicking "AGREGAR AL CATÁLOGO" button.
+async function updateEspecial(especialId, nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas = '') {
+    const index = especiales.findIndex(e => e.id_price === especialId);
+    if (index === -1) {
+        showToast('Especial no encontrado', true);
+        return;
+    }
+    
+    especiales[index] = {
+        ...especiales[index],
+        nombre: nombre,
+        upc: upc,
+        itemNumber: itemNumber || '',
+        antes: parseFloat(antes),
+        price: parseFloat(precio),
+        imageUrl: imageUrl,
+        proveedor: proveedor,
+        notas: notas
+    };
+    
+    // Wait for save to complete
+    await saveEspeciales();
+    
+    renderEspeciales(document.getElementById('especialesSearchInput')?.value || '');
+    showToast('Especial actualizado correctamente');
 }
 
 // ==== CRÉDITOS FUNCTIONALITY ====
