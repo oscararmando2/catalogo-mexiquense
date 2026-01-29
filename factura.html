@@ -1009,9 +1009,11 @@
                 firebase.initializeApp(firebaseConfig);
                 database = firebase.database();
                 console.log('🟢 Firebase initialized for factura.html');
+            } else {
+                console.warn('Firebase SDK not loaded, using localStorage only');
             }
         } catch(err) {
-            console.warn('Firebase not available, using localStorage only', err);
+            console.error('Firebase initialization failed, using localStorage only', err);
         }
         
         // ============================================
@@ -1092,11 +1094,26 @@
                         .then((snapshot) => {
                             const firebaseProducts = snapshot.val();
                             if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                                products = firebaseProducts;
-                                console.log('✅ Products loaded from Firebase:', products.length, 'products');
+                                // Validate products data
+                                const validProducts = firebaseProducts.filter(p => {
+                                    // Each product should be an object with at least name and price
+                                    return p && 
+                                           typeof p === 'object' && 
+                                           typeof p.name === 'string' && 
+                                           typeof p.price === 'number' && 
+                                           p.price >= 0;
+                                });
                                 
-                                // Save to localStorage as cache
-                                localStorage.setItem('products', JSON.stringify(products));
+                                if (validProducts.length > 0) {
+                                    products = validProducts;
+                                    console.log('✅ Products loaded from Firebase:', products.length, 'products');
+                                    
+                                    // Save to localStorage as cache
+                                    localStorage.setItem('products', JSON.stringify(products));
+                                } else {
+                                    console.warn('No valid products in Firebase data, falling back to localStorage');
+                                    loadFromLocalStorageOnly();
+                                }
                             } else {
                                 // Firebase returned invalid data, fall back to localStorage
                                 console.warn('Invalid Firebase data, falling back to localStorage');
@@ -1203,24 +1220,30 @@
         }
         
         function saveProductsToLocalStorage() {
-            // Save to Firebase first (if available)
-            if (database) {
-                database.ref('products').set(products)
-                    .then(() => {
-                        console.log('✅ Products saved to Firebase successfully');
-                        // Also save to localStorage as cache
-                        localStorage.setItem('products', JSON.stringify(products));
-                    })
-                    .catch((error) => {
-                        console.error('❌ Error saving to Firebase:', error);
-                        // Fall back to localStorage only
-                        localStorage.setItem('products', JSON.stringify(products));
-                        showToast('Productos guardados localmente (sin conexión a Firebase)', 'warning');
-                    });
-            } else {
-                // Firebase not available, save to localStorage only
-                localStorage.setItem('products', JSON.stringify(products));
-            }
+            return new Promise((resolve) => {
+                // Save to Firebase first (if available)
+                if (database) {
+                    database.ref('products').set(products)
+                        .then(() => {
+                            console.log('✅ Products saved to Firebase successfully');
+                            // Also save to localStorage as cache
+                            localStorage.setItem('products', JSON.stringify(products));
+                            resolve({ firebase: true, localStorage: true });
+                        })
+                        .catch((error) => {
+                            console.error('❌ Error saving to Firebase:', error);
+                            // Fall back to localStorage only
+                            localStorage.setItem('products', JSON.stringify(products));
+                            showToast('Productos guardados localmente (sin conexión a Firebase)', 'warning');
+                            resolve({ firebase: false, localStorage: true });
+                        });
+                } else {
+                    // Firebase not available, save to localStorage only
+                    localStorage.setItem('products', JSON.stringify(products));
+                    console.log('💾 Products saved to localStorage only');
+                    resolve({ firebase: false, localStorage: true });
+                }
+            });
         }
         
         function saveInvoiceNumberToLocalStorage() {
