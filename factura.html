@@ -1508,12 +1508,15 @@
             }
             
             // Build dropdown items
-            dropdown.innerHTML = matches.slice(0, 10).map(p => `
-                <div class="upc-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name || '')}" data-price="${p.price}">
+            dropdown.innerHTML = matches.slice(0, 10).map(p => {
+                const price = (typeof p.price === 'number' && !isNaN(p.price)) ? p.price : 0;
+                return `
+                <div class="upc-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name || '')}" data-price="${price}">
                     <div class="upc-code">${highlightMatch(p.upc, value)}</div>
-                    <div class="product-name">${escapeHtml(p.name || '')} - $${p.price.toFixed(2)}</div>
+                    <div class="product-name">${escapeHtml(p.name || '')} - $${price.toFixed(2)}</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             dropdown.classList.add('show');
             
@@ -1616,12 +1619,15 @@
             }
             
             // Build dropdown items
-            dropdown.innerHTML = matches.slice(0, 10).map(p => `
-                <div class="product-dropdown-item" data-upc="${p.upc || ''}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
+            dropdown.innerHTML = matches.slice(0, 10).map(p => {
+                const price = (typeof p.price === 'number' && !isNaN(p.price)) ? p.price : 0;
+                return `
+                <div class="product-dropdown-item" data-upc="${p.upc || ''}" data-name="${escapeHtml(p.name)}" data-price="${price}">
                     <div class="product-name-match">${highlightMatch(escapeHtml(p.name), value)}</div>
-                    <div class="product-upc-info">UPC: ${p.upc || ''} - $${p.price.toFixed(2)}</div>
+                    <div class="product-upc-info">UPC: ${p.upc || ''} - $${price.toFixed(2)}</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             dropdown.classList.add('show');
             
@@ -2053,10 +2059,11 @@
         // ============================================
         
         function openAddToDbConfirmModal(upc, name, price) {
-            pendingProductToAdd = { upc, name, price };
+            const validatedPrice = (typeof price === 'number' && !isNaN(price)) ? price : 0;
+            pendingProductToAdd = { upc, name, price: validatedPrice };
             confirmProductUpc.textContent = upc || 'N/A';
             confirmProductName.textContent = name;
-            confirmProductPrice.textContent = '$' + price.toFixed(2);
+            confirmProductPrice.textContent = '$' + validatedPrice.toFixed(2);
             addToDbModal.classList.add('show');
         }
         
@@ -2207,13 +2214,15 @@
             filtered.forEach((product, index) => {
                 const originalIndex = products.findIndex(p => p.upc === product.upc);
                 const row = document.createElement('tr');
+                // Ensure price is a valid number, default to 0 if not
+                const price = (typeof product.price === 'number' && !isNaN(product.price)) ? product.price : 0;
                 row.innerHTML = `
                     <td>${escapeHtml(product.upc || '')}</td>
                     <td>${escapeHtml(product.name || '')}</td>
                     <td class="text-right">
                         <input type="number" 
                             class="price-edit-input" 
-                            value="${product.price.toFixed(2)}" 
+                            value="${price.toFixed(2)}" 
                             step="0.01" 
                             min="0" 
                             data-index="${originalIndex}">
