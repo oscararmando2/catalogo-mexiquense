@@ -493,7 +493,7 @@ function syncCatalogo() {
         .filter(p => p.upc) // Solo productos con UPC definido
         .map(p => ({
             upc: p.upc,
-            nombre: p.nombre || p.description || 'Sin nombre',
+            nombre: p.nombre || p.name || p.description || 'Sin nombre',
             itemNumber: p.itemNumber || '',
             description: p.description || '',
             size: p.size || '',
@@ -504,21 +504,57 @@ function syncCatalogo() {
 
 // Helper function to process products data from Firebase snapshot
 function processProductsData(data) {
+    let productsArray = [];
+    
     if (data && Array.isArray(data)) {
         // Filter out any null or undefined values that Firebase might have stored
-        return data.filter(p => p != null && typeof p === 'object');
+        productsArray = data.filter(p => p != null && typeof p === 'object');
     } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-        // Firebase sometimes converts arrays with gaps to objects, convert back
-        return Object.values(data).filter(p => p != null && typeof p === 'object');
-    } else {
-        // Initialize with empty data
-        return [];
+        // Firebase returns products as object with unique keys, convert to array
+        productsArray = Object.entries(data)
+            .filter(([key, value]) => value != null && typeof value === 'object')
+            .map(([key, value]) => {
+                // Ensure each product has an id (use the Firebase key if id doesn't exist)
+                if (!value.id) {
+                    value.id = key;
+                }
+                return value;
+            });
     }
+    
+    // Normalize the name field: map "name" (English) to "nombre" (Spanish)
+    // This ensures compatibility with the rest of the codebase
+    productsArray = productsArray.map(product => {
+        // If product has "name" but not "nombre", copy "name" to "nombre"
+        if (product.name && !product.nombre) {
+            product.nombre = product.name;
+        }
+        // Also create a displayName field for explicit use
+        product.displayName = product.nombre || product.name || product.description || 'Sin nombre';
+        return product;
+    });
+    
+    console.log(`Processed ${productsArray.length} products from Firebase`);
+    if (productsArray.length > 0) {
+        console.log('Sample product:', {
+            id: productsArray[0].id,
+            name: productsArray[0].name,
+            nombre: productsArray[0].nombre,
+            displayName: productsArray[0].displayName,
+            description: productsArray[0].description
+        });
+    }
+    
+    return productsArray;
 }
 
-// Helper function to check and log products without nombre field
+// Helper function to check and log products without name field
 function checkProductsWithoutName(products, source) {
-    const productsWithoutName = products.filter(p => !p.nombre || typeof p.nombre !== 'string' || p.nombre.trim() === '');
+    const productsWithoutName = products.filter(p => {
+        const hasName = (p.name && typeof p.name === 'string' && p.name.trim() !== '') ||
+                       (p.nombre && typeof p.nombre === 'string' && p.nombre.trim() !== '');
+        return !hasName;
+    });
     if (productsWithoutName.length > 0) {
         console.warn(`WARNING: ${productsWithoutName.length} productos sin nombre detectados (source: ${source})`);
         console.warn('Productos sin nombre:', productsWithoutName.map(p => ({
@@ -526,10 +562,14 @@ function checkProductsWithoutName(products, source) {
             itemNumber: p.itemNumber,
             description: p.description,
             upc: p.upc,
+            hasName: !!p.name,
             hasNombre: !!p.nombre,
+            nameType: typeof p.name,
             nombreType: typeof p.nombre
         })));
-        console.warn('SOLUTION: Verifica las reglas de Firebase o reimporta los productos con la columna NOMBRE');
+        console.warn('SOLUTION: Verifica que los productos en Firebase tengan el campo "name" o "nombre"');
+    } else {
+        console.log(`✓ All ${products.length} products have valid names (source: ${source})`);
     }
 }
 
@@ -619,7 +659,10 @@ function renderAdminProducts(){
     if(q){
         filtered = filtered.filter(p=>{
             try{
-                return p?.nombre?.toLowerCase().includes(q) || p?.itemNumber?.toLowerCase().includes(q) || p?.description?.toLowerCase().includes(q);
+                return p?.nombre?.toLowerCase().includes(q) || 
+                       p?.name?.toLowerCase().includes(q) || 
+                       p?.itemNumber?.toLowerCase().includes(q) || 
+                       p?.description?.toLowerCase().includes(q);
             }catch{ return false; }
         });
     }
@@ -635,10 +678,10 @@ function renderAdminProducts(){
         if(selection.has(product.id)) card.classList.add('selected-card');
         card.innerHTML = `
             <div class='product-image-container relative'>
-                <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
             </div>
             <div class='p-5'>
-                <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.description || 'Sin nombre')}</h3>
+                <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                 <div class='flex justify-center'>
                     <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                 </div>
@@ -661,7 +704,12 @@ function renderPublicTabs(searchTerm=''){
     let filtered = [...products];
     if(searchTerm){
         const s = searchTerm.toLowerCase();
-        filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
+        filtered = filtered.filter(p=> 
+            p?.nombre?.toLowerCase().includes(s) || 
+            p?.name?.toLowerCase().includes(s) ||
+            p?.description?.toLowerCase().includes(s) || 
+            p?.upc?.toLowerCase().includes(s)
+        );
     }
     if(filtered.length===0){
         publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
@@ -699,10 +747,10 @@ function renderPublicProducts(list, container){
         card.innerHTML = `
             <div class='product-image-container relative'>
                 ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-mexican-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
             </div>
             <div class='p-5'>
-                <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.description || 'Sin nombre')}</h3>
+                <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                 <div class='flex justify-center'>
                     <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                 </div>
@@ -797,12 +845,17 @@ function showProductDetails(productId){
     const product = products.find(p=> p.id===productId);
     if(!product){ showToast('Producto no encontrado.', true); return; }
     try{
-        modalProductTitle.textContent = sanitizeInput(product.nombre || product.description || 'Sin nombre');
+        const displayName = product.nombre || product.name || product.description || 'Sin nombre';
+        modalProductTitle.textContent = sanitizeInput(displayName);
         productItemNumber.textContent = sanitizeInput(product.itemNumber || 'N/A');
         productUpc.textContent = sanitizeInput(product.upc || 'N/A');
         productSize.textContent = sanitizeInput(product.size || 'N/A');
         productQty.textContent = sanitizeInput(String(product.qty ?? 'N/A'));
-        productDescription.textContent = sanitizeInput(product.description || 'Sin descripción');
+        // Only show description if it differs from the displayed name, or if nombre/name exists
+        const shouldShowDescription = (product.nombre || product.name) || !product.description;
+        productDescription.textContent = shouldShowDescription 
+            ? sanitizeInput(product.description || 'Sin descripción')
+            : sanitizeInput('Sin descripción adicional');
         productCosto.textContent = formatCurrency(product.costo || 0);
 
         if(product.url){
