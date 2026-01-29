@@ -1088,6 +1088,44 @@
         // INITIALIZATION
         // ============================================
         
+        /**
+         * Normalizes product data to use consistent English field names
+         * Supports both English (name, price) and Spanish (nombre, costo) field names
+         * @param {Object} product - Product object to normalize
+         * @returns {Object} - Normalized product with English field names
+         */
+        function normalizeProduct(product) {
+            if (!product || typeof product !== 'object') return product;
+            
+            const normalized = { ...product };
+            
+            // Use nombre if name is missing, empty, or only whitespace
+            const hasValidName = typeof normalized.name === 'string' && normalized.name.trim().length > 0;
+            const hasValidNombre = typeof normalized.nombre === 'string' && normalized.nombre.trim().length > 0;
+            
+            if (!hasValidName && hasValidNombre) {
+                normalized.name = normalized.nombre;
+            }
+            // Always remove Spanish field to avoid confusion
+            if (normalized.nombre !== undefined) {
+                delete normalized.nombre;
+            }
+            
+            // Use costo if price is missing, and ensure it's valid (non-negative number)
+            const hasValidPrice = typeof normalized.price === 'number' && !isNaN(normalized.price) && normalized.price >= 0;
+            const hasValidCosto = typeof normalized.costo === 'number' && !isNaN(normalized.costo) && normalized.costo >= 0;
+            
+            if (!hasValidPrice && hasValidCosto) {
+                normalized.price = normalized.costo;
+            }
+            // Always remove Spanish field to avoid confusion
+            if (normalized.costo !== undefined) {
+                delete normalized.costo;
+            }
+            
+            return normalized;
+        }
+        
         function init() {
             loadFromLocalStorage();
             setCurrentDate();
@@ -1125,15 +1163,21 @@
                     productsListener = (snapshot) => {
                         const firebaseProducts = snapshot.val();
                         if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                            // Validate products data
+                            // Validate and normalize products data
+                            // Support both English (name, price) and Spanish (nombre, costo) field names
                             const validProducts = firebaseProducts.filter(p => {
-                                // Each product should be an object with at least name and price
-                                return p && 
-                                       typeof p === 'object' && 
-                                       typeof p.name === 'string' && 
-                                       typeof p.price === 'number' && 
-                                       p.price >= 0;
-                            });
+                                if (!p || typeof p !== 'object') return false;
+                                
+                                // Check for name field (English or Spanish, non-empty)
+                                const hasName = (typeof p.name === 'string' && p.name.length > 0) || 
+                                               (typeof p.nombre === 'string' && p.nombre.length > 0);
+                                
+                                // Check for price field (English or Spanish)
+                                const hasValidPrice = (typeof p.price === 'number' && p.price >= 0) || 
+                                                     (typeof p.costo === 'number' && p.costo >= 0);
+                                
+                                return hasName && hasValidPrice;
+                            }).map(normalizeProduct); // Use shared normalization function
                             
                             if (validProducts.length > 0) {
                                 products = validProducts;
@@ -1253,7 +1297,8 @@
                     const parsedProducts = JSON.parse(storedProducts);
                     // Validate that it's an array
                     if (Array.isArray(parsedProducts)) {
-                        products = parsedProducts;
+                        // Normalize products to ensure consistent field names
+                        products = parsedProducts.map(normalizeProduct);
                         console.log('✅ Products loaded from localStorage:', products.length, 'products');
                     } else {
                         console.warn('Invalid products data format, using empty array');
