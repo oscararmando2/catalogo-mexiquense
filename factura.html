@@ -924,6 +924,10 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="productsDbLoading" class="products-db-empty">
+                    <p>⏳ Cargando productos desde Firebase...</p>
+                    <p class="sub-text">Por favor espera un momento.</p>
+                </div>
                 <div id="productsDbEmpty" class="products-db-empty">
                     <p>No hay productos en la base de datos.</p>
                     <p class="sub-text">Carga un archivo CSV o agrega productos manualmente.</p>
@@ -997,6 +1001,7 @@
         let database = null;
         let productsListener = null;
         let connectionListener = null;
+        let firebaseSyncCompleted = false; // Track if Firebase has synced at least once
         
         try {
             const firebaseConfig = {
@@ -1059,6 +1064,7 @@
         const productsDbSearch = document.getElementById('productsDbSearch');
         const productsDbCount = document.getElementById('productsDbCount');
         const productsDbEmpty = document.getElementById('productsDbEmpty');
+        const productsDbLoading = document.getElementById('productsDbLoading');
         const productsDbTableContainer = document.getElementById('productsDbTableContainer');
         
         // Add to Database Confirmation Modal Elements
@@ -1140,11 +1146,6 @@
                                     console.warn('Failed to save products to localStorage:', storageError);
                                     // Continue without localStorage cache
                                 }
-                                
-                                // Refresh products display if modal is open
-                                if (productsDbModal && productsDbModal.classList.contains('show')) {
-                                    filterProductsDb();
-                                }
                             } else {
                                 console.warn('No valid products in Firebase data');
                             }
@@ -1153,17 +1154,31 @@
                         } else {
                             console.warn('Invalid Firebase data format');
                         }
+                        
+                        // Mark that Firebase sync has completed (whether it had data or not)
+                        firebaseSyncCompleted = true;
+                        
+                        // Refresh products display if modal is open (transition from loading to empty/populated)
+                        if (productsDbModal && productsDbModal.classList.contains('show')) {
+                            filterProductsDb();
+                        }
                     };
                     
                     database.ref('products').on('value', productsListener, (error) => {
                         console.error('Error syncing from Firebase:', error);
                         console.log('Continuing with cached products from localStorage');
+                        // Mark sync as completed even on error, so we don't block the UI
+                        firebaseSyncCompleted = true;
                     });
                 } catch (error) {
                     console.error('Error setting up Firebase sync:', error);
+                    // Mark sync as completed even on setup error, so we don't block the UI
+                    firebaseSyncCompleted = true;
                 }
             } else {
                 console.log('Firebase not available, using localStorage only');
+                // If Firebase is not available, mark sync as complete immediately
+                firebaseSyncCompleted = true;
             }
             
             // Load invoice number (always from localStorage)
@@ -2156,6 +2171,18 @@
         
         function renderProductsDb(searchTerm = '') {
             productsDbBody.innerHTML = '';
+            
+            // Show loading state if Firebase hasn't synced yet
+            if (!firebaseSyncCompleted) {
+                productsDbTableContainer.style.display = 'none';
+                productsDbEmpty.style.display = 'none';
+                productsDbLoading.style.display = 'block';
+                productsDbCount.textContent = '';
+                return;
+            }
+            
+            // Hide loading state
+            productsDbLoading.style.display = 'none';
             
             let filtered = products;
             if (searchTerm) {
