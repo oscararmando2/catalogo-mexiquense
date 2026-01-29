@@ -523,6 +523,21 @@ function loadData(){
             database.ref('products').on('value', (snapshot)=>{
                 products = processProductsData(snapshot.val());
                 console.log(`Products loaded from Firebase: ${products.length} products`);
+                
+                // Diagnóstico: Verificar si hay productos sin nombre
+                const productsWithoutName = products.filter(p => !p.nombre || p.nombre.trim() === '');
+                if (productsWithoutName.length > 0) {
+                    console.warn(`⚠️ WARNING: ${productsWithoutName.length} productos sin nombre detectados`);
+                    console.warn('Productos sin nombre:', productsWithoutName.map(p => ({
+                        id: p.id,
+                        itemNumber: p.itemNumber,
+                        description: p.description,
+                        upc: p.upc,
+                        hasNombre: !!p.nombre
+                    })));
+                    console.warn('💡 Solución: Verifica las reglas de Firebase o reimporta los productos con la columna NOMBRE');
+                }
+                
                 syncCatalogo(); // Sincronizar catálogo después de cargar productos
                 renderAdminProducts();
                 renderPublicTabs();
@@ -538,6 +553,14 @@ function loadData(){
             const parsed = stored ? JSON.parse(stored) : null;
             products = processProductsData(parsed);
             console.log(`Products loaded from localStorage: ${products.length} products`);
+            
+            // Diagnóstico: Verificar si hay productos sin nombre
+            const productsWithoutName = products.filter(p => !p.nombre || p.nombre.trim() === '');
+            if (productsWithoutName.length > 0) {
+                console.warn(`⚠️ WARNING: ${productsWithoutName.length} productos sin nombre detectados en localStorage`);
+                console.warn('💡 Solución: Reimporta los productos con la columna NOMBRE en el CSV');
+            }
+            
             syncCatalogo(); // Sincronizar catálogo después de cargar productos
             renderAdminProducts();
             renderPublicTabs();
