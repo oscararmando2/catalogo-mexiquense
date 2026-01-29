@@ -1099,21 +1099,28 @@
             
             const normalized = { ...product };
             
-            // Use nombre if name is missing or empty, then remove nombre
-            if ((!normalized.name || normalized.name === '') && normalized.nombre) {
+            // Use nombre if name is missing, empty, or only whitespace
+            const hasValidName = typeof normalized.name === 'string' && normalized.name.trim().length > 0;
+            const hasValidNombre = typeof normalized.nombre === 'string' && normalized.nombre.trim().length > 0;
+            
+            if (!hasValidName && hasValidNombre) {
                 normalized.name = normalized.nombre;
             }
+            // Always remove Spanish field to avoid confusion
             if (normalized.nombre !== undefined) {
-                delete normalized.nombre; // Always remove Spanish field to avoid confusion
+                delete normalized.nombre;
             }
             
-            // Use costo if price is missing (undefined or null), then remove costo
-            if ((normalized.price === undefined || normalized.price === null) && 
-                typeof normalized.costo === 'number') {
+            // Use costo if price is missing, and ensure it's valid (non-negative number)
+            const hasValidPrice = typeof normalized.price === 'number' && !isNaN(normalized.price) && normalized.price >= 0;
+            const hasValidCosto = typeof normalized.costo === 'number' && !isNaN(normalized.costo) && normalized.costo >= 0;
+            
+            if (!hasValidPrice && hasValidCosto) {
                 normalized.price = normalized.costo;
             }
+            // Always remove Spanish field to avoid confusion
             if (normalized.costo !== undefined) {
-                delete normalized.costo; // Always remove Spanish field to avoid confusion
+                delete normalized.costo;
             }
             
             return normalized;
