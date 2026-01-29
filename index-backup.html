@@ -985,10 +985,10 @@
                 if(selection.has(product.id)) card.classList.add('selected-card');
                 card.innerHTML = `
                     <div class='product-image-container relative'>
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
-                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
+                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
                             <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                         </div>
@@ -1011,7 +1011,12 @@
             let filtered = [...products];
             if(searchTerm){
                 const s = searchTerm.toLowerCase();
-                filtered = filtered.filter(p=> p?.nombre?.toLowerCase().includes(s) || p?.upc?.toLowerCase().includes(s));
+                filtered = filtered.filter(p=> 
+                    p?.nombre?.toLowerCase().includes(s) || 
+                    p?.name?.toLowerCase().includes(s) ||
+                    p?.description?.toLowerCase().includes(s) || 
+                    p?.upc?.toLowerCase().includes(s)
+                );
             }
             if(filtered.length===0){
                 publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
@@ -1049,10 +1054,10 @@
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-mexican-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
-                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
+                        <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
                     <div class='p-5'>
-                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || 'Sin nombre')}</h3>
+                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
                             <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
                         </div>
@@ -1147,7 +1152,7 @@
             const product = products.find(p=> p.id===productId);
             if(!product){ showToast('Producto no encontrado.', true); return; }
             try{
-                modalProductTitle.textContent = sanitizeInput(product.nombre || 'Sin nombre');
+                modalProductTitle.textContent = sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre');
                 productItemNumber.textContent = sanitizeInput(product.itemNumber || 'N/A');
                 productUpc.textContent = sanitizeInput(product.upc || 'N/A');
                 productSize.textContent = sanitizeInput(product.size || 'N/A');
