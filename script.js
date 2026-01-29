@@ -516,6 +516,24 @@ function processProductsData(data) {
     }
 }
 
+// Helper function to check and log products without nombre field
+function checkProductsWithoutName(products, source) {
+    const productsWithoutName = products.filter(p => !p.nombre || typeof p.nombre !== 'string' || p.nombre.trim() === '');
+    if (productsWithoutName.length > 0) {
+        console.warn(`WARNING: ${productsWithoutName.length} productos sin nombre detectados (source: ${source})`);
+        console.warn('Productos sin nombre:', productsWithoutName.map(p => ({
+            id: p.id,
+            itemNumber: p.itemNumber,
+            description: p.description,
+            upc: p.upc,
+            hasNombre: !!p.nombre,
+            nombreType: typeof p.nombre
+        })));
+        console.warn('SOLUTION: Verifica las reglas de Firebase o reimporta los productos con la columna NOMBRE');
+    }
+}
+
+
 // ==== Load & Save ====
 function loadData(){
     try{
@@ -523,6 +541,10 @@ function loadData(){
             database.ref('products').on('value', (snapshot)=>{
                 products = processProductsData(snapshot.val());
                 console.log(`Products loaded from Firebase: ${products.length} products`);
+                
+                // Diagnóstico: Verificar si hay productos sin nombre
+                checkProductsWithoutName(products, 'Firebase');
+                
                 syncCatalogo(); // Sincronizar catálogo después de cargar productos
                 renderAdminProducts();
                 renderPublicTabs();
@@ -538,6 +560,10 @@ function loadData(){
             const parsed = stored ? JSON.parse(stored) : null;
             products = processProductsData(parsed);
             console.log(`Products loaded from localStorage: ${products.length} products`);
+            
+            // Diagnóstico: Verificar si hay productos sin nombre
+            checkProductsWithoutName(products, 'localStorage');
+            
             syncCatalogo(); // Sincronizar catálogo después de cargar productos
             renderAdminProducts();
             renderPublicTabs();
