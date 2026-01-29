@@ -518,7 +518,7 @@ function processProductsData(data) {
 
 // Helper function to check and log products without nombre field
 function checkProductsWithoutName(products, source) {
-    const productsWithoutName = products.filter(p => !p.nombre || p.nombre.trim() === '');
+    const productsWithoutName = products.filter(p => !p.nombre || typeof p.nombre !== 'string' || p.nombre.trim() === '');
     if (productsWithoutName.length > 0) {
         console.warn(`WARNING: ${productsWithoutName.length} productos sin nombre detectados (source: ${source})`);
         console.warn('Productos sin nombre:', productsWithoutName.map(p => ({
@@ -526,7 +526,8 @@ function checkProductsWithoutName(products, source) {
             itemNumber: p.itemNumber,
             description: p.description,
             upc: p.upc,
-            hasNombre: !!p.nombre
+            hasNombre: !!p.nombre,
+            nombreType: typeof p.nombre
         })));
         console.warn('SOLUTION: Verifica las reglas de Firebase o reimporta los productos con la columna NOMBRE');
     }

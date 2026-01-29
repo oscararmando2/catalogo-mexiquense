@@ -1,7 +1,4 @@
 {
-  "_comment": "PRODUCTION RULES - Require authentication for write operations",
-  "_warning": "These rules are SECURE and recommended for production use",
-  "_note": "You need to implement Firebase Authentication for these rules to work",
   "rules": {
     ".read": true,
     ".write": false,

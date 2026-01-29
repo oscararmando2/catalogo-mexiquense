@@ -42,9 +42,9 @@ Products loaded from Firebase: 150 products
 
 ⚠️ **Si hay productos sin nombre:**
 ```
-⚠️ WARNING: 25 productos sin nombre detectados
+WARNING: 25 productos sin nombre detectados (source: Firebase)
 Productos sin nombre: [...]
-💡 Solución: Verifica las reglas de Firebase o reimporta los productos
+SOLUTION: Verifica las reglas de Firebase o reimporta los productos con la columna NOMBRE
 ```
 
 ## 📚 Documentación Completa

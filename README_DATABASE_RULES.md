@@ -74,7 +74,7 @@ Si prefieres no usar Firebase Authentication:
 1. Mantén `database.rules.json` PERO considera que:
    - ⚠️ Es menos seguro
    - ⚠️ La validación solo ocurre en el cliente
-   - ⚠️ Usuarios técnicos pueden bypassear la validación
+   - ⚠️ Usuarios técnicos pueden eludir la validación
 
 2. Asegúrate de que tu aplicación tenga:
    - Validación de contraseña de administrador

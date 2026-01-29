@@ -1,0 +1,19 @@
+FIREBASE SECURE RULES - PRODUCTION USE
+
+This file contains Firebase Realtime Database rules that require authentication 
+for write operations. Use these rules for production deployments.
+
+IMPORTANT NOTES:
+- Requires Firebase Authentication to be enabled in your project
+- Public read access is allowed
+- Write operations require authenticated users (auth != null)
+- SECURE and recommended for production use
+
+To use these rules:
+1. Enable Firebase Authentication in Firebase Console
+2. Copy the contents of database.rules.secure.json
+3. Paste into Firebase Console > Realtime Database > Rules
+4. Publish the changes
+5. Implement authentication in your application code
+
+See README_DATABASE_RULES.md for complete documentation.
