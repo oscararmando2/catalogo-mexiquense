@@ -1002,6 +1002,7 @@
         let productsListener = null;
         let connectionListener = null;
         let firebaseSyncCompleted = false; // Track if Firebase has synced at least once
+        let wasConnected = false; // Track connection state to avoid duplicate messages
         
         try {
             const firebaseConfig = {
@@ -1150,7 +1151,6 @@
                     }
                     
                     // Monitor Firebase connection state
-                    let wasConnected = false;
                     connectionListener = (snap) => {
                         const isConnected = snap.val() === true;
                         if (isConnected && !wasConnected) {
