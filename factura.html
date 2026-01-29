@@ -1002,6 +1002,7 @@
         let productsListener = null;
         let connectionListener = null;
         let firebaseSyncCompleted = false; // Track if Firebase has synced at least once
+        let wasConnected = false; // Track connection state to avoid duplicate messages
         
         try {
             const firebaseConfig = {
@@ -1017,12 +1018,12 @@
             if (typeof firebase !== 'undefined') {
                 firebase.initializeApp(firebaseConfig);
                 database = firebase.database();
-                console.log('🟢 Firebase initialized for factura.html');
+                console.log('✅ Firebase initialized successfully');
             } else {
-                console.warn('Firebase SDK not loaded, using localStorage only');
+                console.warn('⚠️ Firebase SDK not loaded - using localStorage only');
             }
         } catch(err) {
-            console.error('Firebase initialization failed, using localStorage only', err);
+            console.error('❌ Firebase initialization failed - using localStorage only:', err);
         }
         
         // ============================================
@@ -1151,11 +1152,15 @@
                     
                     // Monitor Firebase connection state
                     connectionListener = (snap) => {
-                        if (snap.val() === true) {
+                        const isConnected = snap.val() === true;
+                        if (isConnected && !wasConnected) {
                             console.log('🟢 Firebase connected - products will sync');
-                        } else {
-                            console.log('🔴 Firebase disconnected - using cached products');
+                            wasConnected = true;
+                        } else if (!isConnected && wasConnected) {
+                            console.warn('🔴 Firebase disconnected - using cached products');
+                            wasConnected = false;
                         }
+                        // Skip logging on initial false state to reduce noise
                     };
                     database.ref('.info/connected').on('value', connectionListener);
                     
@@ -1194,7 +1199,12 @@
                                 console.warn('No valid products in Firebase data');
                             }
                         } else if (firebaseProducts === null) {
-                            console.log('No products in Firebase yet, using localStorage cache');
+                            const localProductsCount = products ? products.length : 0;
+                            if (localProductsCount > 0) {
+                                console.log(`ℹ️ No products in Firebase - using ${localProductsCount} cached products from localStorage`);
+                            } else {
+                                console.warn('⚠️ No products found in Firebase or localStorage. Use "Administrar Productos" to add products or visit migrate-products.html to sync from catalog.');
+                            }
                         } else {
                             console.warn('Invalid Firebase data format');
                         }
