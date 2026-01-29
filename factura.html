@@ -1250,6 +1250,7 @@
                     } else {
                         // Both exist, prefer the existing invoiceProducts to avoid confusion
                         // The factura_products is old data, so we'll just mark migration as done
+                        console.warn('⚠️ Both factura_products and invoiceProducts exist. Using invoiceProducts and ignoring factura_products.');
                         migrationSuccess = true;
                     }
                 } catch (e) {

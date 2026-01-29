@@ -196,6 +196,8 @@
 
     <script>
         // Firebase configuration
+        // IMPORTANT: These credentials are exposed in client-side code.
+        // Ensure Firebase Security Rules are properly configured to restrict access.
         const firebaseConfig = {
             apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
             authDomain: "catalogomexiquense.firebaseapp.com",
@@ -228,6 +230,11 @@
         }
 
         async function checkStatus() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado. Recarga la página e intenta de nuevo.');
+                return;
+            }
+            
             const statusResult = document.getElementById('statusResult');
             statusResult.innerHTML = '<p>Cargando...</p>';
 
@@ -266,10 +273,18 @@
         }
 
         async function autoSeparate() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado. Recarga la página e intenta de nuevo.');
+                return;
+            }
+            
             if (!confirm('¿Estás seguro? Esto separará los productos en catálogo (con URL) y facturas (sin URL).')) {
                 return;
             }
 
+            // Disable buttons during execution
+            disableButtons();
+            
             try {
                 showResult('info', 'Procesando...');
 
@@ -282,17 +297,21 @@
                     return;
                 }
 
-                // Separate products
-                const catalogProducts = allProducts.filter(p => p && (p.imageUrl || p.catalogoUrl));
-                const invoiceProducts = allProducts.filter(p => p && !p.imageUrl && !p.catalogoUrl);
+                // Separate products (validate that URLs are non-empty strings)
+                const catalogProducts = allProducts.filter(p => p && ((p.imageUrl && p.imageUrl.trim()) || (p.catalogoUrl && p.catalogoUrl.trim())));
+                const invoiceProducts = allProducts.filter(p => p && !((p.imageUrl && p.imageUrl.trim()) || (p.catalogoUrl && p.catalogoUrl.trim())));
 
                 // Save to Firebase
                 await database.ref('products').set(catalogProducts);
                 await database.ref('invoiceProducts').set(invoiceProducts);
 
-                // Update localStorage
-                localStorage.setItem('products', JSON.stringify(catalogProducts));
-                localStorage.setItem('invoiceProducts', JSON.stringify(invoiceProducts));
+                // Update localStorage with error handling
+                try {
+                    localStorage.setItem('products', JSON.stringify(catalogProducts));
+                    localStorage.setItem('invoiceProducts', JSON.stringify(invoiceProducts));
+                } catch (storageError) {
+                    console.warn('localStorage update failed:', storageError);
+                }
 
                 showResult('success', `
                     ✅ ¡Migración completada!<br><br>
@@ -305,14 +324,23 @@
                 checkStatus();
             } catch (error) {
                 showResult('error', 'Error durante la migración: ' + error.message);
+            } finally {
+                enableButtons();
             }
         }
 
         async function copyAllToInvoices() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado. Recarga la página e intenta de nuevo.');
+                return;
+            }
+            
             if (!confirm('¿Estás seguro? Esto copiará todos los productos del catálogo a facturas.')) {
                 return;
             }
 
+            disableButtons();
+            
             try {
                 showResult('info', 'Copiando productos...');
 
@@ -327,7 +355,13 @@
 
                 // Copy to invoiceProducts
                 await database.ref('invoiceProducts').set(products);
-                localStorage.setItem('invoiceProducts', JSON.stringify(products));
+                
+                // Update localStorage with error handling
+                try {
+                    localStorage.setItem('invoiceProducts', JSON.stringify(products));
+                } catch (storageError) {
+                    console.warn('localStorage update failed:', storageError);
+                }
 
                 showResult('success', `
                     ✅ ¡Copia completada!<br><br>
@@ -339,10 +373,17 @@
                 checkStatus();
             } catch (error) {
                 showResult('error', 'Error al copiar productos: ' + error.message);
+            } finally {
+                enableButtons();
             }
         }
 
         async function clearInvoices() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado. Recarga la página e intenta de nuevo.');
+                return;
+            }
+            
             if (!confirm('⚠️ ¿ESTÁS SEGURO? Esto ELIMINARÁ todos los productos de facturas. Esta acción NO se puede deshacer.')) {
                 return;
             }
@@ -351,14 +392,20 @@
                 return;
             }
 
+            disableButtons();
+            
             try {
                 showResult('info', 'Limpiando productos de facturas...');
 
-                // Clear from Firebase
-                await database.ref('invoiceProducts').set([]);
+                // Use .remove() instead of .set([]) for proper deletion
+                await database.ref('invoiceProducts').remove();
                 
-                // Clear from localStorage
-                localStorage.setItem('invoiceProducts', '[]');
+                // Clear from localStorage with error handling
+                try {
+                    localStorage.removeItem('invoiceProducts');
+                } catch (storageError) {
+                    console.warn('localStorage clear failed:', storageError);
+                }
 
                 showResult('success', '✅ Productos de facturas eliminados. Recarga factura.html para confirmar.');
 
@@ -366,7 +413,17 @@
                 checkStatus();
             } catch (error) {
                 showResult('error', 'Error al limpiar productos: ' + error.message);
+            } finally {
+                enableButtons();
             }
+        }
+
+        function disableButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        }
+
+        function enableButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
         }
 
         // Auto-check status on load

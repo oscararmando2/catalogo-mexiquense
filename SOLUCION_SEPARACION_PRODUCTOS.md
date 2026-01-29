@@ -72,7 +72,7 @@ Esta herramienta te permite:
 
 #### Opción A: Separación Automática (Recomendado)
 
-Click en **"🤖 Separar Automáticamente"**
+Clic en **"🤖 Separar Automáticamente"**
 
 Esto hará:
 - **Catálogo:** Productos CON URL de imagen (`imageUrl` o `catalogoUrl`)
@@ -80,7 +80,7 @@ Esto hará:
 
 #### Opción B: Copiar Todo a Facturas
 
-Click en **"📋 Copiar a Facturas"**
+Clic en **"📋 Copiar a Facturas"**
 
 Esto copiará todos los productos actuales del catálogo a facturas. Útil si quieres tener acceso a todos los productos en ambas secciones.
 
@@ -88,7 +88,7 @@ Esto copiará todos los productos actuales del catálogo a facturas. Útil si qu
 
 1. Ve a: https://console.firebase.google.com
 2. Proyecto: "catalogomexiquense"
-3. Click: "Realtime Database"
+3. Clic: "Realtime Database"
 4. Crea/edita el nodo `invoiceProducts` con tus productos de facturas
 
 ### Paso 3: Verificar
