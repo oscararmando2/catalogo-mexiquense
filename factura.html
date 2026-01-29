@@ -1347,7 +1347,7 @@
             
             // Search for matching products
             const matches = products.filter(p => 
-                p.upc && p.upc.toLowerCase().includes(value.toLowerCase())
+                p.upc.toLowerCase().includes(value.toLowerCase())
             );
             
             if (matches.length === 0) {
@@ -1358,9 +1358,9 @@
             
             // Build dropdown items
             dropdown.innerHTML = matches.slice(0, 10).map(p => `
-                <div class="upc-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name || '')}" data-price="${p.price}">
+                <div class="upc-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
                     <div class="upc-code">${highlightMatch(p.upc, value)}</div>
-                    <div class="product-name">${escapeHtml(p.name || '')} - $${p.price.toFixed(2)}</div>
+                    <div class="product-name">${escapeHtml(p.name)} - $${p.price.toFixed(2)}</div>
                 </div>
             `).join('');
             
@@ -1466,9 +1466,9 @@
             
             // Build dropdown items
             dropdown.innerHTML = matches.slice(0, 10).map(p => `
-                <div class="product-dropdown-item" data-upc="${p.upc || ''}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
+                <div class="product-dropdown-item" data-upc="${p.upc}" data-name="${escapeHtml(p.name)}" data-price="${p.price}">
                     <div class="product-name-match">${highlightMatch(escapeHtml(p.name), value)}</div>
-                    <div class="product-upc-info">UPC: ${p.upc || ''} - $${p.price.toFixed(2)}</div>
+                    <div class="product-upc-info">UPC: ${p.upc} - $${p.price.toFixed(2)}</div>
                 </div>
             `).join('');
             
@@ -2025,8 +2025,8 @@
             if (searchTerm) {
                 const term = searchTerm.toLowerCase();
                 filtered = products.filter(p => 
-                    (p.upc && p.upc.toLowerCase().includes(term)) || 
-                    (p.name && p.name.toLowerCase().includes(term))
+                    p.upc.toLowerCase().includes(term) || 
+                    p.name.toLowerCase().includes(term)
                 );
             }
             
@@ -2045,8 +2045,8 @@
                 const originalIndex = products.findIndex(p => p.upc === product.upc);
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${escapeHtml(product.upc || '')}</td>
-                    <td>${escapeHtml(product.name || '')}</td>
+                    <td>${escapeHtml(product.upc)}</td>
+                    <td>${escapeHtml(product.name)}</td>
                     <td class="text-right">
                         <input type="number" 
                             class="price-edit-input" 
