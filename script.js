@@ -2167,6 +2167,12 @@ function setupEspecialesEventListeners() {
 
 // Open edit especial modal
 function openEditEspecialModal(especialId) {
+    // Validate especialId
+    if (!especialId || isNaN(especialId) || especialId <= 0) {
+        showToast('Error: ID de especial inválido', true);
+        return;
+    }
+    
     const especial = especiales.find(e => e.id_price === especialId);
     if (!especial) {
         showToast('Especial no encontrado', true);
@@ -2194,11 +2200,19 @@ function openEditEspecialModal(especialId) {
     
     // Open the modal
     const especialFormModal = document.getElementById('especialFormModal');
-    especialFormModal.classList.remove('hidden');
+    if (especialFormModal) {
+        especialFormModal.classList.remove('hidden');
+    }
 }
 
 // Open product form with data from especial
 function openProductFormFromEspecial(especialId) {
+    // Validate especialId
+    if (!especialId || isNaN(especialId) || especialId <= 0) {
+        showToast('Error: ID de especial inválido', true);
+        return;
+    }
+    
     const especial = especiales.find(e => e.id_price === especialId);
     if (!especial) {
         showToast('Especial no encontrado', true);
@@ -2207,18 +2221,20 @@ function openProductFormFromEspecial(especialId) {
     
     // Close the especial form modal
     const especialFormModal = document.getElementById('especialFormModal');
-    especialFormModal.classList.add('hidden');
+    if (especialFormModal) {
+        especialFormModal.classList.add('hidden');
+    }
     
     // Check if we need to switch to admin view
     if (currentView !== 'admin') {
         showToast('Redirigiendo a la vista de administración...', false);
         setTimeout(() => {
             showView('admin');
-            // Give a moment for the view to switch
+            // Wait for view transition and product form modal to be available
             setTimeout(() => {
                 fillProductFormFromEspecial(especial);
-            }, 300);
-        }, 500);
+            }, 500);
+        }, 300);
     } else {
         fillProductFormFromEspecial(especial);
     }
@@ -2239,23 +2255,41 @@ function fillProductFormFromEspecial(especial) {
     }
     
     // Clear product ID to ensure we're creating a new product
-    document.getElementById('productId').value = '';
+    const productIdInput = document.getElementById('productId');
+    if (productIdInput) {
+        productIdInput.value = '';
+    }
     
-    // Fill in available data from especial
+    // Fill in available data from especial with null checks
     if (especial.itemNumber) {
-        document.getElementById('itemNumber').value = especial.itemNumber;
+        const itemNumberInput = document.getElementById('itemNumber');
+        if (itemNumberInput) {
+            itemNumberInput.value = especial.itemNumber;
+        }
     }
     if (especial.upc) {
-        document.getElementById('upc').value = especial.upc;
+        const upcInput = document.getElementById('upc');
+        if (upcInput) {
+            upcInput.value = especial.upc;
+        }
     }
     if (especial.nombre) {
-        document.getElementById('nombre').value = especial.nombre;
+        const nombreInput = document.getElementById('nombre');
+        if (nombreInput) {
+            nombreInput.value = especial.nombre;
+        }
     }
     if (especial.imageUrl) {
-        document.getElementById('url').value = especial.imageUrl;
+        const urlInput = document.getElementById('url');
+        if (urlInput) {
+            urlInput.value = especial.imageUrl;
+        }
     }
     if (especial.price) {
-        document.getElementById('costo').value = especial.price;
+        const costoInput = document.getElementById('costo');
+        if (costoInput) {
+            costoInput.value = especial.price;
+        }
     }
     
     // Set description from nombre + provider if available
@@ -2266,7 +2300,10 @@ function fillProductFormFromEspecial(especial) {
     if (especial.notas) {
         description += ` (${especial.notas})`;
     }
-    document.getElementById('description').value = description;
+    const descriptionInput = document.getElementById('description');
+    if (descriptionInput) {
+        descriptionInput.value = description;
+    }
     
     // Open the product form modal
     const productFormModal = document.getElementById('productFormModal');
@@ -2278,6 +2315,8 @@ function fillProductFormFromEspecial(especial) {
 }
 
 // Update especial (edit functionality)
+// Note: This function does not automatically sync to the product catalog.
+// Users can explicitly add to catalog by clicking "AGREGAR AL CATÁLOGO" button.
 async function updateEspecial(especialId, nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas = '') {
     const index = especiales.findIndex(e => e.id_price === especialId);
     if (index === -1) {
