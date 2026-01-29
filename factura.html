@@ -1684,7 +1684,13 @@
             
             const reader = new FileReader();
             reader.onload = function(event) {
-                const csvData = event.target.result;
+                let csvData = event.target.result;
+                
+                // Remove BOM (Byte Order Mark) if present - common in files from Numbers/Excel
+                if (csvData.charCodeAt(0) === 0xFEFF) {
+                    csvData = csvData.slice(1);
+                }
+                
                 parseCsv(csvData);
             };
             reader.readAsText(file, 'UTF-8');
