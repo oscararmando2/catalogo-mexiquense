@@ -1146,7 +1146,7 @@
                         database.ref('.info/connected').off('value', connectionListener);
                     }
                     if (productsListener) {
-                        database.ref('products').off('value', productsListener);
+                        database.ref('invoiceProducts').off('value', productsListener);
                     }
                     
                     // Monitor Firebase connection state
@@ -1185,7 +1185,7 @@
                                 
                                 // Save to localStorage as cache with error handling
                                 try {
-                                    localStorage.setItem('products', JSON.stringify(products));
+                                    localStorage.setItem('invoiceProducts', JSON.stringify(products));
                                 } catch (storageError) {
                                     console.warn('Failed to save products to localStorage:', storageError);
                                     // Continue without localStorage cache
@@ -1208,7 +1208,7 @@
                         }
                     };
                     
-                    database.ref('products').on('value', productsListener, (error) => {
+                    database.ref('invoiceProducts').on('value', productsListener, (error) => {
                         console.error('Error syncing from Firebase:', error);
                         console.log('Continuing with cached products from localStorage');
                         // Mark sync as completed even on error, so we don't block the UI
@@ -1233,51 +1233,24 @@
         }
         
         function loadFromLocalStorageOnly() {
-            // Migration: Check for old 'factura_products' key and migrate to 'products'
+            // Migration: Check for old 'factura_products' key and migrate to 'invoiceProducts'
             const oldFacturaProducts = localStorage.getItem('factura_products');
             if (oldFacturaProducts) {
                 let migrationSuccess = false;
                 
                 try {
                     // If old key exists, migrate it to the new key
-                    const existingProducts = localStorage.getItem('products');
+                    const existingProducts = localStorage.getItem('invoiceProducts');
                     
                     if (!existingProducts) {
                         // No conflict, validate and rename the key
                         JSON.parse(oldFacturaProducts); // Validate JSON before storing
-                        localStorage.setItem('products', oldFacturaProducts);
+                        localStorage.setItem('invoiceProducts', oldFacturaProducts);
                         migrationSuccess = true;
                     } else {
-                        // Both exist, merge them (prefer products from 'products' key to avoid duplicates)
-                        const oldProducts = JSON.parse(oldFacturaProducts);
-                        const currentProducts = JSON.parse(existingProducts);
-                        
-                        // Validate that products are arrays
-                        if (!Array.isArray(oldProducts) || !Array.isArray(currentProducts)) {
-                            console.warn('Invalid product data format during migration');
-                            migrationSuccess = true; // Still remove old key to prevent repeated attempts
-                        } else {
-                            // Create a map of existing products by UPC to avoid duplicates
-                            const productMap = new Map();
-                            currentProducts.forEach(p => {
-                                // Only add products with valid UPC
-                                if (p && p.upc) {
-                                    productMap.set(p.upc, p);
-                                }
-                            });
-                            
-                            // Add old products that don't exist in current products
-                            oldProducts.forEach(p => {
-                                // Only add products with valid UPC that aren't already in the map
-                                if (p && p.upc && !productMap.has(p.upc)) {
-                                    productMap.set(p.upc, p);
-                                }
-                            });
-                            
-                            // Save merged products
-                            localStorage.setItem('products', JSON.stringify(Array.from(productMap.values())));
-                            migrationSuccess = true;
-                        }
+                        // Both exist, prefer the existing invoiceProducts to avoid confusion
+                        // The factura_products is old data, so we'll just mark migration as done
+                        migrationSuccess = true;
                     }
                 } catch (e) {
                     console.warn('Error during products migration:', e);
@@ -1292,7 +1265,7 @@
             
             // Load products database with error handling
             try {
-                const storedProducts = localStorage.getItem('products');
+                const storedProducts = localStorage.getItem('invoiceProducts');
                 if (storedProducts) {
                     const parsedProducts = JSON.parse(storedProducts);
                     // Validate that it's an array
@@ -1315,23 +1288,23 @@
             return new Promise((resolve) => {
                 // Save to Firebase first (if available)
                 if (database) {
-                    database.ref('products').set(products)
+                    database.ref('invoiceProducts').set(products)
                         .then(() => {
                             console.log('✅ Products saved to Firebase successfully');
                             // Also save to localStorage as cache
-                            localStorage.setItem('products', JSON.stringify(products));
+                            localStorage.setItem('invoiceProducts', JSON.stringify(products));
                             resolve({ firebase: true, localStorage: true });
                         })
                         .catch((error) => {
                             console.error('❌ Error saving to Firebase:', error);
                             // Fall back to localStorage only
-                            localStorage.setItem('products', JSON.stringify(products));
+                            localStorage.setItem('invoiceProducts', JSON.stringify(products));
                             showToast('Productos guardados localmente (sin conexión a Firebase)', 'warning');
                             resolve({ firebase: false, localStorage: true });
                         });
                 } else {
                     // Firebase not available, save to localStorage only
-                    localStorage.setItem('products', JSON.stringify(products));
+                    localStorage.setItem('invoiceProducts', JSON.stringify(products));
                     console.log('💾 Products saved to localStorage only');
                     resolve({ firebase: false, localStorage: true });
                 }
@@ -2539,7 +2512,7 @@
                         connectionListener = null;
                     }
                     if (productsListener) {
-                        database.ref('products').off('value', productsListener);
+                        database.ref('invoiceProducts').off('value', productsListener);
                         productsListener = null;
                     }
                     console.log('🧹 Firebase listeners cleaned up');
