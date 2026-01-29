@@ -1,30 +1,6 @@
 {
   "rules": {
     ".read": true,
-    ".write": false,
-    "products": {
-      ".read": true,
-      ".write": true
-    },
-    "invoiceProducts": {
-      ".read": true,
-      ".write": true
-    },
-    "especiales": {
-      ".read": true,
-      ".write": true
-    },
-    "especialesTienda": {
-      ".read": true,
-      ".write": true
-    },
-    "credits": {
-      ".read": true,
-      ".write": true
-    },
-    "fcmTokens": {
-      ".read": true,
-      ".write": true
-    }
+    ".write": true
   }
 }
