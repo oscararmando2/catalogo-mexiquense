@@ -502,12 +502,27 @@ function syncCatalogo() {
     console.log(`Catálogo sincronizado con ${catalogo.length} productos`);
 }
 
+// Helper function to process products data from Firebase snapshot
+function processProductsData(data) {
+    if (data && Array.isArray(data)) {
+        // Filter out any null or undefined values that Firebase might have stored
+        return data.filter(p => p != null && typeof p === 'object');
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Firebase sometimes converts arrays with gaps to objects, convert back
+        return Object.values(data).filter(p => p != null && typeof p === 'object');
+    } else {
+        // Initialize with empty data
+        return [];
+    }
+}
+
 // ==== Load & Save ====
 function loadData(){
     try{
         if(database){
             database.ref('products').on('value', (snapshot)=>{
-                products = snapshot.val() || [];
+                products = processProductsData(snapshot.val());
+                console.log(`Products loaded from Firebase: ${products.length} products`);
                 syncCatalogo(); // Sincronizar catálogo después de cargar productos
                 renderAdminProducts();
                 renderPublicTabs();
@@ -520,7 +535,9 @@ function loadData(){
         console.warn('Using localStorage for products', err);
         if(isLocalStorageAvailable()){
             const stored = localStorage.getItem('products');
-            products = stored ? JSON.parse(stored) : [];
+            const parsed = stored ? JSON.parse(stored) : null;
+            products = processProductsData(parsed);
+            console.log(`Products loaded from localStorage: ${products.length} products`);
             syncCatalogo(); // Sincronizar catálogo después de cargar productos
             renderAdminProducts();
             renderPublicTabs();
@@ -1820,12 +1837,27 @@ let currentCreditView = 'pending';
 let creditNotificationInterval = null;
 let creditNotificationShown = false; // Flag to track if notification was already shown this session
 
+// Helper function to process credits data from Firebase snapshot
+function processCreditsData(data) {
+    if (data && Array.isArray(data)) {
+        // Filter out any null or undefined values that Firebase might have stored
+        return data.filter(c => c != null && typeof c === 'object');
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Firebase sometimes converts arrays with gaps to objects, convert back
+        return Object.values(data).filter(c => c != null && typeof c === 'object');
+    } else {
+        // Initialize with empty data
+        return [];
+    }
+}
+
 // Load credits from Firebase with localStorage fallback
 function loadCredits() {
     try {
         if (database) {
             database.ref('credits').on('value', (snapshot) => {
-                credits = snapshot.val() || [];
+                credits = processCreditsData(snapshot.val());
+                console.log(`Credits loaded from Firebase: ${credits.length} credits`);
                 // Render current view if we're in credits section
                 if (currentView === 'creditos') {
                     if (currentCreditView === 'pending') {
@@ -1843,7 +1875,9 @@ function loadCredits() {
         console.warn('Using localStorage for credits', err);
         if (isLocalStorageAvailable()) {
             const stored = localStorage.getItem('credits');
-            credits = stored ? JSON.parse(stored) : [];
+            const parsed = stored ? JSON.parse(stored) : null;
+            credits = processCreditsData(parsed);
+            console.log(`Credits loaded from localStorage: ${credits.length} credits`);
         }
     }
 }
