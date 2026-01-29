@@ -159,6 +159,9 @@
 
     <script>
         // Firebase configuration
+        // NOTE: These credentials are intentionally public for client-side Firebase apps.
+        // Security is enforced through Firebase Security Rules on the server side.
+        // Ensure proper Firebase Security Rules are configured in Firebase Console.
         const firebaseConfig = {
             apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
             authDomain: "catalogomexiquense.firebaseapp.com",
@@ -253,8 +256,18 @@
                     existingProducts = [];
                 }
 
-                // Add sample products
-                const allProducts = [...existingProducts, ...sampleProducts];
+                // Check for duplicates by UPC and only add new products
+                const existingUPCs = new Set(existingProducts.map(p => p?.upc).filter(Boolean));
+                const newProducts = sampleProducts.filter(p => !existingUPCs.has(p.upc));
+                
+                if (newProducts.length === 0) {
+                    showResult('warning', 'Todos los productos de muestra ya existen en la base de datos. No se agregaron productos nuevos.');
+                    enableButtons();
+                    return;
+                }
+
+                // Add only new sample products
+                const allProducts = [...existingProducts, ...newProducts];
 
                 // Save to Firebase
                 await database.ref('invoiceProducts').set(allProducts);
@@ -268,7 +281,7 @@
 
                 showResult('success', `
                     ✅ ¡Productos cargados exitosamente!<br><br>
-                    <strong>${sampleProducts.length}</strong> productos de muestra agregados.<br>
+                    <strong>${newProducts.length}</strong> productos nuevos agregados.<br>
                     <strong>${allProducts.length}</strong> productos en total.<br><br>
                     <strong>Siguiente paso:</strong> Abre <code>factura.html</code> para ver los productos.
                 `);
@@ -300,6 +313,8 @@
 
                 if (!Array.isArray(catalogProducts) || catalogProducts.length === 0) {
                     showResult('warning', 'No hay productos en el catálogo para copiar.');
+                    enableButtons();
+                    await checkStatus();
                     return;
                 }
 
@@ -353,14 +368,20 @@
 
                 products.forEach((product, index) => {
                     if (product) {
+                        // Escape HTML to prevent XSS
+                        const nombre = escapeHtml(product.nombre || 'Sin nombre');
+                        const upc = escapeHtml(product.upc || 'N/A');
+                        const costo = escapeHtml(product.costo?.toString() || '0.00');
+                        const proveedor = escapeHtml(product.proveedor || 'N/A');
+                        
                         html += `
                             <div class="product-item">
                                 <div>
-                                    <div class="product-name">${product.nombre || 'Sin nombre'}</div>
+                                    <div class="product-name">${nombre}</div>
                                     <div class="product-details">
-                                        UPC: ${product.upc || 'N/A'} | 
-                                        Costo: $${product.costo || '0.00'} | 
-                                        Proveedor: ${product.proveedor || 'N/A'}
+                                        UPC: ${upc} | 
+                                        Costo: $${costo} | 
+                                        Proveedor: ${proveedor}
                                     </div>
                                 </div>
                             </div>
@@ -373,6 +394,12 @@
             } catch (error) {
                 showResult('error', 'Error al cargar productos: ' + error.message);
             }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function showResult(type, message) {
