@@ -504,7 +504,7 @@ function syncCatalogo() {
 
 // Helper function to process products data from Firebase snapshot
 function processProductsData(data) {
-    if (data && Array.isArray(data) && data.length > 0) {
+    if (data && Array.isArray(data)) {
         // Filter out any null or undefined values that Firebase might have stored
         return data.filter(p => p != null && typeof p === 'object');
     } else if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -1839,7 +1839,7 @@ let creditNotificationShown = false; // Flag to track if notification was alread
 
 // Helper function to process credits data from Firebase snapshot
 function processCreditsData(data) {
-    if (data && Array.isArray(data) && data.length > 0) {
+    if (data && Array.isArray(data)) {
         // Filter out any null or undefined values that Firebase might have stored
         return data.filter(c => c != null && typeof c === 'object');
     } else if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -1857,6 +1857,7 @@ function loadCredits() {
         if (database) {
             database.ref('credits').on('value', (snapshot) => {
                 credits = processCreditsData(snapshot.val());
+                console.log(`Credits loaded from Firebase: ${credits.length} credits`);
                 // Render current view if we're in credits section
                 if (currentView === 'creditos') {
                     if (currentCreditView === 'pending') {
@@ -1876,6 +1877,7 @@ function loadCredits() {
             const stored = localStorage.getItem('credits');
             const parsed = stored ? JSON.parse(stored) : null;
             credits = processCreditsData(parsed);
+            console.log(`Credits loaded from localStorage: ${credits.length} credits`);
         }
     }
 }
