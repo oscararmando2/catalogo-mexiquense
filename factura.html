@@ -1687,7 +1687,7 @@
                 const csvData = event.target.result;
                 parseCsv(csvData);
             };
-            reader.readAsText(file);
+            reader.readAsText(file, 'UTF-8');
             
             // Reset input
             csvInput.value = '';
