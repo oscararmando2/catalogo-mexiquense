@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Configuración - Mexiquense Market</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #006847;
+            margin-bottom: 20px;
+        }
+        .check-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+            background: #f8f9fa;
+        }
+        .check-item.success {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .check-item.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .check-item.warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .check-item.info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+        }
+        .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Verificación de Configuración</h1>
+        <p>Esta página verifica que todo esté configurado correctamente para usar productos en facturas.</p>
+        
+        <div id="checks"></div>
+        
+        <div style="margin-top: 30px;">
+            <h3>📋 Siguientes Pasos:</h3>
+            <ol>
+                <li>Si todos los checks están en ✅ (verde), todo está bien configurado</li>
+                <li>Si hay ⚠️ (amarillo), usa <code>seed-invoice-products.html</code> para cargar productos</li>
+                <li>Si hay ❌ (rojo), revisa la documentación en <code>SOLUCION_PRODUCTOS_FALTANTES.md</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const checks = [];
+
+        // Check 1: localStorage has invoiceProducts key
+        function checkLocalStorage() {
+            try {
+                const products = localStorage.getItem('invoiceProducts');
+                if (!products) {
+                    return {
+                        status: 'warning',
+                        title: 'localStorage: invoiceProducts no encontrado',
+                        message: 'No hay productos en localStorage. Esto es normal si acabas de limpiar el navegador.'
+                    };
+                }
+                
+                const parsed = JSON.parse(products);
+                if (!Array.isArray(parsed) || parsed.length === 0) {
+                    return {
+                        status: 'warning',
+                        title: 'localStorage: invoiceProducts está vacío',
+                        message: 'El array está vacío. Necesitas cargar productos.'
+                    };
+                }
+                
+                return {
+                    status: 'success',
+                    title: 'localStorage: invoiceProducts encontrado',
+                    message: `${parsed.length} productos en caché local.`
+                };
+            } catch (e) {
+                return {
+                    status: 'error',
+                    title: 'localStorage: Error al leer',
+                    message: e.message
+                };
+            }
+        }
+
+        // Check 2: Verify file structure
+        function checkFileStructure() {
+            // Note: Browser can't directly check files, this is informational only
+            return {
+                status: 'info',
+                title: 'Estructura de archivos (informativo)',
+                message: 'Archivos disponibles: factura.html, seed-invoice-products.html, migrate-products.html, verify-setup.html (verifica manualmente que existan).'
+            };
+        }
+
+        // Check 3: Check if old products key exists
+        function checkOldFormat() {
+            try {
+                const oldProducts = localStorage.getItem('factura_products');
+                const newProducts = localStorage.getItem('invoiceProducts');
+                
+                if (oldProducts && !newProducts) {
+                    return {
+                        status: 'warning',
+                        title: 'Formato antiguo detectado',
+                        message: 'Encontramos "factura_products". Deberías migrar a "invoiceProducts" usando factura.html (se migrará automáticamente).'
+                    };
+                }
+                
+                return {
+                    status: 'success',
+                    title: 'Formato actualizado',
+                    message: 'Usando el formato nuevo "invoiceProducts".'
+                };
+            } catch (e) {
+                return {
+                    status: 'error',
+                    title: 'Error al verificar formato',
+                    message: e.message
+                };
+            }
+        }
+
+        // Check 4: Verify products structure
+        function checkProductStructure() {
+            try {
+                const products = localStorage.getItem('invoiceProducts');
+                if (!products) {
+                    return {
+                        status: 'warning',
+                        title: 'Estructura de productos: No se puede verificar',
+                        message: 'No hay productos para verificar.'
+                    };
+                }
+                
+                const parsed = JSON.parse(products);
+                if (parsed.length > 0) {
+                    const sample = parsed[0];
+                    const hasRequiredFields = sample.nombre && sample.upc !== undefined && sample.costo !== undefined;
+                    
+                    if (hasRequiredFields) {
+                        return {
+                            status: 'success',
+                            title: 'Estructura de productos: Correcta',
+                            message: `Productos tienen campos requeridos (nombre, upc, costo).`
+                        };
+                    } else {
+                        return {
+                            status: 'warning',
+                            title: 'Estructura de productos: Incompleta',
+                            message: 'Algunos productos pueden no tener todos los campos requeridos.'
+                        };
+                    }
+                }
+                
+                return {
+                    status: 'warning',
+                    title: 'Estructura de productos: Array vacío',
+                    message: 'No hay productos para verificar estructura.'
+                };
+            } catch (e) {
+                return {
+                    status: 'error',
+                    title: 'Estructura de productos: Error',
+                    message: e.message
+                };
+            }
+        }
+
+        // Run all checks
+        function runChecks() {
+            checks.push(checkLocalStorage());
+            checks.push(checkOldFormat());
+            checks.push(checkProductStructure());
+            checks.push(checkFileStructure());
+            
+            displayChecks();
+        }
+
+        function displayChecks() {
+            const container = document.getElementById('checks');
+            let html = '';
+            
+            checks.forEach(check => {
+                const icon = check.status === 'success' ? '✅' : 
+                            check.status === 'warning' ? '⚠️' : 
+                            check.status === 'info' ? 'ℹ️' : '❌';
+                
+                html += `
+                    <div class="check-item ${check.status}">
+                        <span class="icon">${icon}</span>
+                        <strong>${check.title}</strong>
+                        <p style="margin: 5px 0 0 34px;">${check.message}</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Run checks when page loads
+        window.addEventListener('load', runChecks);
+    </script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargar Productos de Facturas - Mexiquense Market</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #c00;
+            margin-bottom: 10px;
+        }
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ccc;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        button {
+            background: #c00;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #a00;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .status-box {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .product-list {
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .product-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        .product-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .product-details {
+            color: #666;
+            font-size: 13px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Cargar Productos de Facturas</h1>
+        <p>Esta herramienta te ayuda a cargar productos en la sección de facturas.</p>
+        
+        <div class="alert alert-info">
+            <strong>ℹ️ Información:</strong> Esta herramienta cargará productos de muestra en <code>invoiceProducts</code> 
+            en Firebase. Estos productos aparecerán en la sección de facturas (factura.html).
+        </div>
+
+        <div class="status-box">
+            <h3>📊 Estado Actual</h3>
+            <div id="statusArea">Cargando...</div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h3>🔧 Opciones Disponibles</h3>
+            
+            <div style="margin: 15px 0;">
+                <h4>Opción 1: Cargar Productos de Muestra</h4>
+                <p>Carga 20 productos de muestra comunes en tiendas mexicanas para que puedas empezar a trabajar inmediatamente.</p>
+                <button onclick="loadSampleProducts()" id="btnLoadSample">📦 Cargar Productos de Muestra</button>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <h4>Opción 2: Copiar Productos del Catálogo</h4>
+                <p>Copia todos los productos del catálogo (products) a la sección de facturas (invoiceProducts).</p>
+                <button onclick="copyFromCatalog()" id="btnCopyCatalog">📋 Copiar del Catálogo</button>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <h4>Opción 3: Ver Productos Actuales</h4>
+                <p>Muestra los productos que actualmente están en invoiceProducts.</p>
+                <button onclick="showCurrentProducts()" id="btnShowCurrent" class="btn-secondary">👁️ Ver Productos</button>
+            </div>
+        </div>
+
+        <div id="resultArea"></div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        // NOTE: These credentials are intentionally public for client-side Firebase apps.
+        // Security is enforced through Firebase Security Rules on the server side.
+        // Ensure proper Firebase Security Rules are configured in Firebase Console.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
+            authDomain: "catalogomexiquense.firebaseapp.com",
+            databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
+            projectId: "catalogomexiquense",
+            storageBucket: "catalogomexiquense.firebasestorage.app",
+            messagingSenderId: "105727682757",
+            appId: "1:105727682757:web:2887f0de033b857786e8ac",
+            measurementId: "G-PRXPTEW7WL"
+        };
+
+        // Initialize Firebase
+        let app, database;
+        try {
+            if (!firebase.apps.length) {
+                app = firebase.initializeApp(firebaseConfig);
+            } else {
+                app = firebase.app();
+            }
+            database = firebase.database();
+            console.log('✅ Firebase initialized');
+            checkStatus();
+        } catch (error) {
+            console.error('❌ Error initializing Firebase:', error);
+            document.getElementById('statusArea').innerHTML = 
+                '<div class="alert alert-error">Error al conectar con Firebase: ' + error.message + '</div>';
+        }
+
+        // Sample products for Mexican market
+        const sampleProducts = [
+            { nombre: "Frijoles Negros La Costeña 560g", upc: "7501004001", costo: 22.50, proveedor: "La Costeña" },
+            { nombre: "Arroz Blanco Morelos 1kg", upc: "7501005002", costo: 18.00, proveedor: "Morelos" },
+            { nombre: "Aceite Vegetal Nutrioli 1L", upc: "7501006003", costo: 35.00, proveedor: "Nutrioli" },
+            { nombre: "Tortillas de Maíz 1kg", upc: "7501007004", costo: 25.00, proveedor: "Local" },
+            { nombre: "Leche Entera Lala 1L", upc: "7501008005", costo: 23.00, proveedor: "Lala" },
+            { nombre: "Huevos Blancos San Juan 18pz", upc: "7501009006", costo: 52.00, proveedor: "San Juan" },
+            { nombre: "Azúcar Estándar 1kg", upc: "7501010007", costo: 20.00, proveedor: "Zucarmex" },
+            { nombre: "Sal La Fina 1kg", upc: "7501011008", costo: 8.50, proveedor: "La Fina" },
+            { nombre: "Harina de Maíz Maseca 1kg", upc: "7501012009", costo: 19.50, proveedor: "Maseca" },
+            { nombre: "Café Soluble Nescafé 200g", upc: "7501013010", costo: 85.00, proveedor: "Nestlé" },
+            { nombre: "Pasta Espagueti 500g", upc: "7501014011", costo: 15.00, proveedor: "La Moderna" },
+            { nombre: "Atún en Agua Tuny 140g", upc: "7501015012", costo: 18.50, proveedor: "Tuny" },
+            { nombre: "Papel Higiénico Pétalo 4 rollos", upc: "7501016013", costo: 32.00, proveedor: "Pétalo" },
+            { nombre: "Jabón en Barra Zote 200g", upc: "7501017014", costo: 12.00, proveedor: "Zote" },
+            { nombre: "Detergente Ariel 1kg", upc: "7501018015", costo: 65.00, proveedor: "Ariel" },
+            { nombre: "Salsa Valentina 370ml", upc: "7501019016", costo: 25.00, proveedor: "Valentina" },
+            { nombre: "Chiles Jalapeños en Escabeche", upc: "7501020017", costo: 28.00, proveedor: "La Costeña" },
+            { nombre: "Pan de Caja Bimbo Blanco", upc: "7501021018", costo: 38.00, proveedor: "Bimbo" },
+            { nombre: "Refresco Coca-Cola 2L", upc: "7501022019", costo: 30.00, proveedor: "Coca-Cola" },
+            { nombre: "Agua Embotellada Ciel 1L", upc: "7501023020", costo: 12.00, proveedor: "Ciel" }
+        ];
+
+        async function checkStatus() {
+            if (!database) return;
+            
+            try {
+                const snapshot = await database.ref('invoiceProducts').once('value');
+                const products = snapshot.val() || [];
+                const count = Array.isArray(products) ? products.length : 0;
+                
+                const statusHtml = `
+                    <p><strong>Productos en invoiceProducts:</strong> <span style="font-size: 24px; color: ${count > 0 ? '#28a745' : '#dc3545'};">${count}</span></p>
+                    ${count === 0 ? '<p style="color: #dc3545;">⚠️ No hay productos cargados. Usa una de las opciones arriba para cargar productos.</p>' : ''}
+                `;
+                
+                document.getElementById('statusArea').innerHTML = statusHtml;
+            } catch (error) {
+                document.getElementById('statusArea').innerHTML = 
+                    '<div class="alert alert-error">Error al verificar estado: ' + error.message + '</div>';
+            }
+        }
+
+        async function loadSampleProducts() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado.');
+                return;
+            }
+
+            if (!confirm('¿Cargar ' + sampleProducts.length + ' productos de muestra?\n\nEsto agregará productos de ejemplo a tu base de datos de facturas.')) {
+                return;
+            }
+
+            disableButtons();
+            showResult('info', 'Cargando productos...');
+
+            try {
+                // Get existing products
+                const snapshot = await database.ref('invoiceProducts').once('value');
+                let existingProducts = snapshot.val() || [];
+                
+                if (!Array.isArray(existingProducts)) {
+                    existingProducts = [];
+                }
+
+                // Check for duplicates by UPC and only add new products
+                const existingUPCs = new Set(existingProducts.map(p => p?.upc).filter(Boolean));
+                const newProducts = sampleProducts.filter(p => !existingUPCs.has(p.upc));
+                
+                if (newProducts.length === 0) {
+                    showResult('warning', 'Todos los productos de muestra ya existen en la base de datos. No se agregaron productos nuevos.');
+                    enableButtons();
+                    return;
+                }
+
+                // Add only new sample products
+                const allProducts = [...existingProducts, ...newProducts];
+
+                // Save to Firebase
+                await database.ref('invoiceProducts').set(allProducts);
+                
+                // Update localStorage
+                try {
+                    localStorage.setItem('invoiceProducts', JSON.stringify(allProducts));
+                } catch (e) {
+                    console.warn('localStorage update failed:', e);
+                }
+
+                showResult('success', `
+                    ✅ ¡Productos cargados exitosamente!<br><br>
+                    <strong>${newProducts.length}</strong> productos nuevos agregados.<br>
+                    <strong>${allProducts.length}</strong> productos en total.<br><br>
+                    <strong>Siguiente paso:</strong> Abre <code>factura.html</code> para ver los productos.
+                `);
+
+                await checkStatus();
+            } catch (error) {
+                showResult('error', 'Error al cargar productos: ' + error.message);
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function copyFromCatalog() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado.');
+                return;
+            }
+
+            if (!confirm('¿Copiar todos los productos del catálogo a facturas?\n\nEsto copiará los productos de "products" a "invoiceProducts".')) {
+                return;
+            }
+
+            disableButtons();
+            showResult('info', 'Copiando productos del catálogo...');
+
+            try {
+                const snapshot = await database.ref('products').once('value');
+                const catalogProducts = snapshot.val() || [];
+
+                if (!Array.isArray(catalogProducts) || catalogProducts.length === 0) {
+                    showResult('warning', 'No hay productos en el catálogo para copiar.');
+                    enableButtons();
+                    await checkStatus();
+                    return;
+                }
+
+                // Save to invoiceProducts
+                await database.ref('invoiceProducts').set(catalogProducts);
+                
+                // Update localStorage
+                try {
+                    localStorage.setItem('invoiceProducts', JSON.stringify(catalogProducts));
+                } catch (e) {
+                    console.warn('localStorage update failed:', e);
+                }
+
+                showResult('success', `
+                    ✅ ¡Productos copiados exitosamente!<br><br>
+                    <strong>${catalogProducts.length}</strong> productos copiados del catálogo a facturas.<br><br>
+                    <strong>Siguiente paso:</strong> Abre <code>factura.html</code> para ver los productos.
+                `);
+
+                await checkStatus();
+            } catch (error) {
+                showResult('error', 'Error al copiar productos: ' + error.message);
+            } finally {
+                enableButtons();
+            }
+        }
+
+        async function showCurrentProducts() {
+            if (!database) {
+                showResult('error', 'Firebase no está conectado.');
+                return;
+            }
+
+            showResult('info', 'Cargando productos...');
+
+            try {
+                const snapshot = await database.ref('invoiceProducts').once('value');
+                const products = snapshot.val() || [];
+
+                if (!Array.isArray(products) || products.length === 0) {
+                    showResult('warning', 'No hay productos en invoiceProducts.');
+                    return;
+                }
+
+                let html = `
+                    <div class="alert alert-success">
+                        <strong>✅ ${products.length} productos encontrados</strong>
+                    </div>
+                    <div class="product-list">
+                `;
+
+                products.forEach((product, index) => {
+                    if (product) {
+                        // Escape HTML to prevent XSS
+                        const nombre = escapeHtml(product.nombre || 'Sin nombre');
+                        const upc = escapeHtml(product.upc || 'N/A');
+                        const costo = escapeHtml(product.costo?.toString() || '0.00');
+                        const proveedor = escapeHtml(product.proveedor || 'N/A');
+                        
+                        html += `
+                            <div class="product-item">
+                                <div>
+                                    <div class="product-name">${nombre}</div>
+                                    <div class="product-details">
+                                        UPC: ${upc} | 
+                                        Costo: $${costo} | 
+                                        Proveedor: ${proveedor}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += '</div>';
+                showResult('', html);
+            } catch (error) {
+                showResult('error', 'Error al cargar productos: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showResult(type, message) {
+            const resultArea = document.getElementById('resultArea');
+            let cssClass = '';
+            if (type === 'success') cssClass = 'alert-success';
+            else if (type === 'error') cssClass = 'alert-error';
+            else if (type === 'warning') cssClass = 'alert-warning';
+            else if (type === 'info') cssClass = 'alert-info';
+            
+            if (cssClass) {
+                resultArea.innerHTML = `<div class="alert ${cssClass}">${message}</div>`;
+            } else {
+                resultArea.innerHTML = message;
+            }
+        }
+
+        function disableButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+        }
+
+        function enableButtons() {
+            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+        }
+    </script>
+</body>
+</html>
