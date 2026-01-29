@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Product Loading</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Product Data Processing</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Test 1: Array Format (Normal)</div>
+        <div id="test1" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Test 2: Object Format (Firebase conversion)</div>
+        <div id="test2" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Test 3: Null/Empty Data</div>
+        <div id="test3" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Test 4: Array with Nulls</div>
+        <div id="test4" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Test 5: Empty Array</div>
+        <div id="test5" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Test 6: Object with Null Values</div>
+        <div id="test6" class="result"></div>
+    </div>
+
+    <script>
+        // Helper function to process products data from Firebase snapshot
+        function processProductsData(data) {
+            if (data && Array.isArray(data) && data.length > 0) {
+                // Filter out any null or undefined values that Firebase might have stored
+                return data.filter(p => p != null && typeof p === 'object');
+            } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                // Firebase sometimes converts arrays with gaps to objects, convert back
+                return Object.values(data).filter(p => p != null && typeof p === 'object');
+            } else {
+                // Initialize with empty array
+                return [];
+            }
+        }
+
+        function runTest(testId, testData, expectedLength, description) {
+            const result = processProductsData(testData);
+            const passed = result.length === expectedLength && Array.isArray(result);
+            const element = document.getElementById(testId);
+            
+            element.className = 'result ' + (passed ? 'success' : 'error');
+            element.innerHTML = `
+                <strong>${description}</strong><br>
+                Expected length: ${expectedLength}<br>
+                Actual length: ${result.length}<br>
+                Status: ${passed ? '✅ PASSED' : '❌ FAILED'}<br>
+                Result: ${JSON.stringify(result, null, 2)}
+            `;
+        }
+
+        // Test 1: Normal array format
+        const arrayData = [
+            { id: '1', nombre: 'Producto 1', itemNumber: '900597', upc: '00003790099062', costo: 10.50 },
+            { id: '2', nombre: 'Producto 2', itemNumber: '900598', upc: '00003790099063', costo: 20.00 }
+        ];
+        runTest('test1', arrayData, 2, 'Normal array of products');
+
+        // Test 2: Object format (Firebase conversion)
+        const objectData = {
+            '0': { id: '1', nombre: 'Ronson - 8 Oz Lighter Fluid', itemNumber: '900597', upc: '00003790099062', costo: 10.50 },
+            '2': { id: '3', nombre: 'Producto 3', itemNumber: '900599', upc: '00003790099064', costo: 30.00 }
+        };
+        runTest('test2', objectData, 2, 'Object format (simulates Firebase array-to-object conversion)');
+
+        // Test 3: Null/Empty data
+        runTest('test3', null, 0, 'Null data should return empty array');
+
+        // Test 4: Array with nulls
+        const arrayWithNulls = [
+            { id: '1', nombre: 'Producto 1', costo: 10.50 },
+            null,
+            { id: '2', nombre: 'Producto 2', costo: 20.00 },
+            undefined
+        ];
+        runTest('test4', arrayWithNulls, 2, 'Array with null values should filter them out');
+        
+        // Test 5: Empty array
+        runTest('test5', [], 0, 'Empty array should return empty array');
+        
+        // Test 6: Object with null values (Firebase edge case)
+        const objectWithNulls = {
+            '0': { id: '1', nombre: 'Producto 1', itemNumber: '900597', costo: 10.50 },
+            '1': null,
+            '2': { id: '2', nombre: 'Producto 2', itemNumber: '900598', costo: 20.00 },
+            '3': undefined
+        };
+        runTest('test6', objectWithNulls, 2, 'Object with null values should filter them out');
+    </script>
+</body>
+</html>

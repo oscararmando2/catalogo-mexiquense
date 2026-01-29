@@ -1171,10 +1171,10 @@
                         
                         // Handle different data formats from Firebase
                         if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                            validProducts = firebaseProducts;
+                            validProducts = firebaseProducts.filter(p => p != null && typeof p === 'object');
                         } else if (firebaseProducts && typeof firebaseProducts === 'object' && !Array.isArray(firebaseProducts)) {
                             // Firebase sometimes converts arrays with gaps to objects, convert back
-                            validProducts = Object.values(firebaseProducts);
+                            validProducts = Object.values(firebaseProducts).filter(p => p != null && typeof p === 'object');
                         }
                         
                         if (validProducts.length > 0) {
