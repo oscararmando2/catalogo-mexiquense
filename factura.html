@@ -2059,11 +2059,11 @@
         // ============================================
         
         function openAddToDbConfirmModal(upc, name, price) {
-            pendingProductToAdd = { upc, name, price };
+            const validatedPrice = (typeof price === 'number' && !isNaN(price)) ? price : 0;
+            pendingProductToAdd = { upc, name, price: validatedPrice };
             confirmProductUpc.textContent = upc || 'N/A';
             confirmProductName.textContent = name;
-            const validPrice = (typeof price === 'number' && !isNaN(price)) ? price : 0;
-            confirmProductPrice.textContent = '$' + validPrice.toFixed(2);
+            confirmProductPrice.textContent = '$' + validatedPrice.toFixed(2);
             addToDbModal.classList.add('show');
         }
         
