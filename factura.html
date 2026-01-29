@@ -997,13 +997,14 @@
         let database = null;
         try {
             const firebaseConfig = {
-                apiKey: "TU_API_KEY_AQUI",
+                apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
                 authDomain: "catalogomexiquense.firebaseapp.com",
                 databaseURL: "https://catalogomexiquense-default-rtdb.firebaseio.com",
                 projectId: "catalogomexiquense",
-                storageBucket: "catalogomexiquense.appspot.com",
-                messagingSenderId: "TU_SENDER_ID_AQUI",
-                appId: "TU_APP_ID_AQUI"
+                storageBucket: "catalogomexiquense.firebasestorage.app",
+                messagingSenderId: "105727682757",
+                appId: "1:105727682757:web:2887f0de033b857786e8ac",
+                measurementId: "G-PRXPTEW7WL"
             };
             if (typeof firebase !== 'undefined') {
                 firebase.initializeApp(firebaseConfig);
@@ -1087,11 +1088,25 @@
         }
         
         function loadFromLocalStorage() {
-            // Try loading from Firebase first
+            // Load from localStorage first for immediate display
+            loadFromLocalStorageOnly();
+            
+            // Then set up real-time Firebase sync
             if (database) {
                 try {
-                    database.ref('products').once('value')
-                        .then((snapshot) => {
+                    // Monitor Firebase connection state
+                    const connectedRef = database.ref('.info/connected');
+                    connectedRef.on('value', (snap) => {
+                        if (snap.val() === true) {
+                            console.log('🟢 Firebase connected - products will sync');
+                        } else {
+                            console.log('🔴 Firebase disconnected - using cached products');
+                        }
+                    });
+                    
+                    // Set up real-time listener for products
+                    database.ref('products').on('value', 
+                        (snapshot) => {
                             const firebaseProducts = snapshot.val();
                             if (firebaseProducts && Array.isArray(firebaseProducts)) {
                                 // Validate products data
@@ -1106,32 +1121,34 @@
                                 
                                 if (validProducts.length > 0) {
                                     products = validProducts;
-                                    console.log('✅ Products loaded from Firebase:', products.length, 'products');
+                                    console.log('✅ Products synced from Firebase:', products.length, 'products');
                                     
                                     // Save to localStorage as cache
                                     localStorage.setItem('products', JSON.stringify(products));
+                                    
+                                    // Refresh products display if modal is open
+                                    if (productsDbModal && productsDbModal.classList.contains('show')) {
+                                        filterProductsDb();
+                                    }
                                 } else {
-                                    console.warn('No valid products in Firebase data, falling back to localStorage');
-                                    loadFromLocalStorageOnly();
+                                    console.warn('No valid products in Firebase data');
                                 }
+                            } else if (firebaseProducts === null) {
+                                console.log('No products in Firebase yet, using localStorage cache');
                             } else {
-                                // Firebase returned invalid data, fall back to localStorage
-                                console.warn('Invalid Firebase data, falling back to localStorage');
-                                loadFromLocalStorageOnly();
+                                console.warn('Invalid Firebase data format');
                             }
-                        })
-                        .catch((error) => {
-                            console.error('Error loading from Firebase:', error);
-                            // Fall back to localStorage
-                            loadFromLocalStorageOnly();
-                        });
+                        },
+                        (error) => {
+                            console.error('Error syncing from Firebase:', error);
+                            console.log('Continuing with cached products from localStorage');
+                        }
+                    );
                 } catch (error) {
-                    console.error('Error accessing Firebase:', error);
-                    loadFromLocalStorageOnly();
+                    console.error('Error setting up Firebase sync:', error);
                 }
             } else {
-                // Firebase not available, use localStorage
-                loadFromLocalStorageOnly();
+                console.log('Firebase not available, using localStorage only');
             }
             
             // Load invoice number (always from localStorage)
