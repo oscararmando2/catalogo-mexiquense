@@ -1268,6 +1268,7 @@ function setupEventListeners(){
 // ==== ESPECIALES FUNCTIONALITY ====
 let especiales = [];
 let especialesListeners = null; // Store listener references for cleanup
+let especialesSyncPending = false; // Flag to prevent concurrent syncs
 
 // Helper function to process especiales data from Firebase snapshot
 function processEspecialesData(data) {
@@ -1311,6 +1312,15 @@ function renderEspecialesIfNeeded() {
 }
 
 // Load especiales from Firebase with localStorage fallback using granular listeners
+// Helper function to sync especiales with products catalog and handle errors
+function syncEspecialesWithLogging(syncPromise, context) {
+    syncPromise.then(() => {
+        console.log(`${context} especiales sync completed`);
+    }).catch(error => {
+        console.error(`Error during ${context} especiales sync:`, error);
+    });
+}
+
 function loadEspeciales() {
     try {
         if (database) {
@@ -1339,11 +1349,7 @@ function loadEspeciales() {
                 console.log('Especiales initial load:', especiales.length, 'items');
                 
                 // Sync all especiales with products catalog
-                syncAllEspecialesToProducts().then(() => {
-                    console.log('Initial especiales sync completed');
-                }).catch(error => {
-                    console.error('Error during initial especiales sync:', error);
-                });
+                syncEspecialesWithLogging(syncAllEspecialesToProducts(), 'Initial');
                 
                 setupEspecialesListeners();
             }).catch((err) => {
@@ -1357,11 +1363,7 @@ function loadEspeciales() {
                         console.log('Especiales retry load:', especiales.length, 'items');
                         
                         // Sync all especiales with products catalog
-                        syncAllEspecialesToProducts().then(() => {
-                            console.log('Retry especiales sync completed');
-                        }).catch(error => {
-                            console.error('Error during retry especiales sync:', error);
-                        });
+                        syncEspecialesWithLogging(syncAllEspecialesToProducts(), 'Retry');
                         
                         setupEspecialesListeners();
                     }).catch((retryErr) => {
@@ -1371,13 +1373,7 @@ function loadEspeciales() {
                         renderEspecialesIfNeeded();
                         
                         // Sync loaded especiales with products catalog
-                        if (especiales && especiales.length > 0) {
-                            syncAllEspecialesToProducts().then(() => {
-                                console.log('Fallback localStorage especiales sync completed');
-                            }).catch(error => {
-                                console.error('Error during fallback especiales sync:', error);
-                            });
-                        }
+                        syncEspecialesWithLogging(syncAllEspecialesToProducts(), 'Fallback localStorage');
                     });
                 }, 2000);
             });
@@ -1389,13 +1385,7 @@ function loadEspeciales() {
         especiales = loadEspecialesFromLocalStorage();
         
         // Sync loaded especiales with products catalog
-        if (especiales && especiales.length > 0) {
-            syncAllEspecialesToProducts().then(() => {
-                console.log('localStorage especiales sync completed');
-            }).catch(error => {
-                console.error('Error during localStorage especiales sync:', error);
-            });
-        }
+        syncEspecialesWithLogging(syncAllEspecialesToProducts(), 'localStorage');
     }
 }
 
@@ -1441,14 +1431,19 @@ function setupEspecialesListeners() {
                 
                 console.log('Especial added from Firebase:', newItem.nombre);
                 
-                // Sync with products catalog
-                syncProductFromEspecial(newItem).then(productAction => {
-                    if (productAction) {
-                        console.log(`Product ${productAction} from especial in Firebase listener`);
-                    }
-                }).catch(error => {
-                    console.error('Error syncing product from Firebase especial:', error);
-                });
+                // Sync with products catalog (with race condition protection)
+                if (!especialesSyncPending) {
+                    especialesSyncPending = true;
+                    syncProductFromEspecial(newItem).then(productAction => {
+                        if (productAction) {
+                            console.log(`Product ${productAction} from especial in Firebase listener`);
+                        }
+                        especialesSyncPending = false;
+                    }).catch(error => {
+                        console.error('Error syncing product from Firebase especial:', error);
+                        especialesSyncPending = false;
+                    });
+                }
                 
                 // Update localStorage
                 if (isLocalStorageAvailable()) {
@@ -1519,14 +1514,19 @@ function setupEspecialesListeners() {
             
             console.log('Especial changed in Firebase:', changedItem.nombre);
             
-            // Sync with products catalog
-            syncProductFromEspecial(changedItem).then(productAction => {
-                if (productAction) {
-                    console.log(`Product ${productAction} from changed especial in Firebase listener`);
-                }
-            }).catch(error => {
-                console.error('Error syncing product from changed Firebase especial:', error);
-            });
+            // Sync with products catalog (with race condition protection)
+            if (!especialesSyncPending) {
+                especialesSyncPending = true;
+                syncProductFromEspecial(changedItem).then(productAction => {
+                    if (productAction) {
+                        console.log(`Product ${productAction} from changed especial in Firebase listener`);
+                    }
+                    especialesSyncPending = false;
+                }).catch(error => {
+                    console.error('Error syncing product from changed Firebase especial:', error);
+                    especialesSyncPending = false;
+                });
+            }
             
             // Update localStorage
             if (isLocalStorageAvailable()) {
@@ -1830,7 +1830,8 @@ function findProductByEspecial(especial) {
 }
 
 // Sync product from especial - creates or updates product in products catalog
-async function syncProductFromEspecial(especial) {
+// Note: This function does NOT save to Firebase/localStorage - caller is responsible
+async function syncProductFromEspecial(especial, skipSave = false) {
     // Check if product exists by UPC or itemNumber
     const existingProduct = findProductByEspecial(especial);
     
@@ -1848,12 +1849,14 @@ async function syncProductFromEspecial(especial) {
         
         console.log('Product updated with special price:', existingProduct.nombre);
         
-        // Save products to Firebase/localStorage
-        await saveData();
-        
-        // Re-render views to show updated products
-        renderAdminProducts();
-        renderPublicTabs();
+        // Save products to Firebase/localStorage only if not skipped
+        if (!skipSave) {
+            await saveData();
+            
+            // Re-render views to show updated products
+            renderAdminProducts();
+            renderPublicTabs();
+        }
         
         return 'updated';
     } else {
@@ -1878,12 +1881,14 @@ async function syncProductFromEspecial(especial) {
         products.push(newProduct);
         console.log('New product created from especial:', newProduct.nombre);
         
-        // Save products to Firebase/localStorage
-        await saveData();
-        
-        // Re-render views to show updated products
-        renderAdminProducts();
-        renderPublicTabs();
+        // Save products to Firebase/localStorage only if not skipped
+        if (!skipSave) {
+            await saveData();
+            
+            // Re-render views to show updated products
+            renderAdminProducts();
+            renderPublicTabs();
+        }
         
         return 'created';
     }
@@ -1901,15 +1906,25 @@ async function syncAllEspecialesToProducts() {
     let updated = 0;
     let errors = 0;
     
+    // Process all especiales without saving (batch operation)
     for (const especial of especiales) {
         try {
-            const action = await syncProductFromEspecial(especial);
+            const action = await syncProductFromEspecial(especial, true); // Skip individual saves
             if (action === 'created') created++;
             else if (action === 'updated') updated++;
         } catch (error) {
             console.error('Error syncing especial:', especial.nombre, error);
             errors++;
         }
+    }
+    
+    // Save once after all products are updated (batch save)
+    if (created > 0 || updated > 0) {
+        await saveData();
+        
+        // Re-render views to show all updated products
+        renderAdminProducts();
+        renderPublicTabs();
     }
     
     console.log(`Especiales sync complete: ${created} created, ${updated} updated, ${errors} errors`);
