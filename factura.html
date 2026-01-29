@@ -995,6 +995,9 @@
         // ============================================
         
         let database = null;
+        let productsListener = null;
+        let connectionListener = null;
+        
         try {
             const firebaseConfig = {
                 apiKey: "AIzaSyAdPcUhck0JzYonJAYfmfHKajDu96FqZsg",
@@ -1094,56 +1097,68 @@
             // Then set up real-time Firebase sync
             if (database) {
                 try {
+                    // Clean up any existing listeners before creating new ones
+                    if (connectionListener) {
+                        database.ref('.info/connected').off('value', connectionListener);
+                    }
+                    if (productsListener) {
+                        database.ref('products').off('value', productsListener);
+                    }
+                    
                     // Monitor Firebase connection state
-                    const connectedRef = database.ref('.info/connected');
-                    connectedRef.on('value', (snap) => {
+                    connectionListener = (snap) => {
                         if (snap.val() === true) {
                             console.log('🟢 Firebase connected - products will sync');
                         } else {
                             console.log('🔴 Firebase disconnected - using cached products');
                         }
-                    });
+                    };
+                    database.ref('.info/connected').on('value', connectionListener);
                     
                     // Set up real-time listener for products
-                    database.ref('products').on('value', 
-                        (snapshot) => {
-                            const firebaseProducts = snapshot.val();
-                            if (firebaseProducts && Array.isArray(firebaseProducts)) {
-                                // Validate products data
-                                const validProducts = firebaseProducts.filter(p => {
-                                    // Each product should be an object with at least name and price
-                                    return p && 
-                                           typeof p === 'object' && 
-                                           typeof p.name === 'string' && 
-                                           typeof p.price === 'number' && 
-                                           p.price >= 0;
-                                });
+                    productsListener = (snapshot) => {
+                        const firebaseProducts = snapshot.val();
+                        if (firebaseProducts && Array.isArray(firebaseProducts)) {
+                            // Validate products data
+                            const validProducts = firebaseProducts.filter(p => {
+                                // Each product should be an object with at least name and price
+                                return p && 
+                                       typeof p === 'object' && 
+                                       typeof p.name === 'string' && 
+                                       typeof p.price === 'number' && 
+                                       p.price >= 0;
+                            });
+                            
+                            if (validProducts.length > 0) {
+                                products = validProducts;
+                                console.log('✅ Products synced from Firebase:', products.length, 'products');
                                 
-                                if (validProducts.length > 0) {
-                                    products = validProducts;
-                                    console.log('✅ Products synced from Firebase:', products.length, 'products');
-                                    
-                                    // Save to localStorage as cache
+                                // Save to localStorage as cache with error handling
+                                try {
                                     localStorage.setItem('products', JSON.stringify(products));
-                                    
-                                    // Refresh products display if modal is open
-                                    if (productsDbModal && productsDbModal.classList.contains('show')) {
-                                        filterProductsDb();
-                                    }
-                                } else {
-                                    console.warn('No valid products in Firebase data');
+                                } catch (storageError) {
+                                    console.warn('Failed to save products to localStorage:', storageError);
+                                    // Continue without localStorage cache
                                 }
-                            } else if (firebaseProducts === null) {
-                                console.log('No products in Firebase yet, using localStorage cache');
+                                
+                                // Refresh products display if modal is open
+                                if (productsDbModal && productsDbModal.classList.contains('show')) {
+                                    filterProductsDb();
+                                }
                             } else {
-                                console.warn('Invalid Firebase data format');
+                                console.warn('No valid products in Firebase data');
                             }
-                        },
-                        (error) => {
-                            console.error('Error syncing from Firebase:', error);
-                            console.log('Continuing with cached products from localStorage');
+                        } else if (firebaseProducts === null) {
+                            console.log('No products in Firebase yet, using localStorage cache');
+                        } else {
+                            console.warn('Invalid Firebase data format');
                         }
-                    );
+                    };
+                    
+                    database.ref('products').on('value', productsListener, (error) => {
+                        console.error('Error syncing from Firebase:', error);
+                        console.log('Continuing with cached products from localStorage');
+                    });
                 } catch (error) {
                     console.error('Error setting up Firebase sync:', error);
                 }
@@ -2430,6 +2445,31 @@
                 toast.classList.remove('show');
             }, 3000);
         }
+        
+        // ============================================
+        // CLEANUP ON PAGE UNLOAD
+        // ============================================
+        
+        function cleanupFirebaseListeners() {
+            if (database) {
+                try {
+                    if (connectionListener) {
+                        database.ref('.info/connected').off('value', connectionListener);
+                        connectionListener = null;
+                    }
+                    if (productsListener) {
+                        database.ref('products').off('value', productsListener);
+                        productsListener = null;
+                    }
+                    console.log('🧹 Firebase listeners cleaned up');
+                } catch (error) {
+                    console.error('Error cleaning up Firebase listeners:', error);
+                }
+            }
+        }
+        
+        // Clean up listeners when page is unloaded
+        window.addEventListener('beforeunload', cleanupFirebaseListeners);
         
         // ============================================
         // INITIALIZE APP
