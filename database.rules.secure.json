@@ -1,0 +1,33 @@
+{
+  "_comment": "PRODUCTION RULES - Require authentication for write operations",
+  "_warning": "These rules are SECURE and recommended for production use",
+  "_note": "You need to implement Firebase Authentication for these rules to work",
+  "rules": {
+    ".read": true,
+    ".write": false,
+    "products": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "invoiceProducts": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "especiales": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "especialesTienda": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "credits": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "fcmTokens": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}
