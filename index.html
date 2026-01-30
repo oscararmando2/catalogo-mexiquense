@@ -1920,7 +1920,8 @@ function importFromCSV(file) {
                 const term = searchTerm.toLowerCase();
                 filtered = filtered.filter(e => 
                     (e.nombre && e.nombre.toLowerCase().includes(term)) ||
-                    (e.upc && e.upc.toLowerCase().includes(term)) ||
+                    (e.upc && String(e.upc).toLowerCase().includes(term)) ||
+                    (e.itemNumber && String(e.itemNumber).toLowerCase().includes(term)) ||
                     (e.provider && e.provider.toLowerCase().includes(term)) ||
                     (e.proveedor && e.proveedor.toLowerCase().includes(term)) ||
                     (e.product && e.product.toLowerCase().includes(term)) ||
@@ -2002,6 +2003,7 @@ function importFromCSV(file) {
                             <div class="flex-grow pr-2">
                                 <h3 class="text-lg font-bold text-gray-900 mb-1 line-clamp-2">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
                                 ${especial.upc ? `<p class="text-xs text-gray-500 font-mono">UPC: ${sanitizeInput(especial.upc)}</p>` : ''}
+                                ${especial.itemNumber ? `<p class="text-xs text-gray-500 font-mono">Item Code: ${sanitizeInput(especial.itemNumber)}</p>` : ''}
                             </div>
                             <div class="flex gap-2 flex-shrink-0">
                                 <button class="edit-especial edit-especial-btn bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition-all" data-id="${especial.id_price}" title="Editar especial">
