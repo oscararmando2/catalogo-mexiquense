@@ -1463,6 +1463,43 @@ function importFromCSV(file) {
             setTimeout(()=> toast.classList.add('translate-y-20','opacity-0'), 3000);
         }
 
+        // ============================================
+        // ITEM CODE VALIDATION
+        // ============================================
+        
+        /**
+         * Check if an item code is already in use by another product or especial
+         * @param {string} itemNumber - The item code to check
+         * @param {string} excludeProductId - Optional product ID to exclude from check (for editing existing product)
+         * @param {number} excludeEspecialId - Optional especial ID to exclude from check (for editing existing especial)
+         * @returns {boolean} - True if item code is duplicate, false otherwise
+         */
+        function isDuplicateItemCode(itemNumber, excludeProductId = null, excludeEspecialId = null) {
+            if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
+                return false; // Empty or N/A item codes are allowed
+            }
+            
+            const trimmedItemNumber = itemNumber.trim();
+            
+            // Check against products
+            const duplicateInProducts = products.some(p => 
+                p.itemNumber && 
+                p.itemNumber.trim() === trimmedItemNumber && 
+                p.id !== excludeProductId
+            );
+            
+            if (duplicateInProducts) return true;
+            
+            // Check against especiales
+            const duplicateInEspeciales = especiales.some(e => 
+                e.itemNumber && 
+                e.itemNumber.trim() === trimmedItemNumber && 
+                e.id_price !== excludeEspecialId
+            );
+            
+            return duplicateInEspeciales;
+        }
+
         // ==== Eventos ====
         function setupEventListeners(){
             // Búsquedas
@@ -1533,43 +1570,6 @@ function importFromCSV(file) {
                 const id=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===id);
                 if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(); }
             });
-
-            // ============================================
-            // ITEM CODE VALIDATION
-            // ============================================
-            
-            /**
-             * Check if an item code is already in use by another product or especial
-             * @param {string} itemNumber - The item code to check
-             * @param {string} excludeProductId - Optional product ID to exclude from check (for editing existing product)
-             * @param {number} excludeEspecialId - Optional especial ID to exclude from check (for editing existing especial)
-             * @returns {boolean} - True if item code is duplicate, false otherwise
-             */
-            function isDuplicateItemCode(itemNumber, excludeProductId = null, excludeEspecialId = null) {
-                if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
-                    return false; // Empty or N/A item codes are allowed
-                }
-                
-                const trimmedItemNumber = itemNumber.trim();
-                
-                // Check against products
-                const duplicateInProducts = products.some(p => 
-                    p.itemNumber && 
-                    p.itemNumber.trim() === trimmedItemNumber && 
-                    p.id !== excludeProductId
-                );
-                
-                if (duplicateInProducts) return true;
-                
-                // Check against especiales
-                const duplicateInEspeciales = especiales.some(e => 
-                    e.itemNumber && 
-                    e.itemNumber.trim() === trimmedItemNumber && 
-                    e.id_price !== excludeEspecialId
-                );
-                
-                return duplicateInEspeciales;
-            }
 
             // Vista admin/public
             adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); closeMobileMenu(); });
