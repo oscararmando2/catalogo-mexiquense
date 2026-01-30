@@ -1351,6 +1351,12 @@ function importFromCSV(file) {
                 existing.customFields = mergedCustomFields;
                 updated++;
               } else {
+                // Check if this item code is already used by a different product (not matched by UPC)
+                if (isDuplicateItemCode(newProduct.itemNumber)) {
+                  console.error(`Fila ${idx + 1}: Item Code duplicado "${newProduct.itemNumber}" - producto omitido`);
+                  errors++;
+                  return;
+                }
                 imported.push(newProduct);
               }
 
@@ -1528,6 +1534,48 @@ function importFromCSV(file) {
                 if(product){ if(!product.customFields) product.customFields={}; product.customFields[key]=value; saveData(); showProductDetails(id); customFieldForm.classList.add('hidden'); addCustomFieldBtn.classList.remove('hidden'); showToast('Campo personalizado agregado.'); renderAdminProducts(); renderPublicTabs(); }
             });
 
+            // ============================================
+            // ITEM CODE VALIDATION
+            // ============================================
+            
+            /**
+             * Check if an item code is already in use by another product
+             * @param {string} itemNumber - The item code to check
+             * @param {string} excludeProductId - Optional product ID to exclude from check (for editing existing product)
+             * @returns {boolean} - True if item code is duplicate, false otherwise
+             */
+            function isDuplicateItemCode(itemNumber, excludeProductId = null) {
+                if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
+                    return false; // Empty or N/A item codes are allowed
+                }
+                
+                const trimmedItemNumber = itemNumber.trim();
+                return products.some(p => 
+                    p.itemNumber && 
+                    p.itemNumber.trim() === trimmedItemNumber && 
+                    p.id !== excludeProductId
+                );
+            }
+            
+            /**
+             * Check if an item code is already in use by another especial
+             * @param {string} itemNumber - The item code to check
+             * @param {number} excludeEspecialId - Optional especial ID to exclude from check (for editing existing especial)
+             * @returns {boolean} - True if item code is duplicate, false otherwise
+             */
+            function isDuplicateEspecialItemCode(itemNumber, excludeEspecialId = null) {
+                if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
+                    return false; // Empty or N/A item codes are allowed
+                }
+                
+                const trimmedItemNumber = itemNumber.trim();
+                return especiales.some(e => 
+                    e.itemNumber && 
+                    e.itemNumber.trim() === trimmedItemNumber && 
+                    e.id_price !== excludeEspecialId
+                );
+            }
+
             // Vista admin/public
             adminViewBtn.addEventListener('click', ()=>{ passwordModal.classList.remove('hidden'); adminPasswordInput.focus(); closeMobileMenu(); });
             publicViewBtn.addEventListener('click', ()=> { showView('public'); closeMobileMenu(); });
@@ -1561,10 +1609,19 @@ function importFromCSV(file) {
                     { id:'description', label:'Descripción', required:true }
                 ];
                 if(!validateForm('productForm', fields)) return;
+                
                 const productId=productIdInput.value;
+                const itemNumber = sanitizeInput(itemNumberInput.value);
+                
+                // Check for duplicate item code
+                if (isDuplicateItemCode(itemNumber, productId)) {
+                    showToast(`El Item Code "${itemNumber}" ya está en uso por otro producto. Por favor, use un código diferente.`, true);
+                    return;
+                }
+                
                 const newProduct={
                     id: productId || generateId(),
-                    itemNumber: sanitizeInput(itemNumberInput.value),
+                    itemNumber: itemNumber,
                     description: sanitizeInput(descriptionInput.value),
                     upc: sanitizeInput(upcInput.value),
                     nombre: sanitizeInput(nombreInput.value),
@@ -1615,7 +1672,35 @@ function importFromCSV(file) {
                 const input=document.createElement('input'); input.type='text'; input.value=currentValue==='N/A' ? '' : currentValue; input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent'; input.style.width='100px';
                 itemSpan.replaceWith(input); input.focus();
                 const saveChange=()=>{
-                    const newValue=input.value.trim()||'N/A'; const productId=deleteProductBtn.dataset.id; const product=products.find(p=> p.id===productId); if(!product) return; product.itemNumber=newValue; saveData(); const newSpan=document.createElement('span'); newSpan.id='productItemNumber'; newSpan.className='text-gray-700 cursor-pointer'; newSpan.textContent=newValue; input.replaceWith(newSpan); showToast('Item Code actualizado correctamente.'); renderAdminProducts(); renderPublicTabs(); enableInlineItemEdit();
+                    const newValue=input.value.trim()||'N/A'; 
+                    const productId=deleteProductBtn.dataset.id; 
+                    const product=products.find(p=> p.id===productId); 
+                    if(!product) return; 
+                    
+                    // Check for duplicate item code
+                    if (isDuplicateItemCode(newValue, productId)) {
+                        showToast(`El Item Code "${newValue}" ya está en uso por otro producto. Por favor, use un código diferente.`, true);
+                        // Restore original value
+                        const newSpan=document.createElement('span'); 
+                        newSpan.id='productItemNumber'; 
+                        newSpan.className='text-gray-700 cursor-pointer'; 
+                        newSpan.textContent=currentValue; 
+                        input.replaceWith(newSpan); 
+                        enableInlineItemEdit();
+                        return;
+                    }
+                    
+                    product.itemNumber=newValue; 
+                    saveData(); 
+                    const newSpan=document.createElement('span'); 
+                    newSpan.id='productItemNumber'; 
+                    newSpan.className='text-gray-700 cursor-pointer'; 
+                    newSpan.textContent=newValue; 
+                    input.replaceWith(newSpan); 
+                    showToast('Item Code actualizado correctamente.'); 
+                    renderAdminProducts(); 
+                    renderPublicTabs(); 
+                    enableInlineItemEdit();
                 };
                 input.addEventListener('blur', saveChange); input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
             });
@@ -2002,11 +2087,12 @@ function importFromCSV(file) {
         }
         
         // Add new especial
-        async function addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas) {
+        async function addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas) {
             const newEspecial = {
                 id_price: getNextId(especiales, 'id_price', 1),
                 nombre: nombre,
                 upc: upc,
+                itemNumber: itemNumber || '',
                 antes: parseFloat(antes),
                 price: parseFloat(precio),
                 imageUrl: imageUrl || '',
@@ -2024,7 +2110,7 @@ function importFromCSV(file) {
         }
         
         // Update existing especial
-        async function updateEspecial(especialId, nombre, upc, antes, precio, imageUrl, proveedor, notas) {
+        async function updateEspecial(especialId, nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas) {
             // Validate that especialId is a valid positive number
             if (typeof especialId !== 'number' || isNaN(especialId) || especialId <= 0) {
                 showToast('Error: ID de especial inválido', true);
@@ -2042,6 +2128,7 @@ function importFromCSV(file) {
                 id_price: especialId,
                 nombre: nombre,
                 upc: upc,
+                itemNumber: itemNumber || '',
                 antes: parseFloat(antes),
                 price: parseFloat(precio),
                 imageUrl: imageUrl || '',
@@ -2193,6 +2280,7 @@ function importFromCSV(file) {
                         const especialIdStr = document.getElementById('especialId').value;
                         const nombre = document.getElementById('especialNombre').value.trim();
                         const upc = document.getElementById('especialUpc').value.trim();
+                        const itemNumber = document.getElementById('especialItemNumber').value.trim();
                         const antes = document.getElementById('especialAntes').value;
                         const precio = document.getElementById('especialPrice').value;
                         const imageUrl = document.getElementById('especialImageUrl').value.trim();
@@ -2231,20 +2319,28 @@ function importFromCSV(file) {
                             return;
                         }
                         
+                        // Check for duplicate item code in especiales
+                        const especialId = especialIdStr ? parseInt(especialIdStr, 10) : null;
+                        if (isDuplicateEspecialItemCode(itemNumber, especialId)) {
+                            showToast(`El Item Code "${itemNumber}" ya está en uso por otro especial. Por favor, use un código diferente.`, true);
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                            return;
+                        }
+                        
                         // Check if we're editing or adding
                         if (especialIdStr) {
                             // Edit mode - parse and validate ID
-                            const especialId = parseInt(especialIdStr, 10);
                             if (isNaN(especialId) || especialId <= 0) {
                                 showToast('Error: ID de especial inválido', true);
                                 submitBtn.disabled = false;
                                 submitBtn.textContent = originalText;
                                 return;
                             }
-                            await updateEspecial(especialId, nombre, upc, antes, precio, imageUrl, proveedor, notas);
+                            await updateEspecial(especialId, nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
                         } else {
                             // Add mode
-                            await addEspecial(nombre, upc, antes, precio, imageUrl, proveedor, notas);
+                            await addEspecial(nombre, upc, itemNumber, antes, precio, imageUrl, proveedor, notas);
                         }
                         especialFormModal.classList.add('hidden');
                         submitBtn.disabled = false;
