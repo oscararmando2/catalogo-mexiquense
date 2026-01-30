@@ -1178,41 +1178,36 @@ function setupEventListeners(){
     // ============================================
     
     /**
-     * Check if an item code is already in use by another product
+     * Check if an item code is already in use by another product or especial
      * @param {string} itemNumber - The item code to check
      * @param {string} excludeProductId - Optional product ID to exclude from check (for editing existing product)
+     * @param {number} excludeEspecialId - Optional especial ID to exclude from check (for editing existing especial)
      * @returns {boolean} - True if item code is duplicate, false otherwise
      */
-    function isDuplicateItemCode(itemNumber, excludeProductId = null) {
+    function isDuplicateItemCode(itemNumber, excludeProductId = null, excludeEspecialId = null) {
         if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
             return false; // Empty or N/A item codes are allowed
         }
         
         const trimmedItemNumber = itemNumber.trim();
-        return products.some(p => 
+        
+        // Check against products
+        const duplicateInProducts = products.some(p => 
             p.itemNumber && 
             p.itemNumber.trim() === trimmedItemNumber && 
             p.id !== excludeProductId
         );
-    }
-    
-    /**
-     * Check if an item code is already in use by another especial
-     * @param {string} itemNumber - The item code to check
-     * @param {number} excludeEspecialId - Optional especial ID to exclude from check (for editing existing especial)
-     * @returns {boolean} - True if item code is duplicate, false otherwise
-     */
-    function isDuplicateEspecialItemCode(itemNumber, excludeEspecialId = null) {
-        if (!itemNumber || itemNumber.trim() === '' || itemNumber === 'N/A') {
-            return false; // Empty or N/A item codes are allowed
-        }
         
-        const trimmedItemNumber = itemNumber.trim();
-        return especiales.some(e => 
+        if (duplicateInProducts) return true;
+        
+        // Check against especiales
+        const duplicateInEspeciales = especiales.some(e => 
             e.itemNumber && 
             e.itemNumber.trim() === trimmedItemNumber && 
             e.id_price !== excludeEspecialId
         );
+        
+        return duplicateInEspeciales;
     }
 
     // Vista admin/public
@@ -1252,9 +1247,9 @@ function setupEventListeners(){
         const productId=productIdInput.value;
         const itemNumber = sanitizeInput(itemNumberInput.value);
         
-        // Check for duplicate item code
+        // Check for duplicate item code (across both products and especiales)
         if (isDuplicateItemCode(itemNumber, productId)) {
-            showToast(`El Item Code "${itemNumber}" ya está en uso por otro producto. Por favor, use un código diferente.`, true);
+            showToast(`El Item Code "${itemNumber}" ya está en uso por otro producto o especial. Por favor, use un código diferente.`, true);
             return;
         }
         
@@ -1321,9 +1316,9 @@ function setupEventListeners(){
             const product=products.find(p=> p.id===productId); 
             if(!product) return; 
             
-            // Check for duplicate item code
+            // Check for duplicate item code (across both products and especiales)
             if (isDuplicateItemCode(newValue, productId)) {
-                showToast(`El Item Code "${newValue}" ya está en uso por otro producto. Por favor, use un código diferente.`, true);
+                showToast(`El Item Code "${newValue}" ya está en uso por otro producto o especial. Por favor, use un código diferente.`, true);
                 // Restore original value
                 const newSpan=document.createElement('span'); 
                 newSpan.id='productItemNumber'; 
@@ -2208,9 +2203,9 @@ function setupEspecialesEventListeners() {
                     return;
                 }
                 
-                // Check for duplicate item code in especiales
-                if (isDuplicateEspecialItemCode(itemNumber, especialId ? parseInt(especialId, 10) : null)) {
-                    showToast(`El Item Code "${itemNumber}" ya está en uso por otro especial. Por favor, use un código diferente.`, true);
+                // Check for duplicate item code (across both products and especiales)
+                if (isDuplicateItemCode(itemNumber, null, especialId ? parseInt(especialId, 10) : null)) {
+                    showToast(`El Item Code "${itemNumber}" ya está en uso por otro producto o especial. Por favor, use un código diferente.`, true);
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                     return;
