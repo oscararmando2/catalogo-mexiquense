@@ -1528,8 +1528,8 @@
                 return;
             }
             
-            const confirm = window.confirm(`¿Terminar factura #${invoiceNumber}? Se eliminará de facturas pendientes.`);
-            if (!confirm) return;
+            const userConfirmed = window.confirm(`¿Terminar factura #${invoiceNumber}? Se eliminará de facturas pendientes.`);
+            if (!userConfirmed) return;
             
             // Remove from pending invoices
             delete pendingInvoices[currentInvoiceId];
@@ -1564,7 +1564,7 @@
         }
         
         function showPendingInvoicesModal() {
-            const invoiceIds = Object.keys(pendingInvoices).sort((a, b) => b - a);
+            const invoiceIds = Object.keys(pendingInvoices).sort((a, b) => parseInt(b) - parseInt(a));
             
             if (invoiceIds.length === 0) {
                 pendingInvoicesList.style.display = 'none';
@@ -2658,7 +2658,6 @@
             // Save current invoice before creating new one
             if (invoiceRows.length > 0 && invoiceRows.some(r => r.total > 0)) {
                 saveCurrentInvoice();
-                showToast('Factura actual guardada como pendiente', 'success');
             }
             
             // Increment invoice number
