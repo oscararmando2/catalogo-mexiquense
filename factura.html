@@ -778,6 +778,114 @@
         .confirm-modal-intro {
             margin-bottom: 15px;
         }
+        
+        /* Pending Invoices Modal Styles */
+        .pending-invoices-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .pending-invoice-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .pending-invoice-item:hover {
+            background: #e9ecef;
+            border-color: #006847;
+        }
+        
+        .pending-invoice-item.active {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 2px;
+        }
+        
+        .pending-invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .pending-invoice-number {
+            font-weight: bold;
+            font-size: 16px;
+            color: #006847;
+        }
+        
+        .pending-invoice-date {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .pending-invoice-details {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .pending-invoice-detail {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .pending-invoice-total {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .pending-invoices-empty {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-badge.saving {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-badge.saved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        /* Badge counter */
+        .badge-counter {
+            display: inline-block;
+            background: #dc3545;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 5px;
+            min-width: 18px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -794,7 +902,10 @@
             </div>
             <div class="header-top">
                 <div class="left-section">
-                    <div class="invoice-badge">INVOICE #<span id="invoiceNumber">31</span></div>
+                    <div class="invoice-badge">
+                        INVOICE #<span id="invoiceNumber">31</span>
+                        <span class="status-badge pending" id="invoiceStatus">Pendiente</span>
+                    </div>
                     <div class="company-info">
                         <h1>MEXIQUENSE MARKET LLC</h1>
                         <p>9525 LACKLAND RD</p>
@@ -838,6 +949,12 @@
             </button>
             <button class="btn btn-secondary" id="changeInvoiceNumberBtn">
                 Cambiar # Factura
+            </button>
+            <button class="btn btn-info" id="showPendingInvoicesBtn">
+                📋 Facturas Pendientes<span class="badge-counter" id="pendingInvoicesBadge" style="display: none;">0</span>
+            </button>
+            <button class="btn btn-success" id="completeInvoiceBtn">
+                ✅ Terminar Factura
             </button>
         </div>
         
@@ -988,6 +1105,28 @@
         </div>
     </div>
     
+    <!-- Pending Invoices Modal -->
+    <div class="modal" id="pendingInvoicesModal">
+        <div class="modal-content modal-content-wide">
+            <div class="modal-header">
+                <h3>Facturas Pendientes</h3>
+                <button class="modal-close" id="closePendingInvoicesModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="pendingInvoicesList" class="pending-invoices-list">
+                    <!-- Invoices will be added here dynamically -->
+                </div>
+                <div id="pendingInvoicesEmpty" class="pending-invoices-empty">
+                    <p>No hay facturas pendientes.</p>
+                    <p class="sub-text">Las facturas se guardan automáticamente al trabajar en ellas.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closePendingInvoicesBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // ============================================
         // SISTEMA DE FACTURACIÓN - MEXIQUENSE MARKET LLC
@@ -1019,9 +1158,13 @@
         let invoiceNumber = 31;
         let invoiceRows = [];
         let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
+        let pendingInvoices = {}; // Stores all pending invoices
+        let currentInvoiceId = null; // Current invoice being edited
+        let autoSaveTimeout = null; // Debounce timeout for auto-save
         
         // Constants
         const MIN_VALID_PRICE = 0; // Minimum valid price to trigger add-to-database prompt
+        const AUTOSAVE_DELAY = 1000; // Delay in ms before auto-saving
         
         // DOM Elements
         const invoiceBody = document.getElementById('invoiceBody');
@@ -1068,16 +1211,29 @@
         const newInvoiceNumberInput = document.getElementById('newInvoiceNumber');
         const changeInvoiceNumberBtn = document.getElementById('changeInvoiceNumberBtn');
         
+        // Pending Invoices Modal Elements
+        const pendingInvoicesModal = document.getElementById('pendingInvoicesModal');
+        const closePendingInvoicesModal = document.getElementById('closePendingInvoicesModal');
+        const closePendingInvoicesBtn = document.getElementById('closePendingInvoicesBtn');
+        const showPendingInvoicesBtn = document.getElementById('showPendingInvoicesBtn');
+        const pendingInvoicesList = document.getElementById('pendingInvoicesList');
+        const pendingInvoicesEmpty = document.getElementById('pendingInvoicesEmpty');
+        const pendingInvoicesBadge = document.getElementById('pendingInvoicesBadge');
+        const completeInvoiceBtn = document.getElementById('completeInvoiceBtn');
+        const invoiceStatusEl = document.getElementById('invoiceStatus');
+        
         // ============================================
         // INITIALIZATION
         // ============================================
         
         function init() {
             loadFromFirebase();
+            loadPendingInvoicesFromFirebase();
             setCurrentDate();
             updateInvoiceNumber();
             addNewRow();
             setupEventListeners();
+            setupClientInputListeners();
         }
         
         // Helper function to process products data from Firebase snapshot
@@ -1199,6 +1355,273 @@
             });
         }
         
+        // ============================================
+        // PENDING INVOICES MANAGEMENT
+        // ============================================
+        
+        function loadPendingInvoicesFromFirebase() {
+            try {
+                if (database) {
+                    // Load pending invoices with real-time listener
+                    database.ref('pendingInvoices').on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        pendingInvoices = data || {};
+                        console.log(`Pending invoices loaded: ${Object.keys(pendingInvoices).length} invoices`);
+                        updatePendingInvoicesBadge();
+                        
+                        // Load the most recent pending invoice or current invoice number
+                        if (!currentInvoiceId) {
+                            const invoiceId = invoiceNumber.toString();
+                            if (pendingInvoices[invoiceId]) {
+                                loadInvoiceById(invoiceId);
+                            } else {
+                                currentInvoiceId = invoiceId;
+                            }
+                        }
+                    });
+                } else {
+                    throw new Error('Firebase not available');
+                }
+            } catch (err) {
+                console.warn('Firebase not available for pending invoices, using localStorage fallback', err);
+                try {
+                    const stored = localStorage.getItem('pendingInvoices');
+                    if (stored) {
+                        pendingInvoices = JSON.parse(stored);
+                        updatePendingInvoicesBadge();
+                    }
+                } catch (e) {
+                    console.error('localStorage load failed', e);
+                }
+            }
+        }
+        
+        function savePendingInvoicesToFirebase() {
+            return new Promise((resolve) => {
+                try {
+                    if (database) {
+                        database.ref('pendingInvoices').set(pendingInvoices)
+                            .then(() => {
+                                console.log('Pending invoices saved to Firebase successfully');
+                                resolve();
+                            })
+                            .catch((err) => {
+                                console.warn('Firebase save error for pending invoices, using localStorage as fallback', err);
+                                try {
+                                    localStorage.setItem('pendingInvoices', JSON.stringify(pendingInvoices));
+                                } catch (e) {
+                                    console.error('localStorage save failed', e);
+                                }
+                                resolve();
+                            });
+                    } else {
+                        throw new Error('Firebase not available');
+                    }
+                } catch (err) {
+                    console.warn('Firebase not available, using localStorage fallback', err);
+                    try {
+                        localStorage.setItem('pendingInvoices', JSON.stringify(pendingInvoices));
+                    } catch (e) {
+                        console.error('localStorage save failed', e);
+                    }
+                    resolve();
+                }
+            });
+        }
+        
+        function getCurrentInvoiceData() {
+            return {
+                invoiceNumber: invoiceNumber,
+                products: invoiceRows.map(row => ({
+                    upc: row.upc || '',
+                    qty: row.qty || 0,
+                    product: row.product || '',
+                    price: row.price || 0,
+                    total: row.total || 0
+                })),
+                clientName: document.getElementById('clientName').value,
+                clientAddress: document.getElementById('clientAddress').value,
+                clientCity: document.getElementById('clientCity').value,
+                date: document.getElementById('invoiceDate').textContent,
+                total: parseFloat(grandTotalEl.textContent.replace('$', '').replace(',', '')) || 0,
+                lastModified: new Date().toISOString(),
+                status: 'pending'
+            };
+        }
+        
+        function autoSaveCurrentInvoice() {
+            // Debounce auto-save
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(() => {
+                saveCurrentInvoice();
+            }, AUTOSAVE_DELAY);
+        }
+        
+        function saveCurrentInvoice() {
+            if (!currentInvoiceId) {
+                currentInvoiceId = invoiceNumber.toString();
+            }
+            
+            const invoiceData = getCurrentInvoiceData();
+            pendingInvoices[currentInvoiceId] = invoiceData;
+            
+            updateInvoiceStatus('saving');
+            
+            savePendingInvoicesToFirebase().then(() => {
+                updateInvoiceStatus('saved');
+                setTimeout(() => {
+                    updateInvoiceStatus('pending');
+                }, 2000);
+            });
+        }
+        
+        function loadInvoiceById(invoiceId) {
+            const invoice = pendingInvoices[invoiceId];
+            if (!invoice) {
+                showToast('Factura no encontrada', 'error');
+                return;
+            }
+            
+            currentInvoiceId = invoiceId;
+            invoiceNumber = parseInt(invoice.invoiceNumber) || parseInt(invoiceId);
+            
+            // Load client info
+            document.getElementById('clientName').value = invoice.clientName || '';
+            document.getElementById('clientAddress').value = invoice.clientAddress || '';
+            document.getElementById('clientCity').value = invoice.clientCity || '';
+            document.getElementById('invoiceDate').textContent = invoice.date || '';
+            
+            // Clear and load invoice rows
+            invoiceBody.innerHTML = '';
+            invoiceRows = [];
+            
+            if (invoice.products && invoice.products.length > 0) {
+                invoice.products.forEach(product => {
+                    const rowId = addNewRow();
+                    const row = invoiceRows.find(r => r.id === rowId);
+                    if (row) {
+                        row.upc = product.upc || '';
+                        row.qty = product.qty || 0;
+                        row.product = product.product || '';
+                        row.price = product.price || 0;
+                        row.total = product.total || 0;
+                        updateRowDisplay(rowId);
+                    }
+                });
+            } else {
+                addNewRow();
+            }
+            
+            updateInvoiceNumber();
+            calculateGrandTotal();
+            updateInvoiceStatus('pending');
+            
+            showToast(`Factura #${invoiceNumber} cargada`, 'success');
+        }
+        
+        function completeCurrentInvoice() {
+            if (!currentInvoiceId || !pendingInvoices[currentInvoiceId]) {
+                showToast('No hay factura para terminar', 'error');
+                return;
+            }
+            
+            const userConfirmed = window.confirm(`¿Terminar factura #${invoiceNumber}? Se eliminará de facturas pendientes.`);
+            if (!userConfirmed) return;
+            
+            // Remove from pending invoices
+            delete pendingInvoices[currentInvoiceId];
+            savePendingInvoicesToFirebase();
+            
+            showToast(`Factura #${invoiceNumber} completada`, 'success');
+            
+            // Create new invoice
+            createNewInvoice();
+        }
+        
+        function updatePendingInvoicesBadge() {
+            const count = Object.keys(pendingInvoices).length;
+            if (count > 0) {
+                pendingInvoicesBadge.textContent = count;
+                pendingInvoicesBadge.style.display = 'inline-block';
+            } else {
+                pendingInvoicesBadge.style.display = 'none';
+            }
+        }
+        
+        function updateInvoiceStatus(status) {
+            const statusMap = {
+                'pending': { text: 'Pendiente', class: 'pending' },
+                'saving': { text: 'Guardando...', class: 'saving' },
+                'saved': { text: '✓ Guardado', class: 'saved' }
+            };
+            
+            const statusInfo = statusMap[status] || statusMap['pending'];
+            invoiceStatusEl.textContent = statusInfo.text;
+            invoiceStatusEl.className = `status-badge ${statusInfo.class}`;
+        }
+        
+        function showPendingInvoicesModal() {
+            const invoiceIds = Object.keys(pendingInvoices).sort((a, b) => parseInt(b) - parseInt(a));
+            
+            if (invoiceIds.length === 0) {
+                pendingInvoicesList.style.display = 'none';
+                pendingInvoicesEmpty.style.display = 'block';
+            } else {
+                pendingInvoicesList.style.display = 'block';
+                pendingInvoicesEmpty.style.display = 'none';
+                
+                pendingInvoicesList.innerHTML = invoiceIds.map(id => {
+                    const invoice = pendingInvoices[id];
+                    const isActive = id === currentInvoiceId;
+                    return `
+                        <div class="pending-invoice-item ${isActive ? 'active' : ''}" data-invoice-id="${id}">
+                            <div class="pending-invoice-header">
+                                <span class="pending-invoice-number">Factura #${invoice.invoiceNumber || id}</span>
+                                <span class="pending-invoice-date">${invoice.date || 'Sin fecha'}</span>
+                            </div>
+                            <div class="pending-invoice-details">
+                                <div class="pending-invoice-detail">
+                                    <span>📦 ${(invoice.products || []).length} productos</span>
+                                </div>
+                                <div class="pending-invoice-detail">
+                                    <span>👤 ${invoice.clientName || 'Sin cliente'}</span>
+                                </div>
+                                <div class="pending-invoice-detail pending-invoice-total">
+                                    💰 $${(invoice.total || 0).toFixed(2)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click handlers
+                document.querySelectorAll('.pending-invoice-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const invoiceId = this.getAttribute('data-invoice-id');
+                        loadInvoiceById(invoiceId);
+                        pendingInvoicesModal.classList.remove('show');
+                    });
+                });
+            }
+            
+            pendingInvoicesModal.classList.add('show');
+        }
+        
+        function setupClientInputListeners() {
+            const clientNameInput = document.getElementById('clientName');
+            const clientAddressInput = document.getElementById('clientAddress');
+            const clientCityInput = document.getElementById('clientCity');
+            
+            [clientNameInput, clientAddressInput, clientCityInput].forEach(input => {
+                input.addEventListener('input', () => {
+                    autoSaveCurrentInvoice();
+                });
+            });
+        }
+        
         function setCurrentDate() {
             const today = new Date();
             const day = today.getDate();
@@ -1272,6 +1695,25 @@
                 }
             });
             
+            // Pending Invoices Modal events
+            showPendingInvoicesBtn.addEventListener('click', showPendingInvoicesModal);
+            closePendingInvoicesModal.addEventListener('click', () => {
+                pendingInvoicesModal.classList.remove('show');
+            });
+            closePendingInvoicesBtn.addEventListener('click', () => {
+                pendingInvoicesModal.classList.remove('show');
+            });
+            
+            // Close pending invoices modal on outside click
+            pendingInvoicesModal.addEventListener('click', (e) => {
+                if (e.target === pendingInvoicesModal) {
+                    pendingInvoicesModal.classList.remove('show');
+                }
+            });
+            
+            // Complete Invoice button
+            completeInvoiceBtn.addEventListener('click', completeCurrentInvoice);
+            
             // Close dropdowns on outside click
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.upc-cell') && !e.target.closest('.product-cell')) {
@@ -1323,11 +1765,20 @@
             
             upcInput.addEventListener('input', (e) => handleUpcInput(e, rowId));
             upcInput.addEventListener('focus', (e) => handleUpcInput(e, rowId));
-            qtyInput.addEventListener('input', () => calculateRowTotal(rowId, false));
+            qtyInput.addEventListener('input', () => {
+                calculateRowTotal(rowId, false);
+                autoSaveCurrentInvoice();
+            });
             qtyInput.addEventListener('blur', () => calculateRowTotal(rowId, true));
-            productInput.addEventListener('input', (e) => handleProductNameInput(e, rowId));
+            productInput.addEventListener('input', (e) => {
+                handleProductNameInput(e, rowId);
+                autoSaveCurrentInvoice();
+            });
             productInput.addEventListener('focus', (e) => handleProductNameInput(e, rowId));
-            priceInput.addEventListener('input', () => handlePriceInput(rowId));
+            priceInput.addEventListener('input', () => {
+                handlePriceInput(rowId);
+                autoSaveCurrentInvoice();
+            });
             priceInput.addEventListener('blur', () => {
                 // Check if product should be added to database when leaving price field
                 checkAndPromptAddToDatabase(rowId);
@@ -1361,6 +1812,8 @@
             if (autoFocus) {
                 upcInput.focus();
             }
+            
+            return rowId;
         }
         
         function deleteRow(rowId) {
@@ -1369,6 +1822,7 @@
                 row.remove();
                 invoiceRows = invoiceRows.filter(r => r.id !== rowId);
                 calculateGrandTotal();
+                autoSaveCurrentInvoice();
             }
         }
         
@@ -1455,6 +1909,9 @@
             
             // Calculate row total
             calculateRowTotal(rowId);
+            
+            // Auto-save after selecting product
+            autoSaveCurrentInvoice();
             
             // Check if we need to add a new row automatically
             checkAndAddNewRow();
@@ -1564,6 +2021,9 @@
             // Calculate row total
             calculateRowTotal(rowId);
             
+            // Auto-save after selecting product
+            autoSaveCurrentInvoice();
+            
             // Check if we need to add a new row automatically
             checkAndAddNewRow();
             
@@ -1668,6 +2128,26 @@
         function calculateGrandTotal() {
             const total = invoiceRows.reduce((sum, row) => sum + (row.total || 0), 0);
             grandTotalEl.textContent = formatCurrency(total);
+        }
+        
+        function updateRowDisplay(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            if (!rowData) return;
+            
+            const upcInput = row.querySelector('.upc-input');
+            const qtyInput = row.querySelector('.qty-input');
+            const productInput = row.querySelector('.product-input');
+            const priceInput = row.querySelector('.price-input');
+            const totalInput = row.querySelector('.total-input');
+            
+            upcInput.value = rowData.upc || '';
+            qtyInput.value = rowData.qty || 1;
+            productInput.value = rowData.product || '';
+            priceInput.value = rowData.price ? rowData.price.toFixed(2) : '';
+            totalInput.value = formatCurrency(rowData.total || 0);
         }
         
         function formatCurrency(amount) {
@@ -2175,15 +2655,18 @@
         // ============================================
         
         function createNewInvoice() {
+            // Save current invoice before creating new one
             if (invoiceRows.length > 0 && invoiceRows.some(r => r.total > 0)) {
-                const confirm = window.confirm('¿Está seguro que desea crear una nueva factura? Los datos actuales se perderán.');
-                if (!confirm) return;
+                saveCurrentInvoice();
             }
             
             // Increment invoice number
             invoiceNumber++;
             saveInvoiceNumberToFirebase();
             updateInvoiceNumber();
+            
+            // Set new current invoice ID
+            currentInvoiceId = invoiceNumber.toString();
             
             // Clear table
             invoiceBody.innerHTML = '';
@@ -2202,6 +2685,9 @@
             
             // Add first row
             addNewRow();
+            
+            // Update status
+            updateInvoiceStatus('pending');
             
             showToast('Nueva factura creada', 'success');
         }
