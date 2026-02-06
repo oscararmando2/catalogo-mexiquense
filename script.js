@@ -1345,6 +1345,84 @@ function setupEventListeners(){
     });
 })();
 
+// ==== Edición inline del Costo (solo admin) ====
+(function enableInlineCostoEdit(){
+    const costoP = document.getElementById('productCosto'); if(!costoP) return;
+    costoP.addEventListener('click', ()=>{
+        if(currentView!=='admin') return;
+        const currentValue=costoP.textContent.trim().replace(/[$,]/g, ''); // Remove currency symbols
+        const input=document.createElement('input'); 
+        input.type='text'; 
+        input.value=currentValue==='0.00' || currentValue==='0' ? '' : currentValue; 
+        input.placeholder='0.00';
+        input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent'; 
+        input.style.width='120px';
+        costoP.replaceWith(input); 
+        input.focus();
+        const saveChange=()=>{
+            const newValue=input.value.trim(); 
+            const numValue = parseFloat(newValue) || 0;
+            const productId=deleteProductBtn.dataset.id; 
+            const product=products.find(p=> p.id===productId); 
+            if(!product) return; 
+            
+            product.costo=numValue; 
+            saveData(); 
+            const newP=document.createElement('p'); 
+            newP.id='productCosto'; 
+            newP.className='text-2xl font-bold text-mexican-green mb-4 cursor-pointer'; 
+            newP.textContent=formatCurrency(numValue); 
+            input.replaceWith(newP); 
+            showToast('Costo actualizado correctamente.'); 
+            renderAdminProducts(); 
+            renderPublicTabs(); 
+            enableInlineCostoEdit();
+        };
+        input.addEventListener('blur', saveChange); 
+        input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
+    });
+})();
+
+// ==== Edición inline de la URL de imagen (solo admin) ====
+(function enableInlineUrlEdit(){
+    const imageContainer = document.getElementById('productImage'); if(!imageContainer) return;
+    imageContainer.addEventListener('click', ()=>{
+        if(currentView!=='admin') return;
+        const productId=deleteProductBtn.dataset.id; 
+        const product=products.find(p=> p.id===productId); 
+        if(!product) return;
+        
+        const currentUrl=product.url || '';
+        const newUrl=prompt('Ingresa la nueva URL de la imagen:', currentUrl);
+        
+        if(newUrl !== null){ // User didn't cancel
+            product.url=newUrl.trim();
+            saveData();
+            
+            // Update the display
+            const productImageSrc = document.getElementById('productImageSrc');
+            const productImagePlaceholder = document.getElementById('productImagePlaceholder');
+            
+            if(product.url){
+                productImageSrc.src = product.url;
+                productImageSrc.onerror = ()=>{ 
+                    productImageSrc.classList.add('hidden'); 
+                    productImagePlaceholder.classList.remove('hidden'); 
+                };
+                productImageSrc.classList.remove('hidden');
+                productImagePlaceholder.classList.add('hidden');
+            }else{
+                productImageSrc.classList.add('hidden');
+                productImagePlaceholder.classList.remove('hidden');
+            }
+            
+            showToast('URL de imagen actualizada correctamente.'); 
+            renderAdminProducts(); 
+            renderPublicTabs();
+        }
+    });
+})();
+
 // ==== ESPECIALES FUNCTIONALITY ====
 let especiales = [];
 let especialesListeners = null; // Store listener references for cleanup
