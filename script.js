@@ -1386,6 +1386,10 @@ function setupEventListeners(){
 // ==== Edición inline de la URL de imagen (solo admin) ====
 (function enableInlineUrlEdit(){
     const imageContainer = document.getElementById('productImage'); if(!imageContainer) return;
+    // Use { once: false } to ensure we only bind the listener once
+    if(imageContainer.dataset.urlEditBound) return;
+    imageContainer.dataset.urlEditBound = 'true';
+    
     imageContainer.addEventListener('click', ()=>{
         if(currentView!=='admin') return;
         const productId=deleteProductBtn.dataset.id; 
@@ -1405,10 +1409,14 @@ function setupEventListeners(){
             
             if(product.url){
                 productImageSrc.src = product.url;
-                productImageSrc.onerror = ()=>{ 
-                    productImageSrc.classList.add('hidden'); 
-                    productImagePlaceholder.classList.remove('hidden'); 
-                };
+                // Set onerror only once per element if not already set
+                if(!productImageSrc.dataset.errorHandlerSet){
+                    productImageSrc.dataset.errorHandlerSet = 'true';
+                    productImageSrc.onerror = ()=>{ 
+                        productImageSrc.classList.add('hidden'); 
+                        productImagePlaceholder.classList.remove('hidden'); 
+                    };
+                }
                 productImageSrc.classList.remove('hidden');
                 productImagePlaceholder.classList.add('hidden');
             }else{
