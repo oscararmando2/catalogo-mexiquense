@@ -1743,7 +1743,7 @@ function importFromCSV(file) {
         // ==== Edición inline de la URL de imagen (solo admin) ====
         (function enableInlineUrlEdit(){
             const imageContainer = document.getElementById('productImage'); if(!imageContainer) return;
-            // Use { once: false } to ensure we only bind the listener once
+            // Use data attribute to track if listener is already bound
             if(imageContainer.dataset.urlEditBound) return;
             imageContainer.dataset.urlEditBound = 'true';
             
