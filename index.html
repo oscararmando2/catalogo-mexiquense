@@ -503,10 +503,11 @@
                 <div class="p-6 overflow-y-auto custom-scrollbar flex-grow">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden">
+                            <div id="productImage" class="bg-gray-100 rounded-lg h-64 flex items-center justify-center mb-4 overflow-hidden cursor-pointer">
                                 <img id="productImageSrc" src="" class="max-h-full max-w-full object-contain hidden" alt="Producto" onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';" />
                                 <svg id="productImagePlaceholder" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
+                            <p class="text-sm text-gray-500 mb-2 admin-only">Clic en la imagen para editar URL</p>
                             <div class="space-y-2" id="productFields">
                                 <p><strong>Número de Ítem:</strong> <span id="productItemNumber" class="text-gray-700 cursor-pointer"></span></p>
                                 <p><strong>UPC:</strong> <span id="productUpc" class="text-gray-700"></span></p>
@@ -537,7 +538,7 @@
                             <h4 class="text-lg font-semibold mb-2">Descripción</h4>
                             <p id="productDescription" class="text-gray-700 mb-4"></p>
                             <h4 class="text-lg font-semibold mb-2">Costo</h4>
-                            <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4"></p>
+                            <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4 cursor-pointer"></p>
                         </div>
                     </div>
                 </div>
@@ -1698,6 +1699,92 @@ function importFromCSV(file) {
                     enableInlineItemEdit();
                 };
                 input.addEventListener('blur', saveChange); input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
+            });
+        })();
+
+        // ==== Edición inline del Costo (solo admin) ====
+        (function enableInlineCostoEdit(){
+            const costoP = document.getElementById('productCosto'); if(!costoP) return;
+            costoP.addEventListener('click', ()=>{
+                if(currentView!=='admin') return;
+                const currentValue=costoP.textContent.trim().replace(/[$,]/g, ''); // Remove currency symbols
+                const input=document.createElement('input'); 
+                input.type='text'; 
+                input.value=currentValue==='0.00' || currentValue==='0' ? '' : currentValue; 
+                input.placeholder='0.00';
+                input.className='border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent'; 
+                input.style.width='120px';
+                costoP.replaceWith(input); 
+                input.focus();
+                const saveChange=()=>{
+                    const newValue=input.value.trim(); 
+                    const numValue = parseFloat(newValue) || 0;
+                    const productId=deleteProductBtn.dataset.id; 
+                    const product=products.find(p=> p.id===productId); 
+                    if(!product) return; 
+                    
+                    product.costo=numValue; 
+                    saveData(); 
+                    const newP=document.createElement('p'); 
+                    newP.id='productCosto'; 
+                    newP.className='text-2xl font-bold text-mexican-green mb-4 cursor-pointer'; 
+                    newP.textContent=formatCurrency(numValue); 
+                    input.replaceWith(newP); 
+                    showToast('Costo actualizado correctamente.'); 
+                    renderAdminProducts(); 
+                    renderPublicTabs(); 
+                    enableInlineCostoEdit();
+                };
+                input.addEventListener('blur', saveChange); 
+                input.addEventListener('keypress', (e)=>{ if(e.key==='Enter') input.blur(); });
+            });
+        })();
+
+        // ==== Edición inline de la URL de imagen (solo admin) ====
+        (function enableInlineUrlEdit(){
+            const imageContainer = document.getElementById('productImage'); if(!imageContainer) return;
+            // Use data attribute to track if listener is already bound
+            if(imageContainer.dataset.urlEditBound) return;
+            imageContainer.dataset.urlEditBound = 'true';
+            
+            imageContainer.addEventListener('click', ()=>{
+                if(currentView!=='admin') return;
+                const productId=deleteProductBtn.dataset.id; 
+                const product=products.find(p=> p.id===productId); 
+                if(!product) return;
+                
+                const currentUrl=product.url || '';
+                const newUrl=prompt('Ingresa la nueva URL de la imagen:', currentUrl);
+                
+                if(newUrl !== null){ // User didn't cancel
+                    product.url=newUrl.trim();
+                    saveData();
+                    
+                    // Update the display
+                    const productImageSrc = document.getElementById('productImageSrc');
+                    const productImagePlaceholder = document.getElementById('productImagePlaceholder');
+                    
+                    if(product.url){
+                        productImageSrc.src = product.url;
+                        // Set onerror only once per element if not already set
+                        if(!productImageSrc.dataset.errorHandlerSet){
+                            productImageSrc.dataset.errorHandlerSet = 'true';
+                            productImageSrc.onerror = ()=>{ 
+                                productImageSrc.classList.add('hidden'); 
+                                productImagePlaceholder.classList.remove('hidden'); 
+                            };
+                        }
+                        productImageSrc.classList.remove('hidden');
+                        productImagePlaceholder.classList.add('hidden');
+                    }else{
+                        productImageSrc.classList.add('hidden');
+                        productImagePlaceholder.classList.remove('hidden');
+                    }
+                    
+                    showToast('URL de imagen actualizada correctamente.'); 
+                    renderAdminProducts(); 
+                    renderPublicTabs();
+                }
             });
         })();
 
