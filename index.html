@@ -754,6 +754,11 @@
                             <label for="especialTiendaPrice" class="block text-sm font-medium text-gray-700 mb-1">Precio Especial*</label>
                             <input type="number" id="especialTiendaPrice" name="especialTiendaPrice" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
                         </div>
+                        <div>
+                            <label for="especialTiendaImageUrl" class="block text-sm font-medium text-gray-700 mb-1">URL de Imagen</label>
+                            <input type="url" id="especialTiendaImageUrl" name="especialTiendaImageUrl" placeholder="https://ejemplo.com/imagen.jpg" pattern="https?://.+" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                            <p class="text-xs text-gray-500 mt-1">Opcional: URL de la imagen del producto (debe comenzar con http:// o https://)</p>
+                        </div>
                         <div class="pt-4 flex justify-end space-x-2">
                             <button type="button" id="cancelEspecialTiendaBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium transition-all">Cancelar</button>
                             <button type="submit" class="bg-mexican-red hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Guardar</button>
@@ -2708,9 +2713,27 @@ function importFromCSV(file) {
                     priceColorClass = 'text-gray-700';
                 }
                 
+                // Validate and sanitize image URL
+                let safeImageUrl = '';
+                if (especial.imageUrl) {
+                    try {
+                        const url = new URL(especial.imageUrl);
+                        if (url.protocol === 'http:' || url.protocol === 'https:') {
+                            safeImageUrl = sanitizeInput(especial.imageUrl);
+                        }
+                    } catch (e) {
+                        // Invalid URL, skip image
+                    }
+                }
+                
                 const card = document.createElement('div');
                 card.className = 'especiales-card';
                 card.innerHTML = `
+                    ${safeImageUrl ? `
+                        <div class="product-image-container mb-4" role="img" aria-label="Imagen de ${sanitizeInput(especial.nombre || especial.product || 'producto')}">
+                            <img src="${safeImageUrl}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="product-image" onerror="this.parentElement.textContent='Imagen no disponible'; this.parentElement.className='flex items-center justify-center h-32 text-gray-400 text-sm';" />
+                        </div>
+                    ` : ''}
                     <div class="flex justify-between items-start mb-3">
                         <h3 class="text-lg font-bold text-gray-900">${sanitizeInput(especial.nombre || especial.product || 'Sin nombre')}</h3>
                         <span class="price-indicator" title="Precio especial activo"></span>
@@ -2748,13 +2771,14 @@ function importFromCSV(file) {
         }
         
         // Add new especial tienda
-        async function addEspecialTienda(nombre, upc, antes, precio) {
+        async function addEspecialTienda(nombre, upc, antes, precio, imageUrl = '') {
             const newEspecial = {
                 id_price: getNextId(especialesTienda, 'id_price', 1),
                 nombre: nombre,
                 upc: upc,
                 antes: parseFloat(antes),
-                price: parseFloat(precio)
+                price: parseFloat(precio),
+                imageUrl: imageUrl || ''
             };
             
             especialesTienda.push(newEspecial);
@@ -2816,6 +2840,7 @@ function importFromCSV(file) {
                     document.getElementById('especialTiendaUpc').value = '';
                     document.getElementById('especialTiendaAntes').value = '';
                     document.getElementById('especialTiendaPrice').value = '';
+                    document.getElementById('especialTiendaImageUrl').value = '';
                     especialTiendaFormModal.classList.remove('hidden');
                 });
             }
@@ -2846,6 +2871,7 @@ function importFromCSV(file) {
                         const upc = document.getElementById('especialTiendaUpc').value.trim();
                         const antes = document.getElementById('especialTiendaAntes').value;
                         const precio = document.getElementById('especialTiendaPrice').value;
+                        const imageUrl = document.getElementById('especialTiendaImageUrl').value.trim();
                         
                         if (!nombre || !upc || !antes || !precio) {
                             showToast('Por favor completa todos los campos obligatorios', true);
@@ -2869,7 +2895,25 @@ function importFromCSV(file) {
                             return;
                         }
                         
-                        await addEspecialTienda(nombre, upc, antes, precio);
+                        // Validate image URL if provided
+                        if (imageUrl) {
+                            try {
+                                const url = new URL(imageUrl);
+                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                                    showToast('La URL de la imagen debe comenzar con http:// o https://', true);
+                                    submitBtn.disabled = false;
+                                    submitBtn.textContent = originalText;
+                                    return;
+                                }
+                            } catch (e) {
+                                showToast('Por favor ingresa una URL válida', true);
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                                return;
+                            }
+                        }
+                        
+                        await addEspecialTienda(nombre, upc, antes, precio, imageUrl);
                         especialTiendaFormModal.classList.add('hidden');
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
