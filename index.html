@@ -2713,12 +2713,25 @@ function importFromCSV(file) {
                     priceColorClass = 'text-gray-700';
                 }
                 
+                // Validate and sanitize image URL
+                let safeImageUrl = '';
+                if (especial.imageUrl) {
+                    try {
+                        const url = new URL(especial.imageUrl);
+                        if (url.protocol === 'http:' || url.protocol === 'https:') {
+                            safeImageUrl = sanitizeInput(especial.imageUrl);
+                        }
+                    } catch (e) {
+                        // Invalid URL, skip image
+                    }
+                }
+                
                 const card = document.createElement('div');
                 card.className = 'especiales-card';
                 card.innerHTML = `
-                    ${especial.imageUrl ? `
+                    ${safeImageUrl ? `
                         <div class="product-image-container mb-4" role="img" aria-label="Imagen de ${sanitizeInput(especial.nombre || especial.product || 'producto')}">
-                            <img src="${sanitizeInput(especial.imageUrl)}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="product-image" onerror="this.parentElement.innerHTML='<div class=\\'flex items-center justify-center h-full text-gray-400 text-sm\\'>Imagen no disponible</div>';" />
+                            <img src="${safeImageUrl}" alt="${sanitizeInput(especial.nombre || especial.product || 'Producto')}" class="product-image" onerror="this.parentElement.textContent='Imagen no disponible'; this.parentElement.className='flex items-center justify-center h-32 text-gray-400 text-sm';" />
                         </div>
                     ` : ''}
                     <div class="flex justify-between items-start mb-3">
@@ -2883,11 +2896,21 @@ function importFromCSV(file) {
                         }
                         
                         // Validate image URL if provided
-                        if (imageUrl && !imageUrl.match(/^https?:\/\/.+/i)) {
-                            showToast('La URL de la imagen debe comenzar con http:// o https://', true);
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = originalText;
-                            return;
+                        if (imageUrl) {
+                            try {
+                                const url = new URL(imageUrl);
+                                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                                    showToast('La URL de la imagen debe comenzar con http:// o https://', true);
+                                    submitBtn.disabled = false;
+                                    submitBtn.textContent = originalText;
+                                    return;
+                                }
+                            } catch (e) {
+                                showToast('Por favor ingresa una URL válida', true);
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                                return;
+                            }
                         }
                         
                         await addEspecialTienda(nombre, upc, antes, precio, imageUrl);
