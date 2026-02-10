@@ -71,7 +71,7 @@ function formatCurrency(amount) {
  * @return {number} The percentage value
  */
 function calculatePercentage(margin, basePrice) {
-    if (basePrice == null || basePrice === 0) return 0;
+    if (basePrice === null || basePrice === undefined || basePrice === 0) return 0;
     return (margin / basePrice) * 100;
 }
 
