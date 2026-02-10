@@ -1,0 +1,72 @@
+{
+  "CTD": {
+    "products": {
+      "sample-product-001": {
+        "description": "Frijol Goya Negro 500g",
+        "barcode": "7501234567890",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Frijol+Goya",
+        "proveedor_origen": "Cortes",
+        "tienda": "Mexiquense",
+        "precio_cortes_tienda": 25.50,
+        "precio_cortes_ctd": 23.00,
+        "precio_ctd_tienda": 26.00,
+        "precio_venta_cliente": 32.00
+      },
+      "sample-product-002": {
+        "description": "Arroz Morelos Premium 1kg",
+        "barcode": "7501112223334",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Arroz+Morelos",
+        "proveedor_origen": "Cortes",
+        "tienda": "Mexiquense",
+        "precio_cortes_tienda": 18.00,
+        "precio_cortes_ctd": 16.50,
+        "precio_ctd_tienda": 19.00,
+        "precio_venta_cliente": 24.00
+      },
+      "sample-product-003": {
+        "description": "Aceite Vegetal 1L",
+        "barcode": "7505556667778",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Aceite",
+        "proveedor_origen": "Cortes",
+        "tienda": "Tienda B",
+        "precio_cortes_tienda": 35.00,
+        "precio_cortes_ctd": 32.00,
+        "precio_ctd_tienda": 36.00,
+        "precio_venta_cliente": 45.00
+      },
+      "sample-product-004": {
+        "description": "Leche Lala Entera 1L",
+        "barcode": "7509998887776",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Leche+Lala",
+        "proveedor_origen": "Cortes",
+        "tienda": "Mexiquense",
+        "precio_cortes_tienda": 22.00,
+        "precio_cortes_ctd": 20.50,
+        "precio_ctd_tienda": 23.00,
+        "precio_venta_cliente": 28.00
+      },
+      "sample-product-005": {
+        "description": "Azúcar Refinada 1kg",
+        "barcode": "7501234888999",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Azucar",
+        "proveedor_origen": "Cortes",
+        "tienda": "Tienda C",
+        "precio_cortes_tienda": 20.00,
+        "precio_cortes_ctd": 18.00,
+        "precio_ctd_tienda": 21.00,
+        "precio_venta_cliente": 26.00
+      },
+      "sample-product-006": {
+        "description": "Pasta Italiana 500g",
+        "barcode": "7503334445556",
+        "image_url": "https://placehold.co/400x400/006847/FFFFFF/png?text=Pasta",
+        "proveedor_origen": "Cortes",
+        "tienda": "Mexiquense",
+        "precio_cortes_tienda": 15.00,
+        "precio_cortes_ctd": 13.50,
+        "precio_ctd_tienda": 16.00,
+        "precio_venta_cliente": 20.00
+      }
+    }
+  }
+}
