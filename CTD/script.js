@@ -66,6 +66,9 @@ function formatCurrency(amount) {
 
 /**
  * Calculate percentage of profit
+ * @param {number} margin - The profit margin amount
+ * @param {number} basePrice - The base price for calculation
+ * @return {number} The percentage value
  */
 function calculatePercentage(margin, basePrice) {
     if (!basePrice || basePrice === 0) return 0;
