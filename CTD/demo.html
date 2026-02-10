@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTD - Demo Visual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <span style="color: #006847;">CTD</span> - Panel de Comparación (DEMO)
+                </h1>
+                <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">Vista de Demostración</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Demo products will be rendered here -->
+        </div>
+    </main>
+
+    <script>
+        const sampleProducts = [
+            {
+                description: "Frijol Goya Negro 500g",
+                barcode: "7501234567890",
+                image_url: "https://placehold.co/400x400/006847/FFFFFF/png?text=Frijol+Goya",
+                proveedor_origen: "Cortes",
+                tienda: "Mexiquense",
+                precio_cortes_tienda: 25.50,
+                precio_cortes_ctd: 23.00,
+                precio_ctd_tienda: 26.00,
+                precio_venta_cliente: 32.00
+            },
+            {
+                description: "Arroz Morelos Premium 1kg",
+                barcode: "7501112223334",
+                image_url: "https://placehold.co/400x400/006847/FFFFFF/png?text=Arroz",
+                proveedor_origen: "Cortes",
+                tienda: "Mexiquense",
+                precio_cortes_tienda: 18.00,
+                precio_cortes_ctd: 16.50,
+                precio_ctd_tienda: 19.00,
+                precio_venta_cliente: 24.00
+            },
+            {
+                description: "Aceite Vegetal 1L",
+                barcode: "7505556667778",
+                image_url: "https://placehold.co/400x400/006847/FFFFFF/png?text=Aceite",
+                proveedor_origen: "Cortes",
+                tienda: "Tienda B",
+                precio_cortes_tienda: 35.00,
+                precio_cortes_ctd: 32.00,
+                precio_ctd_tienda: 36.00,
+                precio_venta_cliente: 45.00
+            },
+            {
+                description: "Producto con Margen Bajo",
+                barcode: "7501234888999",
+                image_url: "https://placehold.co/400x400/FFA500/FFFFFF/png?text=Bajo",
+                proveedor_origen: "Cortes",
+                tienda: "Mexiquense",
+                precio_cortes_tienda: 20.00,
+                precio_cortes_ctd: 18.00,
+                precio_ctd_tienda: 21.00,
+                precio_venta_cliente: 23.00
+            },
+            {
+                description: "Producto con Pérdida",
+                barcode: "7503334445556",
+                image_url: "https://placehold.co/400x400/DC2626/FFFFFF/png?text=Perdida",
+                proveedor_origen: "Cortes",
+                tienda: "Tienda C",
+                precio_cortes_tienda: 30.00,
+                precio_cortes_ctd: 28.00,
+                precio_ctd_tienda: 32.00,
+                precio_venta_cliente: 30.00
+            },
+            {
+                description: "Leche Lala Entera 1L",
+                barcode: "7509998887776",
+                image_url: "https://placehold.co/400x400/006847/FFFFFF/png?text=Leche",
+                proveedor_origen: "Cortes",
+                tienda: "Mexiquense",
+                precio_cortes_tienda: 22.00,
+                precio_cortes_ctd: 20.50,
+                precio_ctd_tienda: 23.00,
+                precio_venta_cliente: 28.00
+            }
+        ];
+
+        function sanitizeInput(str) {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN'
+            }).format(amount);
+        }
+
+        function calculateMargins(product) {
+            const margenCTD = product.precio_ctd_tienda - product.precio_cortes_ctd;
+            const margenTiendaViaCTD = product.precio_venta_cliente - product.precio_ctd_tienda;
+            const margenGrupo = margenCTD + margenTiendaViaCTD;
+            return { margenCTD, margenTiendaViaCTD, margenGrupo };
+        }
+
+        function getMarginColorClass(margin) {
+            if (margin > 10) return 'bg-green-100 text-green-800 border-green-300';
+            if (margin > 0) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            return 'bg-red-100 text-red-800 border-red-300';
+        }
+
+        function getMarginBadgeColor(margin) {
+            if (margin > 10) return 'bg-green-500';
+            if (margin > 0) return 'bg-yellow-500';
+            return 'bg-red-500';
+        }
+
+        function renderProductCard(product) {
+            const margins = calculateMargins(product);
+            const margenGrupoColor = getMarginColorClass(margins.margenGrupo);
+            const badgeColor = getMarginBadgeColor(margins.margenGrupo);
+
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+            
+            card.innerHTML = `
+                <div class="product-image-container relative">
+                    <img src="${product.image_url}" 
+                         alt="${sanitizeInput(product.description)}" 
+                         class="product-image">
+                    <div class="absolute top-2 right-2 ${badgeColor} text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        Margen: ${formatCurrency(margins.margenGrupo)}
+                    </div>
+                </div>
+                
+                <div class="p-5">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">${sanitizeInput(product.description)}</h3>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">Código:</span> ${sanitizeInput(product.barcode)}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            ${sanitizeInput(product.proveedor_origen)} → ${sanitizeInput(product.tienda)}
+                        </p>
+                    </div>
+
+                    <div class="space-y-2 mb-4 bg-gray-50 rounded-lg p-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Cortes → Tienda:</span>
+                            <span class="font-semibold text-gray-900">${formatCurrency(product.precio_cortes_tienda)}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Cortes → CTD:</span>
+                            <span class="font-semibold text-gray-900">${formatCurrency(product.precio_cortes_ctd)}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">CTD → Tienda:</span>
+                            <span class="font-semibold text-gray-900">${formatCurrency(product.precio_ctd_tienda)}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-t border-gray-200 pt-2">
+                            <span class="text-gray-700 font-medium">Venta Cliente:</span>
+                            <span class="font-bold" style="color: #006847;">${formatCurrency(product.precio_venta_cliente)}</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Margen CTD:</span>
+                            <span class="font-semibold ${margins.margenCTD > 0 ? 'text-green-600' : 'text-red-600'}">
+                                ${formatCurrency(margins.margenCTD)}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">Margen Tienda (vía CTD):</span>
+                            <span class="font-semibold ${margins.margenTiendaViaCTD > 0 ? 'text-green-600' : 'text-red-600'}">
+                                ${formatCurrency(margins.margenTiendaViaCTD)}
+                            </span>
+                        </div>
+                        <div class="${margenGrupoColor} rounded-lg p-3 border-2 mt-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-sm">MARGEN GRUPO:</span>
+                                <span class="font-bold text-lg">${formatCurrency(margins.margenGrupo)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        const productsGrid = document.getElementById('productsGrid');
+        sampleProducts.forEach(product => {
+            const card = renderProductCard(product);
+            productsGrid.appendChild(card);
+        });
+    </script>
+</body>
+</html>
