@@ -115,11 +115,33 @@
             }).format(amount);
         }
 
+        /**
+         * Calculate margin as percentage of base price
+         * @param {number} margin - The profit margin amount
+         * @param {number} basePrice - The base price for calculation
+         * @return {number} The percentage value
+         */
+        function calculatePercentage(margin, basePrice) {
+            if (basePrice === null || basePrice === undefined || basePrice === 0) return 0;
+            return (margin / basePrice) * 100;
+        }
+
         function calculateMargins(product) {
             const margenCTD = product.precio_ctd_tienda - product.precio_cortes_ctd;
+            const margenCTDPercent = calculatePercentage(margenCTD, product.precio_cortes_ctd);
+            
             const margenTiendaViaCTD = product.precio_venta_cliente - product.precio_ctd_tienda;
+            const margenTiendaViaCTDPercent = calculatePercentage(margenTiendaViaCTD, product.precio_ctd_tienda);
+            
             const margenGrupo = margenCTD + margenTiendaViaCTD;
-            return { margenCTD, margenTiendaViaCTD, margenGrupo };
+            
+            return { 
+                margenCTD, 
+                margenCTDPercent,
+                margenTiendaViaCTD, 
+                margenTiendaViaCTDPercent,
+                margenGrupo 
+            };
         }
 
         function getMarginColorClass(margin) {
@@ -186,13 +208,13 @@
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-gray-600">Margen CTD:</span>
                             <span class="font-semibold ${margins.margenCTD > 0 ? 'text-green-600' : 'text-red-600'}">
-                                ${formatCurrency(margins.margenCTD)}
+                                ${formatCurrency(margins.margenCTD)} (${margins.margenCTDPercent.toFixed(2)}%)
                             </span>
                         </div>
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-gray-600">Margen Tienda (vía CTD):</span>
                             <span class="font-semibold ${margins.margenTiendaViaCTD > 0 ? 'text-green-600' : 'text-red-600'}">
-                                ${formatCurrency(margins.margenTiendaViaCTD)}
+                                ${formatCurrency(margins.margenTiendaViaCTD)} (${margins.margenTiendaViaCTDPercent.toFixed(2)}%)
                             </span>
                         </div>
                         <div class="${margenGrupoColor} rounded-lg p-3 border-2 mt-3">
