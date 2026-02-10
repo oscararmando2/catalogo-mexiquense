@@ -188,15 +188,15 @@ function renderProductCard(product, productId) {
 
             <!-- Margins Summary -->
             <div class="space-y-2">
-                <div class="flex justify-between items-center text-sm">
-                    <span class="text-gray-600">Margen CTD:</span>
-                    <span class="font-semibold ${margins.margenCTD > 0 ? 'text-green-600' : 'text-red-600'}">
+                <div class="flex justify-between items-center text-sm flex-nowrap">
+                    <span class="text-gray-600 whitespace-nowrap">Margen CTD:</span>
+                    <span class="font-semibold whitespace-nowrap ${margins.margenCTD > 0 ? 'text-green-600' : 'text-red-600'}">
                         ${formatCurrency(margins.margenCTD)} (${margins.margenCTDPercent.toFixed(2)}%)
                     </span>
                 </div>
-                <div class="flex justify-between items-center text-sm">
-                    <span class="text-gray-600">Margen Tienda (vía CTD):</span>
-                    <span class="font-semibold ${margins.margenTiendaViaCTD > 0 ? 'text-green-600' : 'text-red-600'}">
+                <div class="flex justify-between items-center text-sm flex-nowrap">
+                    <span class="text-gray-600 whitespace-nowrap">Margen Tienda (vía CTD):</span>
+                    <span class="font-semibold whitespace-nowrap ${margins.margenTiendaViaCTD > 0 ? 'text-green-600' : 'text-red-600'}">
                         ${formatCurrency(margins.margenTiendaViaCTD)} (${margins.margenTiendaViaCTDPercent.toFixed(2)}%)
                     </span>
                 </div>
