@@ -1429,16 +1429,18 @@
             });
         }
         
+        // Helper function to check if a row has valid data
+        function isValidRow(row) {
+            return (row.upc || '').trim() !== '' || 
+                   (row.product || '').trim() !== '' || 
+                   (row.total || 0) > 0;
+        }
+        
         function getCurrentInvoiceData() {
             return {
                 invoiceNumber: invoiceNumber,
                 products: invoiceRows
-                    .filter(row => {
-                        // Only include rows with actual data: UPC, product name, or total > 0
-                        return (row.upc || '').trim() !== '' || 
-                               (row.product || '').trim() !== '' || 
-                               (row.total || 0) > 0;
-                    })
+                    .filter(isValidRow)
                     .map(row => ({
                         upc: row.upc || '',
                         qty: row.qty || 0,
@@ -1507,11 +1509,7 @@
             
             if (invoice.products && invoice.products.length > 0) {
                 // Only load products that have actual data
-                const validProducts = invoice.products.filter(product => {
-                    return (product.upc || '').trim() !== '' || 
-                           (product.product || '').trim() !== '' || 
-                           (product.total || 0) > 0;
-                });
+                const validProducts = invoice.products.filter(isValidRow);
                 
                 if (validProducts.length > 0) {
                     validProducts.forEach(product => {
@@ -1747,7 +1745,7 @@
         
         function addNewRow(autoFocus = true) {
             // Generate unique row ID using timestamp + random number to avoid collisions
-            const rowId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
+            const rowId = Date.now().toString() + '-' + Math.random().toString(36).slice(2, 11);
             const row = document.createElement('tr');
             row.dataset.rowId = rowId;
             
