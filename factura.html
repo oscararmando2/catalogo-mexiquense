@@ -1432,13 +1432,20 @@
         function getCurrentInvoiceData() {
             return {
                 invoiceNumber: invoiceNumber,
-                products: invoiceRows.map(row => ({
-                    upc: row.upc || '',
-                    qty: row.qty || 0,
-                    product: row.product || '',
-                    price: row.price || 0,
-                    total: row.total || 0
-                })),
+                products: invoiceRows
+                    .filter(row => {
+                        // Only include rows with actual data: UPC, product name, or total > 0
+                        return (row.upc || '').trim() !== '' || 
+                               (row.product || '').trim() !== '' || 
+                               (row.total || 0) > 0;
+                    })
+                    .map(row => ({
+                        upc: row.upc || '',
+                        qty: row.qty || 0,
+                        product: row.product || '',
+                        price: row.price || 0,
+                        total: row.total || 0
+                    })),
                 clientName: document.getElementById('clientName').value,
                 clientAddress: document.getElementById('clientAddress').value,
                 clientCity: document.getElementById('clientCity').value,
@@ -1499,18 +1506,30 @@
             invoiceRows = [];
             
             if (invoice.products && invoice.products.length > 0) {
-                invoice.products.forEach(product => {
-                    const rowId = addNewRow();
-                    const row = invoiceRows.find(r => r.id === rowId);
-                    if (row) {
-                        row.upc = product.upc || '';
-                        row.qty = product.qty || 0;
-                        row.product = product.product || '';
-                        row.price = product.price || 0;
-                        row.total = product.total || 0;
-                        updateRowDisplay(rowId);
-                    }
+                // Only load products that have actual data
+                const validProducts = invoice.products.filter(product => {
+                    return (product.upc || '').trim() !== '' || 
+                           (product.product || '').trim() !== '' || 
+                           (product.total || 0) > 0;
                 });
+                
+                if (validProducts.length > 0) {
+                    validProducts.forEach(product => {
+                        const rowId = addNewRow(false); // Don't auto-focus
+                        const row = invoiceRows.find(r => r.id === rowId);
+                        if (row) {
+                            row.upc = product.upc || '';
+                            row.qty = product.qty || 0;
+                            row.product = product.product || '';
+                            row.price = product.price || 0;
+                            row.total = product.total || 0;
+                            updateRowDisplay(rowId);
+                        }
+                    });
+                } else {
+                    // If no valid products, add one empty row
+                    addNewRow();
+                }
             } else {
                 addNewRow();
             }
@@ -1727,7 +1746,8 @@
         // ============================================
         
         function addNewRow(autoFocus = true) {
-            const rowId = Date.now().toString();
+            // Generate unique row ID using timestamp + random number to avoid collisions
+            const rowId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
             const row = document.createElement('tr');
             row.dataset.rowId = rowId;
             
