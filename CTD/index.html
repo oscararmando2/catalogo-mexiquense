@@ -28,78 +28,117 @@
                 <h1 class="text-2xl font-bold text-gray-900">
                     <span class="text-mexican-green">CTD</span> - Panel de Comparación
                 </h1>
+                <button id="uploadBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
+                    Cargar Productos
+                </button>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <!-- Intro Section -->
-        <div class="text-center max-w-3xl mx-auto">
-            <!-- Icon -->
-            <div class="mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto text-mexican-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-            </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="loader mx-auto"></div>
+            <p class="mt-4 text-gray-600">Cargando productos...</p>
+        </div>
 
-            <!-- Title -->
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Catálogo de Productos
-            </h1>
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">No hay productos</h3>
+            <p class="mt-1 text-gray-500">Carga productos usando el botón de arriba.</p>
+        </div>
 
-            <!-- Description -->
-            <p class="text-lg text-gray-600 mb-4 leading-relaxed">
-                Sistema de comparación de precios y análisis de márgenes de ganancia. 
-                Visualiza el flujo completo de precios desde el proveedor hasta el cliente final.
-            </p>
-
-            <p class="text-md text-gray-500 mb-8">
-                Consulta información detallada de cada producto, incluyendo precios en diferentes etapas de la cadena de distribución y cálculos automáticos de márgenes.
-            </p>
-
-            <!-- CTA Button -->
-            <a href="productos.html" class="inline-flex items-center gap-3 bg-mexican-green hover:bg-opacity-90 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                <span>Ver Productos</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-            </a>
-
-            <!-- Features Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <div class="text-mexican-green mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Análisis de Márgenes</h3>
-                    <p class="text-sm text-gray-600">Cálculos automáticos de márgenes de ganancia en cada etapa de distribución</p>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <div class="text-mexican-green mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Búsqueda Avanzada</h3>
-                    <p class="text-sm text-gray-600">Encuentra productos rápidamente por descripción o código de barras</p>
-                </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <div class="text-mexican-green mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                        </svg>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Comparación de Precios</h3>
-                    <p class="text-sm text-gray-600">Visualiza el flujo completo de precios desde proveedor hasta cliente</p>
-                </div>
-            </div>
+        <!-- Products Grid -->
+        <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Products will be rendered here -->
         </div>
     </main>
 
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Cargar Productos</h2>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="uploadForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción del Producto</label>
+                        <input type="text" id="description" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Código de Barras</label>
+                        <input type="text" id="barcode" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">URL de Imagen</label>
+                        <input type="url" id="imageUrl" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Proveedor Origen</label>
+                        <select id="proveedorOrigen" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                            <option value="Cortes">Cortes</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tienda</label>
+                        <select id="tienda" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                            <option value="Mexiquense">Mexiquense</option>
+                            <option value="Tienda B">Tienda B</option>
+                            <option value="Tienda C">Tienda C</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Precio Cortes → Tienda</label>
+                            <input type="number" id="precioCortesToreTienda" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Precio Cortes → CTD</label>
+                            <input type="number" id="precioCortesCTD" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Precio CTD → Tienda</label>
+                            <input type="number" id="precioCTDTienda" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Precio Venta Cliente</label>
+                            <input type="number" id="precioVentaCliente" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mexican-green focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button type="submit" class="flex-1 bg-mexican-green hover:bg-opacity-90 text-white px-6 py-3 rounded-lg font-medium transition-all">
+                            Guardar Producto
+                        </button>
+                        <button type="button" id="cancelBtn" class="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-all">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
