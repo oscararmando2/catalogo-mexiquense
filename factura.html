@@ -122,6 +122,43 @@
             box-shadow: 0 0 3px rgba(0, 104, 71, 0.3);
         }
         
+        /* Client autocomplete dropdown */
+        .client-name-wrapper {
+            position: relative;
+        }
+
+        .client-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            z-index: 100;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            display: none;
+        }
+
+        .client-suggestions.show {
+            display: block;
+        }
+
+        .client-suggestion-item {
+            padding: 8px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .client-suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .client-suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+
         /* Bill To Section - Removed as it's now in header */
         
         /* Actions Bar */
@@ -934,7 +971,10 @@
                 <div class="right-section">
                     <div class="bill-to-header">BILL TO:</div>
                     <div class="bill-to-fields">
-                        <input type="text" id="clientName" placeholder="Nombre del cliente" value="Ayala Restaurant LLC">
+                        <div class="client-name-wrapper">
+                            <input type="text" id="clientName" placeholder="Nombre del cliente" value="Ayala Restaurant LLC">
+                            <div class="client-suggestions" id="clientSuggestions"></div>
+                        </div>
                         <input type="text" id="clientAddress" placeholder="Dirección del cliente" value="9519 Lackland Rd, St. Louis,">
                         <input type="text" id="clientCity" placeholder="Ciudad, Estado, ZIP" value="MO 63114.">
                     </div>
@@ -1677,8 +1717,58 @@
             const clientNameInput = document.getElementById('clientName');
             const clientAddressInput = document.getElementById('clientAddress');
             const clientCityInput = document.getElementById('clientCity');
-            
-            [clientNameInput, clientAddressInput, clientCityInput].forEach(input => {
+            const clientSuggestions = document.getElementById('clientSuggestions');
+
+            const savedClients = [
+                { name: 'AYAGO LLC', address: '1009 S Duchesne Dr, Saint Charles', city: 'MO 63301' },
+                { name: 'AYALA RESTAURANT LLC', address: '9519 Lackland Rd,', city: 'St. Louis MO 63114' }
+            ];
+
+            clientNameInput.addEventListener('input', () => {
+                autoSaveCurrentInvoice();
+                const query = clientNameInput.value.trim().toLowerCase();
+                if (!query) {
+                    clientSuggestions.innerHTML = '';
+                    clientSuggestions.classList.remove('show');
+                    return;
+                }
+                const matches = savedClients.filter(c => c.name.toLowerCase().includes(query));
+                if (matches.length === 0) {
+                    clientSuggestions.innerHTML = '';
+                    clientSuggestions.classList.remove('show');
+                    return;
+                }
+                clientSuggestions.innerHTML = '';
+                matches.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'client-suggestion-item';
+                    item.textContent = c.name;
+                    item.dataset.name = c.name;
+                    item.dataset.address = c.address;
+                    item.dataset.city = c.city;
+                    clientSuggestions.appendChild(item);
+                });
+                clientSuggestions.classList.add('show');
+            });
+
+            clientSuggestions.addEventListener('click', (e) => {
+                const item = e.target.closest('.client-suggestion-item');
+                if (!item) return;
+                clientNameInput.value = item.dataset.name;
+                clientAddressInput.value = item.dataset.address;
+                clientCityInput.value = item.dataset.city;
+                clientSuggestions.innerHTML = '';
+                clientSuggestions.classList.remove('show');
+                autoSaveCurrentInvoice();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!clientNameInput.contains(e.target) && !clientSuggestions.contains(e.target)) {
+                    clientSuggestions.classList.remove('show');
+                }
+            });
+
+            [clientAddressInput, clientCityInput].forEach(input => {
                 input.addEventListener('input', () => {
                     autoSaveCurrentInvoice();
                 });
