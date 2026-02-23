@@ -886,6 +886,24 @@
             min-width: 18px;
             text-align: center;
         }
+        
+        .btn-warning {
+            background: #e67e22;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d35400;
+        }
+        
+        .btn-warning.credit-active {
+            background: #c0392b;
+            box-shadow: 0 0 0 2px #e74c3c;
+        }
+        
+        .invoice-badge.credit-badge {
+            background: #e67e22;
+        }
     </style>
 </head>
 <body>
@@ -902,8 +920,8 @@
             </div>
             <div class="header-top">
                 <div class="left-section">
-                    <div class="invoice-badge">
-                        INVOICE #<span id="invoiceNumber">31</span>
+                    <div class="invoice-badge" id="invoiceBadge">
+                        <span id="invoiceBadgeLabel">INVOICE #</span><span id="invoiceNumber">31</span>
                         <span class="status-badge pending" id="invoiceStatus">Pendiente</span>
                     </div>
                     <div class="company-info">
@@ -955,6 +973,9 @@
             </button>
             <button class="btn btn-success" id="completeInvoiceBtn">
                 ✅ Terminar Factura
+            </button>
+            <button class="btn btn-warning" id="createCreditBtn">
+                ➖ Crear Crédito
             </button>
         </div>
         
@@ -1157,6 +1178,7 @@
         let products = [];
         let invoiceNumber = 31;
         let invoiceRows = [];
+        let isCreditMode = false; // Credit mode flag
         let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
         let pendingInvoices = {}; // Stores all pending invoices
         let currentInvoiceId = null; // Current invoice being edited
@@ -1221,6 +1243,9 @@
         const pendingInvoicesBadge = document.getElementById('pendingInvoicesBadge');
         const completeInvoiceBtn = document.getElementById('completeInvoiceBtn');
         const invoiceStatusEl = document.getElementById('invoiceStatus');
+        const createCreditBtn = document.getElementById('createCreditBtn');
+        const invoiceBadge = document.getElementById('invoiceBadge');
+        const invoiceBadgeLabel = document.getElementById('invoiceBadgeLabel');
         
         // ============================================
         // INITIALIZATION
@@ -1437,8 +1462,9 @@
         }
         
         function getCurrentInvoiceData() {
+            const totalText = grandTotalEl.textContent.replace('$', '').replace(',', '');
             return {
-                invoiceNumber: invoiceNumber,
+                invoiceNumber: isCreditMode ? null : invoiceNumber,
                 products: invoiceRows
                     .filter(isValidRow)
                     .map(row => ({
@@ -1452,9 +1478,10 @@
                 clientAddress: document.getElementById('clientAddress').value,
                 clientCity: document.getElementById('clientCity').value,
                 date: document.getElementById('invoiceDate').textContent,
-                total: parseFloat(grandTotalEl.textContent.replace('$', '').replace(',', '')) || 0,
+                total: parseFloat(totalText) || 0,
                 lastModified: new Date().toISOString(),
-                status: 'pending'
+                status: 'pending',
+                type: isCreditMode ? 'credito' : 'factura'
             };
         }
         
@@ -1495,7 +1522,19 @@
             }
             
             currentInvoiceId = invoiceId;
-            invoiceNumber = parseInt(invoice.invoiceNumber) || parseInt(invoiceId);
+            
+            // Restore credit mode from saved invoice type
+            const wasCredit = invoice.type === 'credito';
+            if (wasCredit !== isCreditMode) {
+                isCreditMode = wasCredit;
+                updateCreditModeUI();
+            }
+            
+            // Credits don't have a sequential invoice number; keep current number unchanged.
+            // For regular invoices, restore the invoice number from saved data.
+            invoiceNumber = invoice.type === 'credito'
+                ? invoiceNumber
+                : (parseInt(invoice.invoiceNumber) || parseInt(invoiceId) || invoiceNumber);
             
             // Load client info
             document.getElementById('clientName').value = invoice.clientName || '';
@@ -1593,10 +1632,17 @@
                 pendingInvoicesList.innerHTML = invoiceIds.map(id => {
                     const invoice = pendingInvoices[id];
                     const isActive = id === currentInvoiceId;
+                    const isCredit = invoice.type === 'credito';
+                    const invoiceLabel = isCredit
+                        ? 'CRÉDITO'
+                        : `Factura #${invoice.invoiceNumber || id}`;
+                    const totalDisplay = isCredit
+                        ? `-$${Math.abs(invoice.total || 0).toFixed(2)}`
+                        : `$${(invoice.total || 0).toFixed(2)}`;
                     return `
                         <div class="pending-invoice-item ${isActive ? 'active' : ''}" data-invoice-id="${id}">
                             <div class="pending-invoice-header">
-                                <span class="pending-invoice-number">Factura #${invoice.invoiceNumber || id}</span>
+                                <span class="pending-invoice-number">${invoiceLabel}</span>
                                 <span class="pending-invoice-date">${invoice.date || 'Sin fecha'}</span>
                             </div>
                             <div class="pending-invoice-details">
@@ -1607,7 +1653,7 @@
                                     <span>👤 ${invoice.clientName || 'Sin cliente'}</span>
                                 </div>
                                 <div class="pending-invoice-detail pending-invoice-total">
-                                    💰 $${(invoice.total || 0).toFixed(2)}
+                                    💰 ${totalDisplay}
                                 </div>
                             </div>
                         </div>
@@ -1649,7 +1695,49 @@
         }
         
         function updateInvoiceNumber() {
-            invoiceNumberEl.textContent = invoiceNumber;
+            if (isCreditMode) {
+                invoiceBadgeLabel.textContent = 'CRÉDITO';
+                invoiceNumberEl.textContent = '';
+            } else {
+                invoiceBadgeLabel.textContent = 'INVOICE #';
+                invoiceNumberEl.textContent = invoiceNumber;
+            }
+        }
+        
+        // ============================================
+        // CREDIT MODE
+        // ============================================
+        
+        function updateCreditModeUI() {
+            if (isCreditMode) {
+                createCreditBtn.classList.add('credit-active');
+                createCreditBtn.textContent = '✅ Modo Normal';
+                invoiceBadge.classList.add('credit-badge');
+            } else {
+                createCreditBtn.classList.remove('credit-active');
+                createCreditBtn.textContent = '➖ Crear Crédito';
+                invoiceBadge.classList.remove('credit-badge');
+            }
+            updateInvoiceNumber();
+        }
+        
+        function toggleCreditMode() {
+            isCreditMode = !isCreditMode;
+            
+            if (isCreditMode) {
+                // Use a unique credit ID (timestamp + random) to avoid collisions
+                currentInvoiceId = 'credit-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+                setCurrentDate();
+            }
+            
+            updateCreditModeUI();
+            
+            // Recalculate all row totals with new sign
+            invoiceRows.forEach(row => calculateRowTotal(row.id, false));
+            calculateGrandTotal();
+            
+            autoSaveCurrentInvoice();
+            showToast(isCreditMode ? 'Modo crédito activado' : 'Modo normal activado', 'success');
         }
         
         // ============================================
@@ -1730,6 +1818,9 @@
             
             // Complete Invoice button
             completeInvoiceBtn.addEventListener('click', completeCurrentInvoice);
+            
+            // Credit mode button
+            createCreditBtn.addEventListener('click', toggleCreditMode);
             
             // Close dropdowns on outside click
             document.addEventListener('click', (e) => {
@@ -2129,7 +2220,7 @@
                 }
             }
             const price = parseFloat(priceInput.value) || 0;
-            const total = qty * price;
+            const total = isCreditMode ? -(qty * price) : qty * price;
             
             totalInput.value = formatCurrency(total);
             
@@ -2169,6 +2260,10 @@
         }
         
         function formatCurrency(amount) {
+            // Handles negative amounts (used in credit mode where row totals are stored as negative)
+            if (amount < 0) {
+                return '-$' + Math.abs(amount).toFixed(2);
+            }
             return '$' + amount.toFixed(2);
         }
         
@@ -2678,6 +2773,12 @@
                 saveCurrentInvoice();
             }
             
+            // Reset credit mode for new invoice
+            if (isCreditMode) {
+                isCreditMode = false;
+                updateCreditModeUI();
+            }
+            
             // Increment invoice number
             invoiceNumber++;
             saveInvoiceNumberToFirebase();
@@ -2740,11 +2841,15 @@
                 // === HEADER SECTION ===
                 // LEFT SIDE: Invoice badge + Company info
                 // Invoice badge - smaller size, proportional to text
-                doc.setFillColor(204, 0, 0);
+                if (isCreditMode) {
+                    doc.setFillColor(230, 126, 34); // orange for credit
+                } else {
+                    doc.setFillColor(204, 0, 0); // red for invoice
+                }
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(9);
                 doc.setFont('helvetica', 'bold');
-                const invoiceBadgeText = `INVOICE #${invoiceNum}`;
+                const invoiceBadgeText = isCreditMode ? 'CRÉDITO' : `INVOICE #${invoiceNum}`;
                 const badgeWidth = doc.getTextWidth(invoiceBadgeText) + 6;
                 doc.roundedRect(leftColX, yPos - 5, badgeWidth + 4, 8, 1.5, 1.5, 'F');
                 doc.text(invoiceBadgeText, leftColX + 3, yPos);
@@ -2848,7 +2953,9 @@
                 doc.text(totalValue, pageWidth - margin - doc.getTextWidth(totalValue), finalY);
                 
                 // Save the PDF
-                const fileName = `factura-${invoiceNum}-${Date.now()}.pdf`;
+                const fileName = isCreditMode
+                    ? `credito-${Date.now()}.pdf`
+                    : `factura-${invoiceNum}-${Date.now()}.pdf`;
                 doc.save(fileName);
                 
                 showToast('PDF descargado correctamente', 'success');
