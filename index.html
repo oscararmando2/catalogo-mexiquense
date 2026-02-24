@@ -71,6 +71,13 @@
         @media (max-width: 800px) {
             .edit-especial-btn { display: none !important; }
         }
+        /* Autocomplete dropdown for Especiales Tienda */
+        .et-autocomplete-wrapper { position: relative; }
+        .et-autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: white; border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; display: none; }
+        .et-autocomplete-list.active { display: block; }
+        .et-autocomplete-item { padding: 8px 16px; cursor: pointer; font-size: 0.875rem; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        .et-autocomplete-item:last-child { border-bottom: none; }
+        .et-autocomplete-item:hover, .et-autocomplete-item.highlighted { background-color: #fef2f2; color: #991b1b; }
         
         /* Truck Loader Styles */
         .truck-loader-overlay {
@@ -740,7 +747,10 @@
                         <input type="hidden" id="especialTiendaId" />
                         <div>
                             <label for="especialTiendaNombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre*</label>
-                            <input type="text" id="especialTiendaNombre" name="especialTiendaNombre" required class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                            <div class="et-autocomplete-wrapper">
+                                <input type="text" id="especialTiendaNombre" name="especialTiendaNombre" required autocomplete="off" aria-autocomplete="list" aria-controls="especialTiendaNombreSuggestions" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-red focus:border-transparent" />
+                                <ul id="especialTiendaNombreSuggestions" class="et-autocomplete-list" role="listbox" aria-label="Sugerencias de productos"></ul>
+                            </div>
                         </div>
                         <div>
                             <label for="especialTiendaUpc" class="block text-sm font-medium text-gray-700 mb-1">UPC*</label>
@@ -2456,6 +2466,36 @@ function importFromCSV(file) {
         // ==== ESPECIALES EN TIENDA FUNCTIONALITY ====
         let especialesTienda = [];
         let especialesTiendaListeners = null;
+        let especialesTiendaProductCatalog = []; // Persistent catalog for autocomplete (survives item deletion)
+
+        // Load especiales tienda product catalog from localStorage
+        function loadEspecialesTiendaProductCatalog() {
+            try {
+                if (isLocalStorageAvailable()) {
+                    const stored = localStorage.getItem('especialesTiendaProductCatalog');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        especialesTiendaProductCatalog = Array.isArray(parsed) ? parsed.filter(e => e && e.nombre) : [];
+                    }
+                }
+            } catch (e) {
+                especialesTiendaProductCatalog = [];
+            }
+        }
+
+        // Save a product to the autocomplete catalog (persists even after deletion)
+        function saveToEspecialesTiendaProductCatalog(nombre, upc, imageUrl) {
+            if (!nombre) return;
+            const exists = especialesTiendaProductCatalog.some(e => e.nombre === nombre && e.upc === upc);
+            if (!exists) {
+                especialesTiendaProductCatalog.push({ nombre: nombre, upc: upc || '', imageUrl: imageUrl || '' });
+                try {
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('especialesTiendaProductCatalog', JSON.stringify(especialesTiendaProductCatalog));
+                    }
+                } catch (e) { /* ignore */ }
+            }
+        }
 
         // Load especiales tienda from Firebase with localStorage fallback
         function loadEspecialesTienda() {
@@ -2475,6 +2515,9 @@ function importFromCSV(file) {
                             especialesTienda = [];
                         }
                         
+                        // Seed autocomplete catalog from existing data
+                        especialesTienda.forEach(e => saveToEspecialesTiendaProductCatalog(e.nombre, e.upc, e.imageUrl));
+                        
                         if (currentView === 'especialesTienda') {
                             renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
                         }
@@ -2492,6 +2535,8 @@ function importFromCSV(file) {
                     if (stored) {
                         const parsed = JSON.parse(stored);
                         especialesTienda = Array.isArray(parsed) ? parsed.filter(e => e != null && typeof e === 'object') : [];
+                        // Seed autocomplete catalog from existing data
+                        especialesTienda.forEach(e => saveToEspecialesTiendaProductCatalog(e.nombre, e.upc, e.imageUrl));
                     } else {
                         especialesTienda = [];
                     }
@@ -2783,6 +2828,9 @@ function importFromCSV(file) {
             
             especialesTienda.push(newEspecial);
             
+            // Save to autocomplete catalog (persists even after deletion)
+            saveToEspecialesTiendaProductCatalog(nombre, upc, imageUrl);
+            
             await saveEspecialesTienda();
             
             renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
@@ -2823,6 +2871,103 @@ function importFromCSV(file) {
                 especialesTiendaSearchInput.addEventListener('input', debounce(() => {
                     renderEspecialesTienda(especialesTiendaSearchInput.value);
                 }, 300));
+            }
+            
+            // Autocomplete for Nombre field in the form
+            const nombreInput = document.getElementById('especialTiendaNombre');
+            const suggestionsList = document.getElementById('especialTiendaNombreSuggestions');
+            if (nombreInput && suggestionsList) {
+                let highlightedIndex = -1;
+
+                function showSuggestions(value) {
+                    const term = value.trim().toLowerCase();
+                    suggestionsList.innerHTML = '';
+                    highlightedIndex = -1;
+                    if (!term) {
+                        suggestionsList.classList.remove('active');
+                        return;
+                    }
+                    const matches = especialesTiendaProductCatalog.filter(e =>
+                        e.nombre && e.nombre.toLowerCase().includes(term)
+                    );
+                    if (matches.length === 0) {
+                        suggestionsList.classList.remove('active');
+                        return;
+                    }
+                    matches.forEach((item, idx) => {
+                        const li = document.createElement('li');
+                        li.className = 'et-autocomplete-item';
+                        li.setAttribute('role', 'option');
+                        li.setAttribute('aria-selected', 'false');
+                        li.setAttribute('tabindex', '-1');
+                        li.id = 'et-suggestion-' + idx;
+                        li.textContent = item.nombre;
+                        li.addEventListener('mousedown', (e) => {
+                            e.preventDefault();
+                            applyAutocomplete(item);
+                        });
+                        suggestionsList.appendChild(li);
+                    });
+                    suggestionsList.classList.add('active');
+                }
+
+                function applyAutocomplete(item) {
+                    nombreInput.value = item.nombre;
+                    document.getElementById('especialTiendaUpc').value = item.upc || '';
+                    document.getElementById('especialTiendaImageUrl').value = item.imageUrl || '';
+                    suggestionsList.classList.remove('active');
+                    nombreInput.removeAttribute('aria-activedescendant');
+                    highlightedIndex = -1;
+                }
+
+                function updateHighlight(items) {
+                    items.forEach((el, i) => {
+                        const isHighlighted = i === highlightedIndex;
+                        el.classList.toggle('highlighted', isHighlighted);
+                        el.setAttribute('aria-selected', isHighlighted ? 'true' : 'false');
+                    });
+                    if (highlightedIndex >= 0) {
+                        nombreInput.setAttribute('aria-activedescendant', 'et-suggestion-' + highlightedIndex);
+                    } else {
+                        nombreInput.removeAttribute('aria-activedescendant');
+                    }
+                }
+
+                nombreInput.addEventListener('input', () => {
+                    showSuggestions(nombreInput.value);
+                });
+
+                nombreInput.addEventListener('keydown', (e) => {
+                    const items = suggestionsList.querySelectorAll('.et-autocomplete-item');
+                    if (!items.length) return;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        highlightedIndex = (highlightedIndex + 1) % items.length;
+                        updateHighlight(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        highlightedIndex = (highlightedIndex - 1 + items.length) % items.length;
+                        updateHighlight(items);
+                    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                        e.preventDefault();
+                        const catalog = especialesTiendaProductCatalog.filter(e =>
+                            e.nombre && e.nombre.toLowerCase().includes(nombreInput.value.trim().toLowerCase())
+                        );
+                        if (catalog[highlightedIndex]) applyAutocomplete(catalog[highlightedIndex]);
+                    } else if (e.key === 'Escape') {
+                        suggestionsList.classList.remove('active');
+                        nombreInput.removeAttribute('aria-activedescendant');
+                        highlightedIndex = -1;
+                    }
+                });
+
+                nombreInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        suggestionsList.classList.remove('active');
+                        nombreInput.removeAttribute('aria-activedescendant');
+                        highlightedIndex = -1;
+                    }, 150);
+                });
             }
             
             // Add especial tienda button
@@ -3933,6 +4078,7 @@ function importFromCSV(file) {
             loadData(); 
             loadEspeciales();
             loadEspecialesTienda();
+            loadEspecialesTiendaProductCatalog();
             loadCredits();
             setupEventListeners(); 
             setupEspecialesEventListeners();
