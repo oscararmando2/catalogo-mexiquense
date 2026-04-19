@@ -847,7 +847,8 @@ function showProductDetails(productId){
     try{
         const displayName = product.nombre || product.name || product.description || 'Sin nombre';
         modalProductTitle.textContent = sanitizeInput(displayName);
-        productItemNumber.textContent = sanitizeInput(product.itemNumber || 'N/A');
+        const itemNumberEl = document.getElementById('productItemNumber');
+        if(itemNumberEl) itemNumberEl.textContent = sanitizeInput(product.itemNumber || 'N/A');
         productUpc.textContent = sanitizeInput(product.upc || 'N/A');
         productSize.textContent = sanitizeInput(product.size || 'N/A');
         productQty.textContent = sanitizeInput(String(product.qty ?? 'N/A'));
