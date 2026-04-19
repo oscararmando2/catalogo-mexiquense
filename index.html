@@ -871,6 +871,7 @@
         const urlInput = document.getElementById('url');
         const descriptionInput = document.getElementById('description');
         const formTitle = document.getElementById('formTitle');
+        let descripcionAutoFill = true; // tracks whether Descripción should be auto-filled
 
         // Import CSV
         const csvFileInput = document.getElementById('csvFile');
@@ -1552,7 +1553,19 @@ function importFromCSV(file) {
             document.getElementById('closeImportModal').addEventListener('click', ()=> importModal.classList.add('hidden'));
 
             // Nuevo producto
-            addProductBtn.addEventListener('click', ()=>{ productForm.reset(); productIdInput.value=''; formTitle.textContent='Nuevo Producto'; productFormModal.classList.remove('hidden'); });
+            addProductBtn.addEventListener('click', ()=>{ productForm.reset(); productIdInput.value=''; formTitle.textContent='Nuevo Producto'; descripcionAutoFill = true; productFormModal.classList.remove('hidden'); });
+
+            // Auto-fill Descripción from Nombre + Tamaño (solo en Nuevo Producto)
+            function updateDescripcionAutoFill() {
+                if (descripcionAutoFill && !productIdInput.value) {
+                    const n = nombreInput.value.trim();
+                    const s = sizeInput.value.trim();
+                    descriptionInput.value = (n + (s ? ' ' + s : '')).trim();
+                }
+            }
+            nombreInput.addEventListener('input', updateDescripcionAutoFill);
+            sizeInput.addEventListener('input', updateDescripcionAutoFill);
+            descriptionInput.addEventListener('input', () => { if (!productIdInput.value) descripcionAutoFill = false; });
 
             // Import CSV
             importBtn.addEventListener('click', ()=>{ importForm.reset(); fileNameText.textContent='Ningún archivo seleccionado'; importModal.classList.remove('hidden'); });
@@ -1647,7 +1660,14 @@ function importFromCSV(file) {
                     const p = products.find(x=> x.id===productId);
                     if(p){ newProduct.customFields = p.customFields || {}; newProduct.dateAdded = p.dateAdded || newProduct.dateAdded; Object.assign(p, newProduct); }
                 } else { products.push(newProduct); }
-                saveData(); renderAdminProducts(); renderPublicTabs(); showToast(productId ? 'Producto actualizado correctamente.' : 'Producto agregado correctamente.'); productFormModal.classList.add('hidden');
+                saveData(); renderAdminProducts(); renderPublicTabs(); productFormModal.classList.add('hidden');
+                if (!productId) {
+                    descripcionAutoFill = true;
+                    showToast('Producto agregado correctamente.');
+                    showProductDetails(newProduct.id);
+                } else {
+                    showToast('Producto actualizado correctamente.');
+                }
             });
         }
 
