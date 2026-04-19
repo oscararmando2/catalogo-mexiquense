@@ -671,6 +671,12 @@ function renderAdminProducts(){
         updateDeleteButton();
         return;
     }
+    filtered.sort((a, b) => {
+        if(a.dateAdded && b.dateAdded) return b.dateAdded - a.dateAdded;
+        if(a.dateAdded) return -1;
+        if(b.dateAdded) return 1;
+        return 0;
+    });
     filtered.forEach(product=>{
         const card = document.createElement('div');
         card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover relative';
@@ -716,11 +722,13 @@ function renderPublicTabs(searchTerm=''){
         paginationControls.style.display = 'none';
         return;
     }
-    // Orden: nuevos primero, viejos aleatorios
-    const newOnes = filtered.filter(isNewProduct);
-    const oldOnes = filtered.filter(p=> !isNewProduct(p));
-    for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
-    const ordered = [...newOnes, ...oldOnes];
+    // Orden: más recientes primero según dateAdded, sin dateAdded al final
+    const ordered = [...filtered].sort((a, b) => {
+        if(a.dateAdded && b.dateAdded) return b.dateAdded - a.dateAdded;
+        if(a.dateAdded) return -1;
+        if(b.dateAdded) return 1;
+        return 0;
+    });
 
     // Pagination logic
     const totalPages = Math.ceil(ordered.length / itemsPerPage);
