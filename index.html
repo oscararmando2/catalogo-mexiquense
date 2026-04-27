@@ -630,25 +630,50 @@
 
         <!-- Modal Import CSV -->
         <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div id="importModalInner" class="bg-white rounded-xl shadow-xl w-full max-w-md transition-all duration-300">
                 <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
-                    <h3 class="text-xl font-bold">Importar Productos desde CSV</h3>
+                    <h3 class="text-xl font-bold" id="importModalTitle">Importar Productos desde CSV</h3>
                     <button id="closeImportModal" class="text-white hover:text-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                 </div>
                 <div class="p-6">
-                    <p class="text-gray-600 mb-4">Sube un archivo CSV con los siguientes encabezados: ITEM NUMBER, DESCRIPTION, UPC, NOMBRE, SIZE, QTY, COSTO, URL (URL es opcional). Usa comas como separador.</p>
-                    <form id="importForm" class="space-y-4">
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <input type="file" id="csvFile" name="csvFile" accept=".csv" class="hidden" />
-                            <label for="csvFile" class="cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                                <span class="mt-2 block text-sm font-medium text-mexican-green">Haz clic para seleccionar archivo</span>
-                                <span id="fileName" class="mt-1 block text-sm text-gray-500">Ningún archivo seleccionado</span>
-                            </label>
+                    <!-- Paso 1: Selección de archivo -->
+                    <div id="importStep1">
+                        <p class="text-gray-600 mb-4">Sube un archivo CSV con los siguientes encabezados: ITEM NUMBER, DESCRIPTION, UPC, NOMBRE, SIZE, QTY, COSTO, URL (URL es opcional). Usa comas como separador.</p>
+                        <form id="importForm" class="space-y-4">
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                <input type="file" id="csvFile" name="csvFile" accept=".csv" class="hidden" />
+                                <label for="csvFile" class="cursor-pointer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                                    <span class="mt-2 block text-sm font-medium text-mexican-green">Haz clic para seleccionar archivo</span>
+                                    <span id="fileName" class="mt-1 block text-sm text-gray-500">Ningún archivo seleccionado</span>
+                                </label>
+                            </div>
+                            <div id="importLoader" class="hidden"><div class="loader"></div><p class="text-gray-600 mt-2">Analizando...</p></div>
+                            <div class="pt-4 flex justify-end"><button type="submit" id="importSubmitBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Vista Previa</button></div>
+                        </form>
+                    </div>
+                    <!-- Paso 2: Vista previa -->
+                    <div id="importStep2" class="hidden">
+                        <div id="importPreviewSummary" class="mb-4 flex flex-wrap gap-2 text-sm font-medium"></div>
+                        <div class="overflow-auto max-h-96 border border-gray-200 rounded-lg">
+                            <table class="w-full text-sm border-collapse">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 border-b">Estado</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 border-b">Item #</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 border-b">Nombre</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 border-b">UPC</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 border-b">Nota</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importPreviewBody"></tbody>
+                            </table>
                         </div>
-                        <div id="importLoader" class="hidden"><div class="loader"></div><p class="text-gray-600 mt-2">Importando...</p></div>
-                        <div class="pt-4 flex justify-end"><button type="submit" id="importSubmitBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Importar</button></div>
-                    </form>
+                        <div class="pt-4 flex justify-between gap-2">
+                            <button id="importBackBtn" class="border border-gray-300 text-gray-700 hover:bg-gray-100 px-5 py-2 rounded-lg font-medium transition-all">← Cargar de nuevo</button>
+                            <button id="importConfirmBtn" class="bg-mexican-green hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-medium transition-all">Confirmar Importación</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -887,6 +912,12 @@
         const fileNameText = document.getElementById('fileName');
         const importLoader = document.getElementById('importLoader');
         const importSubmitBtn = document.getElementById('importSubmitBtn');
+        const importModalInner = document.getElementById('importModalInner');
+        const importStep1 = document.getElementById('importStep1');
+        const importStep2 = document.getElementById('importStep2');
+        const importPreviewSummary = document.getElementById('importPreviewSummary');
+        const importPreviewBody = document.getElementById('importPreviewBody');
+        let csvPreviewData = null;
 
         // Toast
         const toast = document.getElementById('toast');
@@ -1057,6 +1088,12 @@
                 updateDeleteButton();
                 return;
             }
+            filtered.sort((a, b) => {
+                if(a.dateAdded && b.dateAdded) return b.dateAdded - a.dateAdded;
+                if(a.dateAdded) return -1;
+                if(b.dateAdded) return 1;
+                return 0;
+            });
             filtered.forEach(product=>{
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover relative';
@@ -1102,11 +1139,13 @@
                 paginationControls.style.display = 'none';
                 return;
             }
-            // Orden: nuevos primero, viejos aleatorios
-            const newOnes = filtered.filter(isNewProduct);
-            const oldOnes = filtered.filter(p=> !isNewProduct(p));
-            for(let i=oldOnes.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [oldOnes[i], oldOnes[j]]=[oldOnes[j], oldOnes[i]]; }
-            const ordered = [...newOnes, ...oldOnes];
+            // Orden: más recientes primero según dateAdded, sin dateAdded al final
+            const ordered = [...filtered].sort((a, b) => {
+                if(a.dateAdded && b.dateAdded) return b.dateAdded - a.dateAdded;
+                if(a.dateAdded) return -1;
+                if(b.dateAdded) return 1;
+                return 0;
+            });
 
             // Pagination logic
             const totalPages = Math.ceil(ordered.length / itemsPerPage);
@@ -1299,9 +1338,9 @@ function importFromCSV(file) {
         delimiter: delimiter,
         transformHeader: (header) => header.trim().replace(/["']/g, '').toUpperCase(), // 💪 Limpieza total de encabezados
         complete: (results) => {
-          const imported = [];
-          let updated = 0;
-          let errors = 0;
+          const toAdd = [];
+          const toUpdate = [];
+          const errors = [];
 
           if (!results.data || results.data.length === 0) {
             showToast('El archivo está vacío o tiene formato incorrecto.', true);
@@ -1351,67 +1390,45 @@ function importFromCSV(file) {
                 }
               }
 
-              // Actualizar o agregar producto
+              // Clasificar: actualizar, agregar o error
               // First check in existing products array
               let existing = products.find(p =>
                 (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
                 (p.upc && p.upc === newProduct.upc)
               );
-              
-              // Also check in already imported products (to handle duplicates within the CSV)
+
+              // Also check in already-classified toAdd products (to handle duplicates within the CSV)
               if (!existing) {
-                existing = imported.find(p =>
+                existing = toAdd.find(p =>
                   (p.itemNumber && p.itemNumber === newProduct.itemNumber) ||
                   (p.upc && p.upc === newProduct.upc)
                 );
               }
 
               if (existing) {
-                // Preserve the existing ID and merge customFields
-                const existingId = existing.id;
-                const existingDateAdded = existing.dateAdded || newProduct.dateAdded;
-                const mergedCustomFields = { ...existing.customFields, ...newProduct.customFields };
-                Object.assign(existing, newProduct);
-                existing.id = existingId;
-                existing.dateAdded = existingDateAdded;
-                existing.customFields = mergedCustomFields;
-                updated++;
+                toUpdate.push({
+                  product: newProduct,
+                  existingId: existing.id,
+                  existingDateAdded: existing.dateAdded || newProduct.dateAdded,
+                  existingCustomFields: existing.customFields
+                });
               } else {
                 // Check if this item code is already used by a different product (not matched by UPC)
                 if (isDuplicateItemCode(newProduct.itemNumber)) {
-                  console.error(`Fila ${idx + 1}: Item Code duplicado "${newProduct.itemNumber}" - producto omitido`);
-                  errors++;
-                  return;
+                  errors.push({ row: idx + 1, itemNumber: newProduct.itemNumber, nombre: newProduct.nombre, upc: newProduct.upc, reason: `Código duplicado: "${newProduct.itemNumber}"` });
+                } else {
+                  toAdd.push(newProduct);
                 }
-                imported.push(newProduct);
               }
 
-            } catch (e) {
-              console.error(`Error en fila ${idx + 1}:`, e);
-              errors++;
+            } catch (err) {
+              console.error(`Error en fila ${idx + 1}:`, err);
+              errors.push({ row: idx + 1, itemNumber: '', nombre: '', upc: '', reason: `Error inesperado en fila ${idx + 1}` });
             }
           });
 
-          products = [...products, ...imported];
-          saveData();
-          renderAdminProducts();
-          renderPublicTabs();
-
-          // Build comprehensive message showing new, updated, and errors
-          const totalProcessed = imported.length + updated;
-          let msg = '';
-          if (errors > 0) {
-            msg = `Procesados ${totalProcessed} productos (${imported.length} nuevos, ${updated} actualizados), ${errors} errores.`;
-          } else if (updated > 0 && imported.length > 0) {
-            msg = `Importados ${imported.length} productos nuevos y ${updated} actualizados correctamente.`;
-          } else if (updated > 0) {
-            msg = `Actualizados ${updated} productos correctamente.`;
-          } else {
-            msg = `Importados ${imported.length} productos correctamente.`;
-          }
-          showToast(msg, errors > 0);
-
-          importModal.classList.add('hidden');
+          csvPreviewData = { toAdd, toUpdate, errors };
+          renderImportPreview();
           importLoader.classList.add('hidden');
           importSubmitBtn.disabled = false;
         },
@@ -1431,6 +1448,109 @@ function importFromCSV(file) {
     importLoader.classList.add('hidden');
     importSubmitBtn.disabled = false;
   }
+}
+
+function renderImportPreview() {
+  const { toAdd, toUpdate, errors } = csvPreviewData;
+
+  // Resumen de estadísticas
+  importPreviewSummary.innerHTML =
+    `<span class="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full">` +
+    `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>` +
+    `${toAdd.length} nuevos</span> ` +
+    `<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full">` +
+    `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>` +
+    `${toUpdate.length} a actualizar</span>` +
+    (errors.length > 0
+      ? ` <span class="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full">` +
+        `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>` +
+        `${errors.length} con error</span>`
+      : '');
+
+  // Filas de la tabla
+  let html = '';
+  toAdd.forEach(p => {
+    html += `<tr class="hover:bg-green-50">` +
+      `<td class="px-3 py-2 border-b"><span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded">NUEVO</span></td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${p.itemNumber || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${p.nombre || p.description || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-500 text-xs">${p.upc || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-400 text-xs">—</td>` +
+      `</tr>`;
+  });
+  toUpdate.forEach(u => {
+    const p = u.product;
+    html += `<tr class="hover:bg-blue-50">` +
+      `<td class="px-3 py-2 border-b"><span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">ACTUALIZAR</span></td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${p.itemNumber || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${p.nombre || p.description || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-500 text-xs">${p.upc || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-400 text-xs">—</td>` +
+      `</tr>`;
+  });
+  errors.forEach(err => {
+    html += `<tr class="bg-red-50 hover:bg-red-100">` +
+      `<td class="px-3 py-2 border-b"><span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-2 py-0.5 rounded">ERROR</span></td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${err.itemNumber || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-700">${err.nombre || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-gray-500 text-xs">${err.upc || '—'}</td>` +
+      `<td class="px-3 py-2 border-b text-red-600 text-xs">${err.reason}</td>` +
+      `</tr>`;
+  });
+  importPreviewBody.innerHTML = html;
+
+  // Mostrar paso 2, ocultar paso 1, ampliar modal
+  importStep1.classList.add('hidden');
+  importStep2.classList.remove('hidden');
+  importModalInner.classList.remove('max-w-md');
+  importModalInner.classList.add('max-w-4xl');
+}
+
+function confirmImport() {
+  if (!csvPreviewData) return;
+  const { toAdd, toUpdate } = csvPreviewData;
+
+  // Aplicar actualizaciones a productos existentes (incluyendo duplicados dentro del mismo CSV)
+  toUpdate.forEach(u => {
+    const { product, existingId, existingDateAdded, existingCustomFields } = u;
+    const existing = products.find(p => p.id === existingId) || toAdd.find(p => p.id === existingId);
+    if (existing) {
+      const mergedCustomFields = { ...existingCustomFields, ...product.customFields };
+      Object.assign(existing, product);
+      existing.id = existingId;
+      existing.dateAdded = existingDateAdded;
+      existing.customFields = mergedCustomFields;
+    }
+  });
+
+  // Agregar productos nuevos
+  products = [...products, ...toAdd];
+  saveData();
+  renderAdminProducts();
+  renderPublicTabs();
+
+  let msg = '';
+  if (toUpdate.length > 0 && toAdd.length > 0) {
+    msg = `Importados ${toAdd.length} productos nuevos y ${toUpdate.length} actualizados correctamente.`;
+  } else if (toUpdate.length > 0) {
+    msg = `Actualizados ${toUpdate.length} productos correctamente.`;
+  } else {
+    msg = `Importados ${toAdd.length} productos correctamente.`;
+  }
+  showToast(msg);
+
+  csvPreviewData = null;
+  importModal.classList.add('hidden');
+  resetImportModal();
+}
+
+function resetImportModal() {
+  importStep1.classList.remove('hidden');
+  importStep2.classList.add('hidden');
+  importModalInner.classList.remove('max-w-4xl');
+  importModalInner.classList.add('max-w-md');
+  importForm.reset();
+  fileNameText.textContent = 'Ningún archivo seleccionado';
 }
         // ==== Validación + libs + vistas ====
         function validateForm(_, fields){
@@ -1559,7 +1679,7 @@ function importFromCSV(file) {
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
             document.getElementById('closeFormModal').addEventListener('click', ()=> productFormModal.classList.add('hidden'));
             document.getElementById('cancelProductBtn').addEventListener('click', ()=> productFormModal.classList.add('hidden'));
-            document.getElementById('closeImportModal').addEventListener('click', ()=> importModal.classList.add('hidden'));
+            document.getElementById('closeImportModal').addEventListener('click', ()=>{ importModal.classList.add('hidden'); csvPreviewData = null; resetImportModal(); });
 
             // Nuevo producto
             addProductBtn.addEventListener('click', ()=>{ productForm.reset(); productIdInput.value=''; formTitle.textContent='Nuevo Producto'; descripcionAutoFill = true; productFormModal.classList.remove('hidden'); });
@@ -1577,9 +1697,11 @@ function importFromCSV(file) {
             descriptionInput.addEventListener('input', () => { if (!productIdInput.value) descripcionAutoFill = false; });
 
             // Import CSV
-            importBtn.addEventListener('click', ()=>{ importForm.reset(); fileNameText.textContent='Ningún archivo seleccionado'; importModal.classList.remove('hidden'); });
+            importBtn.addEventListener('click', ()=>{ resetImportModal(); csvPreviewData = null; importModal.classList.remove('hidden'); });
             importForm.addEventListener('submit', (e)=>{ e.preventDefault(); const f=csvFileInput.files?.[0]; if(f) importFromCSV(f); else showToast('Selecciona un archivo CSV.', true); });
             csvFileInput.addEventListener('change', (e)=>{ fileNameText.textContent = sanitizeInput(e.target.files[0]?.name || 'Ningún archivo seleccionado'); });
+            document.getElementById('importConfirmBtn').addEventListener('click', confirmImport);
+            document.getElementById('importBackBtn').addEventListener('click', ()=>{ csvPreviewData = null; importStep1.classList.remove('hidden'); importStep2.classList.add('hidden'); importModalInner.classList.remove('max-w-4xl'); importModalInner.classList.add('max-w-md'); });
 
             // Export PDF
             exportBtn.addEventListener('click', exportToPDF);
@@ -1627,7 +1749,7 @@ function importFromCSV(file) {
             deleteSelected.addEventListener('click', ()=>{ if(selection.size===0) return; if(!confirm(`¿Eliminar ${selection.size} productos seleccionados?`)) return; const ids=new Set(selection); products = products.filter(p=> !ids.has(p.id)); saveData(); renderAdminProducts(); renderPublicTabs(); clearSelection(); showToast('Productos eliminados correctamente.'); });
 
             // Cerrar modales clic fuera
-            window.addEventListener('click', (e)=>{ if(e.target===productDetailModal) productDetailModal.classList.add('hidden'); if(e.target===productFormModal) productFormModal.classList.add('hidden'); if(e.target===importModal) importModal.classList.add('hidden'); if(e.target===passwordModal) passwordModal.classList.add('hidden'); });
+            window.addEventListener('click', (e)=>{ if(e.target===productDetailModal) productDetailModal.classList.add('hidden'); if(e.target===productFormModal) productFormModal.classList.add('hidden'); if(e.target===importModal){ importModal.classList.add('hidden'); csvPreviewData = null; resetImportModal(); } if(e.target===passwordModal) passwordModal.classList.add('hidden'); });
 
             // Guardar producto (alta/edición)
             productForm.addEventListener('submit', (e)=>{
