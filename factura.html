@@ -951,6 +951,16 @@
             background: #8e44ad;
             box-shadow: 0 0 0 2px #9b59b6;
         }
+
+        .srp-margin-display {
+            display: block;
+            font-size: 10px;
+            color: #27ae60;
+            text-align: center;
+            margin-top: 2px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
         
         .invoice-badge.credit-badge {
             background: #e67e22;
@@ -1532,6 +1542,7 @@
                         qty: row.qty || 0,
                         product: row.product || '',
                         price: row.price || 0,
+                        srp: row.srp || 0,
                         total: row.total || 0
                     })),
                 clientName: document.getElementById('clientName').value,
@@ -1619,6 +1630,7 @@
                             row.qty = product.qty || 0;
                             row.product = product.product || '';
                             row.price = product.price || 0;
+                            row.srp = product.srp || 0;
                             row.total = product.total || 0;
                             updateRowDisplay(rowId);
                         }
@@ -2009,7 +2021,8 @@
                     <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" data-row-id="${rowId}">
                 </td>
                 <td class="srp-cell" style="display:none;">
-                    <input type="text" class="srp-input" value="" readonly data-row-id="${rowId}">
+                    <input type="number" class="srp-input" step="0.01" min="0" placeholder="0.00" data-row-id="${rowId}">
+                    <span class="srp-margin-display" data-row-id="${rowId}"></span>
                 </td>
                 <td class="total-cell">
                     <input type="text" class="total-input" value="$0.00" readonly data-row-id="${rowId}">
@@ -2065,6 +2078,15 @@
             });
             deleteBtn.addEventListener('click', () => deleteRow(rowId));
             
+            // SRP input: user can edit SRP manually; recalculate margin % on input
+            const srpInput = row.querySelector('.srp-input');
+            if (srpInput) {
+                srpInput.addEventListener('input', () => {
+                    handleSrpInput(rowId);
+                    autoSaveCurrentInvoice();
+                });
+            }
+            
             // Store row data
             invoiceRows.push({
                 id: rowId,
@@ -2072,6 +2094,7 @@
                 qty: 1,
                 product: '',
                 price: 0,
+                srp: 0,
                 total: 0,
                 fromAutocomplete: false // Track if product was selected from autocomplete
             });
@@ -2385,17 +2408,19 @@
             
             totalInput.value = formatCurrency(total);
             
-            // Update SRP value: PRICE / SRP_DIVISOR
-            if (srpInput) {
-                const srp = calculateSrpPrice(price);
-                srpInput.value = srp > 0 ? '$' + srp.toFixed(2) : '';
-            }
-            
             // Update row data
             const rowData = invoiceRows.find(r => r.id === rowId);
             if (rowData) {
                 rowData.qty = qty;
                 rowData.total = total;
+            }
+            
+            // Update SRP value: PRICE / SRP_DIVISOR
+            if (srpInput) {
+                const srp = calculateSrpPrice(price);
+                srpInput.value = srp > 0 ? srp.toFixed(2) : '';
+                if (rowData) rowData.srp = srp;
+                updateSrpMarginDisplay(row, srp, price);
             }
             
             calculateGrandTotal();
@@ -2427,7 +2452,11 @@
             
             const srpInput = row.querySelector('.srp-input');
             if (srpInput && rowData.price > 0) {
-                srpInput.value = '$' + calculateSrpPrice(rowData.price).toFixed(2);
+                // Use saved SRP if it was manually set; otherwise auto-calculate from price
+                const hasSavedSrp = rowData.srp != null && rowData.srp > 0;
+                const srp = hasSavedSrp ? rowData.srp : calculateSrpPrice(rowData.price);
+                srpInput.value = srp.toFixed(2);
+                updateSrpMarginDisplay(row, srp, rowData.price);
             }
         }
         
@@ -2442,6 +2471,33 @@
         function calculateSrpPrice(price) {
             const p = parseFloat(price) || 0;
             return p > 0 ? p / SRP_DIVISOR : 0;
+        }
+        
+        function calculateSrpMargin(srp, price) {
+            // Margin % = (SRP - PRICE) / SRP * 100
+            return (srp > 0 && price > 0) ? ((srp - price) / srp * 100) : 0;
+        }
+        
+        function updateSrpMarginDisplay(row, srp, price) {
+            const marginSpan = row.querySelector('.srp-margin-display');
+            if (!marginSpan) return;
+            if (srp > 0 && price > 0) {
+                const margin = calculateSrpMargin(srp, price);
+                marginSpan.textContent = margin.toFixed(1) + '%';
+            } else {
+                marginSpan.textContent = '';
+            }
+        }
+        
+        function handleSrpInput(rowId) {
+            const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
+            if (!row) return;
+            const srpInput = row.querySelector('.srp-input');
+            const srp = parseFloat(srpInput.value) || 0;
+            const rowData = invoiceRows.find(r => r.id === rowId);
+            const price = rowData ? (rowData.price || 0) : 0;
+            if (rowData) rowData.srp = srp;
+            updateSrpMarginDisplay(row, srp, price);
         }
         
         // ============================================
@@ -3080,7 +3136,8 @@
                     // Only add rows with data
                     if (product || upc || (qty && parseFloat(qty) > 0)) {
                         if (isSrpMode) {
-                            const srpVal = price ? '$' + calculateSrpPrice(price).toFixed(2) : '';
+                            const srpRaw = row.querySelector('.srp-input')?.value || '';
+                            const srpVal = srpRaw ? '$' + parseFloat(srpRaw).toFixed(2) : (price ? '$' + calculateSrpPrice(price).toFixed(2) : '');
                             tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', srpVal, total]);
                         } else {
                             tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', total]);
