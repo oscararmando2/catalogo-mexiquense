@@ -3139,9 +3139,9 @@
                             const srpRaw = row.querySelector('.srp-input')?.value || '';
                             const priceNum = price ? parseFloat(price) : 0;
                             const srpNum = srpRaw ? parseFloat(srpRaw) : (priceNum > 0 ? calculateSrpPrice(priceNum) : 0);
-                            const marginPct = (srpNum > 0 && priceNum > 0) ? ' ' + calculateSrpMargin(srpNum, priceNum).toFixed(1) + '%' : '';
-                            const srpVal = srpNum > 0 ? `$${srpNum.toFixed(2)}${marginPct}` : '';
-                            tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', srpVal, total]);
+                            const srpPrice = srpNum > 0 ? `$${srpNum.toFixed(2)}` : '';
+                            const marginPct = (srpNum > 0 && priceNum > 0) ? calculateSrpMargin(srpNum, priceNum).toFixed(1) + '%' : '';
+                            tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', srpPrice, marginPct, total]);
                         } else {
                             tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', total]);
                         }
@@ -3150,15 +3150,16 @@
                 
                 // Create table
                 const tableHead = isSrpMode
-                    ? [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'SRP', 'SRP TOTAL']]
+                    ? [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'SRP', '%', 'SRP TOTAL']]
                     : [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'TOTAL']];
                 const colStyles = isSrpMode ? {
                     0: { cellWidth: 35 },
                     1: { cellWidth: 15, halign: 'center' },
                     2: { cellWidth: 'auto' },
                     3: { cellWidth: 22, halign: 'right' },
-                    4: { cellWidth: 28, halign: 'right' },
-                    5: { cellWidth: 25, halign: 'right' }
+                    4: { cellWidth: 22, halign: 'right' },
+                    5: { cellWidth: 18, halign: 'center' },
+                    6: { cellWidth: 25, halign: 'right' }
                 } : {
                     0: { cellWidth: 38 },
                     1: { cellWidth: 20, halign: 'center' },
@@ -3182,7 +3183,13 @@
                         cellPadding: 4
                     },
                     columnStyles: colStyles,
-                    margin: { left: margin, right: margin }
+                    margin: { left: margin, right: margin },
+                    didParseCell: function(data) {
+                        if (isSrpMode && data.column.index === 5 && data.section === 'body') {
+                            data.cell.styles.textColor = [230, 126, 34];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
                 });
                 
                 // === TOTAL SECTION ===
