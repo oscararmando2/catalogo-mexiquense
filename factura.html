@@ -937,6 +937,20 @@
             background: #c0392b;
             box-shadow: 0 0 0 2px #e74c3c;
         }
+
+        .btn-srp {
+            background: #7f8c8d;
+            color: white;
+        }
+
+        .btn-srp:hover {
+            background: #636e72;
+        }
+
+        .btn-srp.srp-active {
+            background: #8e44ad;
+            box-shadow: 0 0 0 2px #9b59b6;
+        }
         
         .invoice-badge.credit-badge {
             background: #e67e22;
@@ -1017,6 +1031,9 @@
             <button class="btn btn-warning" id="createCreditBtn">
                 ➖ Crear Crédito
             </button>
+            <button class="btn btn-srp" id="srpToggleBtn">
+                SRP
+            </button>
         </div>
         
         <!-- Invoice Table -->
@@ -1028,7 +1045,8 @@
                         <th>QTY</th>
                         <th>PRODUCT</th>
                         <th>PRICE</th>
-                        <th>TOTAL</th>
+                        <th class="srp-col" style="display:none;">SRP</th>
+                        <th id="totalHeader">TOTAL</th>
                         <th class="delete-cell"></th>
                     </tr>
                 </thead>
@@ -1219,6 +1237,7 @@
         let invoiceNumber = 31;
         let invoiceRows = [];
         let isCreditMode = false; // Credit mode flag
+        let isSrpMode = false; // SRP mode flag
         let pendingProductToAdd = null; // Stores product info for "add to database" confirmation
         let pendingInvoices = {}; // Stores all pending invoices
         let currentInvoiceId = null; // Current invoice being edited
@@ -1227,6 +1246,7 @@
         // Constants
         const MIN_VALID_PRICE = 0; // Minimum valid price to trigger add-to-database prompt
         const AUTOSAVE_DELAY = 1000; // Delay in ms before auto-saving
+        const SRP_DIVISOR = 0.70; // Divisor to calculate SRP price (price / 0.70 = 30% markup)
         
         // DOM Elements
         const invoiceBody = document.getElementById('invoiceBody');
@@ -1722,7 +1742,10 @@
             const savedClients = [
                 { name: 'AYAGO LLC', address: '1009 S Duchesne Dr, Saint Charles', city: 'MO 63301' },
                 { name: 'AYALA RESTAURANT LLC', address: '9519 Lackland Rd,', city: 'St. Louis MO 63114' },
-                { name: 'CENTRAL TRADE DISTRIBUTION LLC', address: 'PO BOX 2332', city: 'OLATHE KANSAS 66051' }
+                { name: 'CANDY 7 TOYS 1 INC', address: '2443 W 16TH ST BOX 27', city: 'CHICAGO IL 60608' },
+                { name: 'CENTRAL TRADE DISTRIBUTION LLC', address: 'PO BOX 2332', city: 'OLATHE KANSAS 66051' },
+                { name: 'GLOBALMEX INC.', address: '2541 S DAMEN AV', city: 'UNIT A CHICAGO, IL 60608' },
+                { name: 'TRADING AMERICAN INTERNATIONAL, LLC.', address: '7300 N BROADWAY', city: 'ST. LOUIS MISSOURI 63147' }
             ];
 
             clientNameInput.addEventListener('input', () => {
@@ -1832,6 +1855,41 @@
         }
         
         // ============================================
+        // SRP MODE
+        // ============================================
+        
+        function toggleSrpMode() {
+            isSrpMode = !isSrpMode;
+            const srpToggleBtn = document.getElementById('srpToggleBtn');
+            const totalHeader = document.getElementById('totalHeader');
+            
+            // Show/hide SRP column header
+            document.querySelectorAll('th.srp-col').forEach(th => {
+                th.style.display = isSrpMode ? '' : 'none';
+            });
+            
+            // Update TOTAL header text
+            if (totalHeader) {
+                totalHeader.textContent = isSrpMode ? 'SRP TOTAL' : 'TOTAL';
+            }
+            
+            // Show/hide SRP cells in all rows
+            document.querySelectorAll('td.srp-cell').forEach(td => {
+                td.style.display = isSrpMode ? '' : 'none';
+            });
+            
+            // Toggle button active state
+            if (isSrpMode) {
+                srpToggleBtn.classList.add('srp-active');
+            } else {
+                srpToggleBtn.classList.remove('srp-active');
+            }
+            
+            // Recalculate all rows to update SRP values
+            invoiceRows.forEach(row => calculateRowTotal(row.id, false));
+        }
+        
+        // ============================================
         // EVENT LISTENERS
         // ============================================
         
@@ -1913,6 +1971,10 @@
             // Credit mode button
             createCreditBtn.addEventListener('click', toggleCreditMode);
             
+            // SRP toggle button
+            const srpToggleBtn = document.getElementById('srpToggleBtn');
+            srpToggleBtn.addEventListener('click', toggleSrpMode);
+            
             // Close dropdowns on outside click
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.upc-cell') && !e.target.closest('.product-cell')) {
@@ -1946,6 +2008,9 @@
                 <td class="price-cell">
                     <input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" data-row-id="${rowId}">
                 </td>
+                <td class="srp-cell" style="display:none;">
+                    <input type="text" class="srp-input" value="" readonly data-row-id="${rowId}">
+                </td>
                 <td class="total-cell">
                     <input type="text" class="total-input" value="$0.00" readonly data-row-id="${rowId}">
                 </td>
@@ -1956,6 +2021,10 @@
             
             invoiceBody.appendChild(row);
             
+            // If SRP mode is active, show the SRP cell for this new row
+            if (isSrpMode) {
+                row.querySelector('.srp-cell').style.display = '';
+            }
             // Setup event listeners for this row
             const upcInput = row.querySelector('.upc-input');
             const qtyInput = row.querySelector('.qty-input');
@@ -2300,6 +2369,7 @@
             const qtyInput = row.querySelector('.qty-input');
             const priceInput = row.querySelector('.price-input');
             const totalInput = row.querySelector('.total-input');
+            const srpInput = row.querySelector('.srp-input');
             
             let qty = parseFloat(qtyInput.value);
             if (isNaN(qty) || qty <= 0) {
@@ -2314,6 +2384,12 @@
             const total = isCreditMode ? -(qty * price) : qty * price;
             
             totalInput.value = formatCurrency(total);
+            
+            // Update SRP value: PRICE / SRP_DIVISOR
+            if (srpInput) {
+                const srp = calculateSrpPrice(price);
+                srpInput.value = srp > 0 ? '$' + srp.toFixed(2) : '';
+            }
             
             // Update row data
             const rowData = invoiceRows.find(r => r.id === rowId);
@@ -2348,6 +2424,11 @@
             productInput.value = rowData.product || '';
             priceInput.value = rowData.price ? rowData.price.toFixed(2) : '';
             totalInput.value = formatCurrency(rowData.total || 0);
+            
+            const srpInput = row.querySelector('.srp-input');
+            if (srpInput && rowData.price > 0) {
+                srpInput.value = '$' + calculateSrpPrice(rowData.price).toFixed(2);
+            }
         }
         
         function formatCurrency(amount) {
@@ -2356,6 +2437,11 @@
                 return '-$' + Math.abs(amount).toFixed(2);
             }
             return '$' + amount.toFixed(2);
+        }
+        
+        function calculateSrpPrice(price) {
+            const p = parseFloat(price) || 0;
+            return p > 0 ? p / SRP_DIVISOR : 0;
         }
         
         // ============================================
@@ -2993,20 +3079,36 @@
                     
                     // Only add rows with data
                     if (product || upc || (qty && parseFloat(qty) > 0)) {
-                        tableData.push([
-                            upc,
-                            qty,
-                            product,
-                            price ? `$${parseFloat(price).toFixed(2)}` : '',
-                            total
-                        ]);
+                        if (isSrpMode) {
+                            const srpVal = price ? '$' + calculateSrpPrice(price).toFixed(2) : '';
+                            tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', srpVal, total]);
+                        } else {
+                            tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', total]);
+                        }
                     }
                 });
                 
                 // Create table
+                const tableHead = isSrpMode
+                    ? [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'SRP', 'SRP TOTAL']]
+                    : [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'TOTAL']];
+                const colStyles = isSrpMode ? {
+                    0: { cellWidth: 30 },
+                    1: { cellWidth: 15, halign: 'center' },
+                    2: { cellWidth: 'auto' },
+                    3: { cellWidth: 22, halign: 'right' },
+                    4: { cellWidth: 22, halign: 'right' },
+                    5: { cellWidth: 25, halign: 'right' }
+                } : {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 20, halign: 'center' },
+                    2: { cellWidth: 'auto' },
+                    3: { cellWidth: 25, halign: 'right' },
+                    4: { cellWidth: 30, halign: 'right' }
+                };
                 doc.autoTable({
                     startY: yPos,
-                    head: [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'TOTAL']],
+                    head: tableHead,
                     body: tableData,
                     theme: 'grid',
                     headStyles: {
@@ -3019,13 +3121,7 @@
                         fontSize: 9,
                         cellPadding: 4
                     },
-                    columnStyles: {
-                        0: { cellWidth: 35 },
-                        1: { cellWidth: 20, halign: 'center' },
-                        2: { cellWidth: 'auto' },
-                        3: { cellWidth: 25, halign: 'right' },
-                        4: { cellWidth: 30, halign: 'right' }
-                    },
+                    columnStyles: colStyles,
                     margin: { left: margin, right: margin }
                 });
                 
