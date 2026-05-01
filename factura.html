@@ -1246,6 +1246,7 @@
         // Constants
         const MIN_VALID_PRICE = 0; // Minimum valid price to trigger add-to-database prompt
         const AUTOSAVE_DELAY = 1000; // Delay in ms before auto-saving
+        const SRP_DIVISOR = 0.70; // Divisor to calculate SRP price (price / 0.70 = 30% markup)
         
         // DOM Elements
         const invoiceBody = document.getElementById('invoiceBody');
@@ -2381,9 +2382,9 @@
             
             totalInput.value = formatCurrency(total);
             
-            // Update SRP value: PRICE / 0.70
+            // Update SRP value: PRICE / SRP_DIVISOR
             if (srpInput) {
-                const srp = price > 0 ? price / 0.70 : 0;
+                const srp = calculateSrpPrice(price);
                 srpInput.value = srp > 0 ? '$' + srp.toFixed(2) : '';
             }
             
@@ -2422,8 +2423,8 @@
             totalInput.value = formatCurrency(rowData.total || 0);
             
             const srpInput = row.querySelector('.srp-input');
-            if (srpInput && rowData.price) {
-                srpInput.value = '$' + (rowData.price / 0.70).toFixed(2);
+            if (srpInput && rowData.price > 0) {
+                srpInput.value = '$' + calculateSrpPrice(rowData.price).toFixed(2);
             }
         }
         
@@ -2433,6 +2434,11 @@
                 return '-$' + Math.abs(amount).toFixed(2);
             }
             return '$' + amount.toFixed(2);
+        }
+        
+        function calculateSrpPrice(price) {
+            const p = parseFloat(price) || 0;
+            return p > 0 ? p / SRP_DIVISOR : 0;
         }
         
         // ============================================
@@ -3071,7 +3077,7 @@
                     // Only add rows with data
                     if (product || upc || (qty && parseFloat(qty) > 0)) {
                         if (isSrpMode) {
-                            const srpVal = price ? '$' + (parseFloat(price) / 0.70).toFixed(2) : '';
+                            const srpVal = price ? '$' + calculateSrpPrice(price).toFixed(2) : '';
                             tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', srpVal, total]);
                         } else {
                             tableData.push([upc, qty, product, price ? `$${parseFloat(price).toFixed(2)}` : '', total]);
