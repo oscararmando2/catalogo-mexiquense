@@ -1882,7 +1882,7 @@
             
             // Update TOTAL header text
             if (totalHeader) {
-                totalHeader.textContent = isSrpMode ? 'SRP TOTAL' : 'TOTAL';
+                totalHeader.textContent = 'TOTAL';
             }
             
             // Show/hide SRP cells in all rows
@@ -3150,7 +3150,7 @@
                 
                 // Create table
                 const tableHead = isSrpMode
-                    ? [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'SRP', '%', 'SRP TOTAL']]
+                    ? [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'SRP', '%', 'TOTAL']]
                     : [['UPC', 'QTY', 'PRODUCT', 'PRICE', 'TOTAL']];
                 const colStyles = isSrpMode ? {
                     0: { cellWidth: 35 },
