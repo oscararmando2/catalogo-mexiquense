@@ -1103,10 +1103,10 @@
                     <div class='product-image-container relative'>
                         <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
-                    <div class='p-5'>
-                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
+                    <div class='p-3 sm:p-4 lg:p-5'>
+                        <h3 class='text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2 leading-snug product-title-clamp' title='${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
-                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all w-full sm:w-auto' data-id='${product.id}'>Ver detalles</button>
                         </div>
                     </div>`;
                 // Selección Ctrl/Cmd
@@ -1174,10 +1174,10 @@
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-mexican-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
                         <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
-                    <div class='p-5'>
-                        <h3 class='text-lg font-semibold text-gray-900 mb-2'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
+                    <div class='p-3 sm:p-4 lg:p-5'>
+                        <h3 class='text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2 leading-snug product-title-clamp' title='${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                         <div class='flex justify-center'>
-                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all' data-id='${product.id}'>Ver detalles</button>
+                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all w-full sm:w-auto' data-id='${product.id}'>Ver detalles</button>
                         </div>
                     </div>`;
                 container.appendChild(card);
