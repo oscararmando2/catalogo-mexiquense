@@ -308,12 +308,12 @@
                 <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
                 <!-- Pagination Controls -->
-                <div id="paginationControls" class="mt-8 flex justify-center items-center gap-2">
-                    <button id="prevPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <div id="paginationControls" class="mt-8 flex flex-wrap justify-center items-center gap-2">
+                    <button id="prevPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         Anterior
                     </button>
-                    <div id="pageNumbers" class="flex gap-2"></div>
-                    <button id="nextPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <div id="pageNumbers" class="flex flex-wrap justify-center items-center gap-2"></div>
+                    <button id="nextPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         Siguiente
                     </button>
                 </div>
@@ -1199,10 +1199,10 @@
             // Render page numbers
             pageNumbers.innerHTML = '';
             
-            // Show page info
+            // Show page info on its own centered line
             const pageInfo = document.createElement('div');
-            pageInfo.className = 'flex items-center gap-2 px-4 py-2 text-gray-700 font-medium';
-            pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${totalItems} productos)`;
+            pageInfo.className = 'w-full flex justify-center items-center px-2 py-1 text-gray-600 font-medium text-xs sm:text-sm';
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages} · ${totalItems} productos`;
             pageNumbers.appendChild(pageInfo);
             
             // Show max 5 page numbers around current page
@@ -1245,9 +1245,9 @@
         
         function addPageButton(pageNum) {
             const btn = document.createElement('button');
-            btn.className = `px-4 py-2 rounded-lg font-medium transition-all ${
-                pageNum === currentPage 
-                    ? 'bg-mexican-green text-white' 
+            btn.className = `min-w-[2.25rem] sm:min-w-[2.5rem] px-2 py-1.5 sm:px-3 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all ${
+                pageNum === currentPage
+                    ? 'bg-mexican-green text-white shadow-sm'
                     : 'bg-white text-mexican-green hover:bg-gray-100 border border-mexican-green'
             }`;
             btn.textContent = pageNum;
