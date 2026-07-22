@@ -81,6 +81,27 @@ body {
     }
 }
 
+/* Chips de departamentos (barra de categorías del catálogo) */
+.dept-chip {
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.dept-chip-active {
+    background-color: #006847;
+    color: #ffffff;
+    border-color: #006847;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.dept-chip-idle {
+    background-color: #ffffff;
+    color: #374151;
+    border-color: #d1d5db;
+}
+.dept-chip-idle:hover {
+    border-color: #006847;
+    color: #006847;
+}
+
 /* Multi-selection (admin) */
 .selected-card {
     outline: 2px solid rgb(59 130 246); 
