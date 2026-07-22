@@ -52,8 +52,7 @@
         .credit-ok { border-left: 4px solid #86efac; }
         .credit-warning { border-left: 4px solid #fde047; }
         .credit-urgent { border-left: 4px solid #ef4444; }
-        /* Hamburger menu - always visible */
-        .hamburger-menu { display: block; }
+        /* Hamburger button styling lives in styles.css (.header-bar / .hamburger-menu) */
         /* Hide desktop menu completely */
         .desktop-menu { display: none !important; }
         /* Mobile menu styles */
@@ -224,20 +223,23 @@
         <!-- Header -->
         <header class="bg-gradient-to-r from-mexican-green via-white to-mexican-red text-white shadow-lg">
             <div class="container mx-auto px-4 py-6">
-                <div class="flex flex-col md:flex-row justify-between items-center mobile-header-container">
-                    <div class="flex items-center mb-4 md:mb-0 mobile-hide-logo">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mr-3 text-mexican-green" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
-                        </svg>
-                        <h1 class="text-2xl md:text-3xl font-bold text-mexican-green">MEXIQUENSE</h1>
+                <div class="mobile-header-container">
+                    <!-- Barra superior: logo centrado, hamburguesa a la derecha -->
+                    <div class="header-bar">
+                        <div class="flex items-center mobile-hide-logo">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 mr-2 text-mexican-green" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                            </svg>
+                            <h1 class="text-2xl md:text-3xl font-bold text-mexican-green tracking-tight">MEXIQUENSE</h1>
+                        </div>
+                        <!-- Botón menú (hamburguesa) -->
+                        <button id="mobileMenuBtn" class="hamburger-menu" aria-label="Abrir menú">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                     </div>
-                    <!-- Hamburger menu (always visible) -->
-                    <button id="mobileMenuBtn" class="hamburger-menu bg-mexican-green text-white px-4 py-2 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                    <!-- Hamburger dropdown menu -->
+                    <!-- Menú desplegable -->
                     <div id="mobileMenu" class="hidden w-full mt-4 flex-col gap-2">
                         <button id="publicViewBtnMobile" class="bg-mexican-green text-white hover:bg-opacity-90 px-4 py-2 rounded-lg font-medium transition-all w-full">Productos</button>
                         <button id="especialesViewBtnMobile" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all w-full">Especiales</button>
