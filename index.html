@@ -843,6 +843,83 @@
         let currentView = 'public';
         let currentPage = 1;
         const itemsPerPage = 20;
+        let currentDepartment = 'all';
+
+        // ==== Departamentos (clasificación automática por palabras clave) ====
+        // El orden importa: gana el primer departamento cuyo keyword aparezca.
+        // No modifica Firebase; el departamento se calcula en el navegador.
+        const DEPARTMENTS = [
+            { key:'medicina',  label:'Medicina',          emoji:'💊', kw:['tadin','broncolin','rompe pecho','cough','flu','herbal','medicin','jarabe','vaporub','vaporu','vick','vitamin','alcohol','pomada','unguento','ungüento','analges','aspirin','tylenol','pepto','sal de uvas','picot','alka','desenfriol','mejoral','curita','venda','peroxido','peróxido'] },
+            { key:'limpieza',  label:'Hogar y Limpieza',   emoji:'🧽', kw:['cloralen','cloro','febreze','kingsford','charcoal','briquet','carbon','carbón','detergente','pinol','fabuloso','limpiador','cleaner','bleach','ariel','downy','suavitel','foil','aluminum','aluminio','trash','basura','servilleta','napkin','paper towel','escoba','lighter','encendedor','vela','candle','glade','lysol','windex','esponja','sponge','jabon liquido','ambientador','desinfectante'] },
+            { key:'belleza',   label:'Salud y Belleza',    emoji:'🧴', kw:['shampoo','grisi','head shoulders','head & shoulders','jabon','jabón','soap','shower gel','body wash','lotion','locion','loción','desodorante','deodorant','colgate','toothpaste','pasta dental','cepillo','dental','rasuradora','shave','afeitar','acondicionador','conditioner',' hair','cabello','sunscreen','bloqueador','vaselina','cotonete','pañal','diaper','baby wipe','toallita','maquillaje','esmalte','saba','kotex','always','toalla femenina','sanitary','feminine','curita','algodon','algodón'] },
+            { key:'lacteos',   label:'Lácteos',            emoji:'🥛', kw:['lala','leche','milk',' mlk','yogur','yogurt',' cream','crema','queso','cheese','feta','cotija','oaxaca','panela','requeson','requesón','mantequilla','butter','media crema','condensada','evaporada','gelatys','flan','danone','yoplait','nido'] },
+            { key:'botanas',   label:'Botanas y Galletas', emoji:'🍪', kw:['gamesa','cuetara','cuétara','pringles','sabritas','takis','cheeto','dorito','chip','papas','wafer','galleta','cookie','cracker','barra','peanut','cacahuate','nuez',' nut','botana','popcorn','pop corn','palomita','pretzel','tostito','tostada','maruchan','ramen','chicharron','chicharrón'] },
+            { key:'dulces',    label:'Dulces',             emoji:'🍬', kw:['candy','dulce','chocolate','haribo','colombina','lucas','canel','ricolino','pulparin','chamoy','paleta','gomita','gummy','gummies','jelly','mazapan','mazapán','tamarind','bombon','bombón','marshmallow','malvavisco','skittle','nucita','kokos','vero','indy','miguelito','obispo','duvalin','pelon','pelón','lollipop','caramelo','m&m','trululu','picafresa','frutino',' sour','warhead','toons',' chew','akipika','zumbapica','jovy','ricky','dinas',' neon','rockaleta','glorias','rebanaditas','beso','cocada','huevo sorpresa',' mint',' gum'] },
+            { key:'bebidas',   label:'Bebidas',            emoji:'🥤', kw:['jumex','jarritos','klass','boing','jugo','juice','nectar','néctar',' soda','refresco','agua fresca','aguas fresca','horchata','jamaica',' tang',' hit ','smoothie','colombiana','coca','sidral','tejate','cebada',' tea','teas','drink','bebida','tampico','del valle','squirt','fanta','sprite','pepsi','red bull','energy','limonada','pulpa','garrafa','camaronazo','tepachito','tepache','freskolita','fresskolita','clamato','michelada','tejuino','naranjada'] },
+            { key:'abarrotes', label:'Abarrotes',          emoji:'🫘', kw:['iberia','aceite',' oil','arroz','rice','frijol','bean','salsa','sauce','cholula','tajin','tajín','maseca','harina','flour','azucar','azúcar','sugar',' salt',' sal ','sopa','soup','pasta','atun','atún','tuna','sardina','sardine','mole','chile','tortilla','maiz','maíz','nixtamal','valentina','herdez','costena','costeña','goya','knorr','caldo','consome','consomé','vinagre','miel','honey','cereal','nutella','mayonesa','mostaza','ketchup','especias','chorizo','arepa','castipan',' pan ','bread','sirena','azteca','nopal'] },
+        ];
+
+        // Calcula (y cachea) el departamento de un producto
+        function deptOf(p){
+            if(p.__dept) return p.__dept;
+            const t = ' ' + ((p.name||p.nombre||'') + ' ' + (p.description||'')).toLowerCase() + ' ';
+            for(const d of DEPARTMENTS){
+                if(d.kw.some(k=> t.includes(k))){ p.__dept = d.key; return d.key; }
+            }
+            p.__dept = 'otros';
+            return 'otros';
+        }
+
+        // Construye/actualiza la barra de chips de departamentos
+        function ensureDepartmentChips(){
+            if(!Array.isArray(products) || products.length === 0) return;
+            const publicTabs = document.getElementById('publicTabs');
+            if(!publicTabs) return;
+
+            if(publicTabs.dataset.built !== '1'){
+                // Contar productos por departamento
+                const counts = { all: products.length };
+                DEPARTMENTS.forEach(d=> counts[d.key] = 0);
+                counts.otros = 0;
+                products.forEach(p=>{ const k = deptOf(p); counts[k] = (counts[k]||0) + 1; });
+
+                // Lista de chips a mostrar (Todos + deptos con al menos 1 producto)
+                const chips = [{ key:'all', label:'Todos', emoji:'🛒', count: counts.all }];
+                DEPARTMENTS.forEach(d=>{ if(counts[d.key] > 0) chips.push({ key:d.key, label:d.label, emoji:d.emoji, count:counts[d.key] }); });
+                if(counts.otros > 0) chips.push({ key:'otros', label:'Otros', emoji:'📦', count:counts.otros });
+
+                publicTabs.className = 'flex gap-2 overflow-x-auto pb-3 -mx-1 px-1 custom-scrollbar';
+                publicTabs.innerHTML = '';
+                chips.forEach(c=>{
+                    const b = document.createElement('button');
+                    b.dataset.key = c.key;
+                    b.className = 'dept-chip flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all';
+                    b.innerHTML = `<span>${c.emoji}</span><span>${c.label}</span><span class="dept-chip-count text-xs font-semibold rounded-full px-1.5 py-0.5">${c.count}</span>`;
+                    b.addEventListener('click', ()=>{
+                        currentDepartment = c.key;
+                        currentPage = 1;
+                        renderPublicTabs(publicSearchInput?.value || '');
+                        publicTabs.scrollTo({ left: b.offsetLeft - 60, behavior:'smooth' });
+                    });
+                    publicTabs.appendChild(b);
+                });
+                publicTabs.dataset.built = '1';
+            }
+
+            // Actualizar estado activo
+            publicTabs.querySelectorAll('.dept-chip').forEach(c=>{
+                const on = c.dataset.key === currentDepartment;
+                c.classList.toggle('dept-chip-active', on);
+                c.classList.toggle('dept-chip-idle', !on);
+                const badge = c.querySelector('.dept-chip-count');
+                if(badge){
+                    badge.classList.toggle('bg-white', on);
+                    badge.classList.toggle('text-mexican-green', on);
+                    badge.classList.toggle('bg-gray-100', !on);
+                    badge.classList.toggle('text-gray-500', !on);
+                }
+            });
+        }
 
         // ==== DOM ====
         const productsContainer = document.getElementById('productsContainer');
@@ -1122,17 +1199,21 @@
 
         // ==== Render PUBLIC (NEW solo aquí) ====
         function renderPublicTabs(searchTerm=''){
-            publicTabs.innerHTML = '';
+            ensureDepartmentChips();
             publicTabContent.innerHTML = '';
             publicTabContent.className = 'mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
             let filtered = [...products];
+            // Filtro por departamento (chips)
+            if(currentDepartment && currentDepartment !== 'all'){
+                filtered = filtered.filter(p=> deptOf(p) === currentDepartment);
+            }
             if(searchTerm){
                 const s = searchTerm.toLowerCase();
-                filtered = filtered.filter(p=> 
-                    p?.nombre?.toLowerCase().includes(s) || 
+                filtered = filtered.filter(p=>
+                    p?.nombre?.toLowerCase().includes(s) ||
                     p?.name?.toLowerCase().includes(s) ||
-                    p?.description?.toLowerCase().includes(s) || 
+                    p?.description?.toLowerCase().includes(s) ||
                     p?.upc?.toLowerCase().includes(s)
                 );
             }
