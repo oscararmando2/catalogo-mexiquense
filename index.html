@@ -2887,23 +2887,46 @@ function resetImportModal() {
             return new Promise((resolve) => {
                 try {
                     if (database) {
-                        database.ref('especialesTienda').set(especialesTienda)
-                            .then(() => {
+                        const _etRef = database.ref('especialesTienda');
+                        // === Guardia anti-borrado ===
+                        // saveEspecialesTienda() sobrescribe TODO el nodo con la lista en memoria.
+                        // Si esa lista está incompleta/desactualizada (p.ej. un dispositivo que cargó
+                        // parcial), el .set() borraría el resto de las promos. Antes de guardar,
+                        // comparamos contra Firebase: si el guardado quitaría MÁS DE 1 promo, lo
+                        // cancelamos (las altas y los borrados de 1 en 1 siguen funcionando normal).
+                        _etRef.once('value').then((remoteSnap) => {
+                            const rawRemote = remoteSnap.val();
+                            const remoteArr = Array.isArray(rawRemote)
+                                ? rawRemote.filter(e => e && typeof e === 'object')
+                                : (rawRemote && typeof rawRemote === 'object')
+                                    ? Object.values(rawRemote).filter(e => e && typeof e === 'object')
+                                    : [];
+                            if (remoteArr.length - especialesTienda.length > 1) {
+                                console.error('saveEspecialesTienda CANCELADO por seguridad: el guardado quitaría ' +
+                                    (remoteArr.length - especialesTienda.length) + ' promos (lista local incompleta). Recarga la página.');
+                                if (typeof showToast === 'function') {
+                                    showToast('Guardado cancelado por seguridad: tu lista de promos está incompleta. Recarga la página e intenta de nuevo.', true);
+                                }
+                                resolve();
+                                return;
+                            }
+                            return _etRef.set(especialesTienda).then(() => {
                                 console.log('Especiales Tienda saved to Firebase successfully');
                                 if (isLocalStorageAvailable()) {
                                     localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
                                 }
                                 resolve();
-                            })
-                            .catch((err) => {
-                                console.warn('Firebase save error for especiales tienda, using localStorage as fallback', err);
-                                handleFirebasePermissionError(err, 'especialesTienda');
-                                
-                                if (isLocalStorageAvailable()) {
-                                    localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
-                                }
-                                resolve();
                             });
+                        })
+                        .catch((err) => {
+                            console.warn('Firebase save error for especiales tienda, using localStorage as fallback', err);
+                            handleFirebasePermissionError(err, 'especialesTienda');
+
+                            if (isLocalStorageAvailable()) {
+                                localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
+                            }
+                            resolve();
+                        });
                     } else {
                         if (isLocalStorageAvailable()) {
                             localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
