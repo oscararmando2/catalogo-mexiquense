@@ -2829,15 +2829,15 @@ function resetImportModal() {
                 const index = parseInt(snapshot.key, 10);
                 
                 if (removedItem) {
-                    if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
-                        especialesTienda.splice(index, 1);
-                    } else {
-                        especialesTienda = especialesTienda.filter(e => 
-                            !(e.id_price === removedItem.id_price || 
-                              (e.nombre === removedItem.nombre && e.upc === removedItem.upc))
-                        );
-                    }
-                    
+                    // Idempotente: quitar SIEMPRE por identidad (id_price / nombre+upc), nunca por índice.
+                    // El splice por índice desincronizaba la lista cuando deleteEspecialTienda ya había
+                    // quitado el item localmente, lo que hacía que la lista quedara más corta que Firebase
+                    // y disparaba falsamente la guardia anti-borrado (cancelando borrados posteriores).
+                    especialesTienda = especialesTienda.filter(e =>
+                        !(e.id_price === removedItem.id_price ||
+                          (e.nombre === removedItem.nombre && e.upc === removedItem.upc))
+                    );
+
                     console.log('Especial Tienda removed from Firebase:', removedItem.nombre || 'Unknown');
                     
                     if (isLocalStorageAvailable()) {
