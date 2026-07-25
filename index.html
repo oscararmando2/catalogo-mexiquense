@@ -2784,101 +2784,47 @@ function resetImportModal() {
             
             const especialesTiendaRef = database.ref('especialesTienda');
             
-            especialesTiendaListeners = {
-                childAdded: null,
-                childRemoved: null,
-                childChanged: null
-            };
-            
-            let initialLoadComplete = false;
-            
-            especialesTiendaListeners.childAdded = especialesTiendaRef.on('child_added', (snapshot, prevChildKey) => {
-                if (!initialLoadComplete) return;
-                
-                const newItem = snapshot.val();
-                const index = parseInt(snapshot.key, 10);
-                
-                if (newItem && typeof newItem === 'object') {
-                    const existingIndex = especialesTienda.findIndex(e => 
-                        e.id_price === newItem.id_price || 
-                        (e.nombre === newItem.nombre && e.upc === newItem.upc)
-                    );
-                    
-                    if (existingIndex === -1) {
-                        if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
-                            especialesTienda.splice(index, 0, newItem);
-                        } else {
-                            especialesTienda.push(newItem);
-                        }
-                        
-                        console.log('Especial Tienda added from Firebase:', newItem.nombre);
-                        
-                        if (isLocalStorageAvailable()) {
-                            localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
-                        }
-                        
-                        if (currentView === 'especialesTienda') {
-                            renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
-                        }
-                    }
-                }
-            });
-            
-            especialesTiendaListeners.childRemoved = especialesTiendaRef.on('child_removed', (snapshot) => {
-                const removedItem = snapshot.val();
-                const index = parseInt(snapshot.key, 10);
-                
-                if (removedItem) {
-                    // Idempotente: quitar SIEMPRE por identidad (id_price / nombre+upc), nunca por índice.
-                    // El splice por índice desincronizaba la lista cuando deleteEspecialTienda ya había
-                    // quitado el item localmente, lo que hacía que la lista quedara más corta que Firebase
-                    // y disparaba falsamente la guardia anti-borrado (cancelando borrados posteriores).
-                    especialesTienda = especialesTienda.filter(e =>
-                        !(e.id_price === removedItem.id_price ||
-                          (e.nombre === removedItem.nombre && e.upc === removedItem.upc))
-                    );
+            // Un solo listener 'value' que reconstruye la lista completa desde Firebase.
+            // Reemplaza a los 3 listeners por índice (child_added/removed/changed), que se
+            // corrompían con el reindexado de arrays de Firebase al hacer .set() (borrar un
+            // item de en medio disparaba child_removed del ÚLTIMO índice + child_changed de
+            // los recorridos). Rebuild desde la fuente de verdad = cero drift, cero falsos
+            // positivos de la guardia anti-borrado.
+            especialesTiendaListeners = { value: null };
 
-                    console.log('Especial Tienda removed from Firebase:', removedItem.nombre || 'Unknown');
-                    
-                    if (isLocalStorageAvailable()) {
-                        localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
-                    }
-                    
-                    if (currentView === 'especialesTienda') {
-                        renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
-                    }
+            let initialLoadComplete = false;
+
+            especialesTiendaListeners.value = especialesTiendaRef.on('value', (snapshot) => {
+                if (!initialLoadComplete) return; // el primer disparo lo cubre loadEspecialesTienda
+
+                const data = snapshot.val();
+                let arr;
+                if (Array.isArray(data)) {
+                    arr = data.filter(e => e != null && typeof e === 'object');
+                } else if (data && typeof data === 'object') {
+                    arr = Object.values(data).filter(e => e != null && typeof e === 'object');
+                } else {
+                    arr = [];
                 }
-            });
-            
-            especialesTiendaListeners.childChanged = especialesTiendaRef.on('child_changed', (snapshot) => {
-                const updatedItem = snapshot.val();
-                const index = parseInt(snapshot.key, 10);
-                
-                if (updatedItem && typeof updatedItem === 'object') {
-                    if (!isNaN(index) && index >= 0 && index < especialesTienda.length) {
-                        especialesTienda[index] = updatedItem;
-                    } else {
-                        const existingIndex = especialesTienda.findIndex(e => e.id_price === updatedItem.id_price);
-                        if (existingIndex !== -1) {
-                            especialesTienda[existingIndex] = updatedItem;
-                        }
-                    }
-                    
-                    console.log('Especial Tienda updated from Firebase:', updatedItem.nombre);
-                    
-                    if (isLocalStorageAvailable()) {
-                        localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
-                    }
-                    
-                    if (currentView === 'especialesTienda') {
-                        renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
-                    }
+
+                // Reconstruir SIEMPRE desde Firebase (fuente de verdad)
+                especialesTienda = arr;
+
+                // Semilla del autocompletar (solo crece, nunca se reduce)
+                especialesTienda.forEach(e => saveToEspecialesTiendaProductCatalog(e.nombre, e.upc, e.imageUrl));
+
+                if (isLocalStorageAvailable()) {
+                    localStorage.setItem('especialesTienda', JSON.stringify(especialesTienda));
                 }
+                if (currentView === 'especialesTienda') {
+                    renderEspecialesTienda(document.getElementById('especialesTiendaSearchInput')?.value || '');
+                }
+                console.log('Especiales Tienda sync (value):', especialesTienda.length, 'items');
             });
-            
+
             setTimeout(() => {
                 initialLoadComplete = true;
-                console.log('Especiales Tienda Firebase listeners active');
+                console.log('Especiales Tienda Firebase value-listener active');
             }, 1000);
         }
 
