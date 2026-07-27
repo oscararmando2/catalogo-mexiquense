@@ -1026,7 +1026,13 @@
 
         // ==== Utils ====
         function generateId(){ return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-        function sanitizeInput(input){ if (!input) return ''; const div=document.createElement('div'); div.textContent=input; return div.innerHTML; }
+        // Decodifica entidades HTML que ya venían en el dato (ej. "M&amp;M"/"L&amp;m" que la
+        // importación guardó así) → "M&M"/"L&m". Usa un <textarea> (contexto RCDATA), así que
+        // no ejecuta HTML: es seguro.
+        function decodeEntities(input){ if(!input) return ''; const ta=document.createElement('textarea'); ta.innerHTML=String(input); return ta.value; }
+        // Escapa para insertar seguro en innerHTML. Decodifica primero para NO doble-escapar los
+        // datos que ya traían entidades (si no, "M&amp;M" se volvía "M&amp;amp;M").
+        function sanitizeInput(input){ if (!input) return ''; const div=document.createElement('div'); div.textContent=decodeEntities(input); return div.innerHTML; }
         function formatCurrency(amount){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(amount); }
         function debounce(fn, wait){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
         function isLocalStorageAvailable(){ try{ localStorage.setItem('__t','__t'); localStorage.removeItem('__t'); return true; }catch{ return false; } }
@@ -1370,16 +1376,18 @@
             if(!product){ showToast('Producto no encontrado.', true); return; }
             try{
                 const displayName = product.nombre || product.name || product.description || 'Sin nombre';
-                modalProductTitle.textContent = sanitizeInput(displayName);
-                productItemNumber.textContent = sanitizeInput(product.itemNumber || 'N/A');
-                productUpc.textContent = sanitizeInput(product.upc || 'N/A');
-                productSize.textContent = sanitizeInput(product.size || 'N/A');
-                productQty.textContent = sanitizeInput(String(product.qty ?? 'N/A'));
+                // .textContent ya es seguro (no interpreta HTML); solo decodificamos las entidades
+                // que el dato traía, para NO mostrar "&amp;" literal.
+                modalProductTitle.textContent = decodeEntities(displayName);
+                productItemNumber.textContent = decodeEntities(product.itemNumber || 'N/A');
+                productUpc.textContent = decodeEntities(product.upc || 'N/A');
+                productSize.textContent = decodeEntities(product.size || 'N/A');
+                productQty.textContent = decodeEntities(String(product.qty ?? 'N/A'));
                 // Only show description if it differs from the displayed name, or if nombre/name exists
                 const shouldShowDescription = (product.nombre || product.name) || !product.description;
-                productDescription.textContent = shouldShowDescription 
-                    ? sanitizeInput(product.description || 'Sin descripción')
-                    : sanitizeInput('Sin descripción adicional');
+                productDescription.textContent = shouldShowDescription
+                    ? decodeEntities(product.description || 'Sin descripción')
+                    : 'Sin descripción adicional';
                 productCosto.textContent = formatCurrency(product.costo || 0);
 
                 if(product.url){
