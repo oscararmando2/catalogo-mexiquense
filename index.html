@@ -849,6 +849,7 @@
         // El orden importa: gana el primer departamento cuyo keyword aparezca.
         // No modifica Firebase; el departamento se calcula en el navegador.
         const DEPARTMENTS = [
+            { key:'cigarros',  label:'Cigarros',          emoji:'🚬', kw:['cigarette','cigarettes','cigarro','marlboro','camel','newport','kool','winston','salem','natural american spirit','pall mall','maverick','pyramid','l&m','doral','montego','montclair','sonoma','fortuna','parliament','carlton','tareyton','lucky strike','seneca','benson & hedges','eagle 20','cheyenne','wildhorse','bugler','borkum','captain black','gambler','cris cros','criss cross','pipe tobacco','roll your own','tobacco pouch','tobacco can','ryo'] },
             { key:'medicina',  label:'Medicina',          emoji:'💊', kw:['tadin','broncolin','rompe pecho','cough','flu','herbal','medicin','jarabe','vaporub','vaporu','vick','vitamin','alcohol','pomada','unguento','ungüento','analges','aspirin','tylenol','pepto','sal de uvas','picot','alka','desenfriol','mejoral','curita','venda','peroxido','peróxido'] },
             { key:'limpieza',  label:'Hogar y Limpieza',   emoji:'🧽', kw:['cloralen','cloro','febreze','kingsford','charcoal','briquet','carbon','carbón','detergente','pinol','fabuloso','limpiador','cleaner','bleach','ariel','downy','suavitel','foil','aluminum','aluminio','trash','basura','servilleta','napkin','paper towel','escoba','lighter','encendedor','vela','candle','glade','lysol','windex','esponja','sponge','jabon liquido','ambientador','desinfectante'] },
             { key:'belleza',   label:'Salud y Belleza',    emoji:'🧴', kw:['shampoo','grisi','head shoulders','head & shoulders','jabon','jabón','soap','shower gel','body wash','lotion','locion','loción','desodorante','deodorant','colgate','toothpaste','pasta dental','cepillo','dental','rasuradora','shave','afeitar','acondicionador','conditioner',' hair','cabello','sunscreen','bloqueador','vaselina','cotonete','pañal','diaper','baby wipe','toallita','maquillaje','esmalte','saba','kotex','always','toalla femenina','sanitary','feminine','curita','algodon','algodón'] },
@@ -862,6 +863,9 @@
         // Calcula (y cachea) el departamento de un producto
         function deptOf(p){
             if(p.__dept) return p.__dept;
+            // Cigarros: los cigarros vienen por "Carton" (tamaño) — señal más confiable que la marca
+            const size = (p.size || '').toLowerCase();
+            if(size.indexOf('carton') > -1){ p.__dept = 'cigarros'; return 'cigarros'; }
             const t = ' ' + ((p.name||p.nombre||'') + ' ' + (p.description||'')).toLowerCase() + ' ';
             for(const d of DEPARTMENTS){
                 if(d.kw.some(k=> t.includes(k))){ p.__dept = d.key; return d.key; }
