@@ -860,18 +860,30 @@
             { key:'abarrotes', label:'Abarrotes',          emoji:'🫘', kw:['iberia','aceite',' oil','arroz','rice','frijol','bean','salsa','sauce','cholula','tajin','tajín','maseca','harina','flour','azucar','azúcar','sugar',' salt',' sal ','sopa','soup','pasta','atun','atún','tuna','sardina','sardine','mole','chile','tortilla','maiz','maíz','nixtamal','valentina','herdez','costena','costeña','goya','knorr','caldo','consome','consomé','vinagre','miel','honey','cereal','nutella','mayonesa','mostaza','ketchup','especias','chorizo','arepa','castipan',' pan ','bread','sirena','azteca','nopal'] },
         ];
 
-        // Calcula (y cachea) el departamento de un producto
+        // Calcula (y cachea) el departamento de un producto.
+        // OJO: NO usamos p.__dept como caché porque muchos productos traen un __dept
+        // VIEJO guardado dentro de Firebase (de antes de existir ciertos departamentos,
+        // ej. Cigarros). Si confiáramos en él, la reclasificación nueva nunca correría.
+        // Por eso ignoramos cualquier __dept persistido y memorizamos en un WeakMap
+        // de sesión (que nunca se escribe a Firebase).
+        const __deptMemo = new WeakMap();
         function deptOf(p){
-            if(p.__dept) return p.__dept;
+            if(!p || typeof p !== 'object') return 'otros';
+            if(__deptMemo.has(p)) return __deptMemo.get(p);
+            let dept;
             // Cigarros: los cigarros vienen por "Carton" (tamaño) — señal más confiable que la marca
             const size = (p.size || '').toLowerCase();
-            if(size.indexOf('carton') > -1){ p.__dept = 'cigarros'; return 'cigarros'; }
-            const t = ' ' + ((p.name||p.nombre||'') + ' ' + (p.description||'')).toLowerCase() + ' ';
-            for(const d of DEPARTMENTS){
-                if(d.kw.some(k=> t.includes(k))){ p.__dept = d.key; return d.key; }
+            if(size.indexOf('carton') > -1){
+                dept = 'cigarros';
+            } else {
+                const t = ' ' + ((p.name||p.nombre||'') + ' ' + (p.description||'')).toLowerCase() + ' ';
+                dept = 'otros';
+                for(const d of DEPARTMENTS){
+                    if(d.kw.some(k=> t.includes(k))){ dept = d.key; break; }
+                }
             }
-            p.__dept = 'otros';
-            return 'otros';
+            __deptMemo.set(p, dept);
+            return dept;
         }
 
         // Construye/actualiza la barra de chips de departamentos
