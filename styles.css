@@ -102,6 +102,18 @@ body {
     color: #006847;
 }
 
+/* Botón de Favoritos (corazón) del modal de detalles */
+.fav-toggle-btn { cursor: pointer; }
+.fav-toggle-btn .fav-heart { transition: transform .15s ease; }
+.fav-toggle-btn:hover .fav-heart { transform: scale(1.12); }
+.fav-toggle-btn.is-fav {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+}
+.fav-toggle-btn.is-fav:hover { background-color: #dc2626; border-color: #dc2626; }
+.fav-toggle-btn.is-fav .fav-heart { fill: #ffffff; }
+
 /* Multi-selection (admin) */
 .selected-card {
     outline: 2px solid rgb(59 130 246); 
