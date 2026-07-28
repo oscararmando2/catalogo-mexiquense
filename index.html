@@ -294,23 +294,19 @@
         </section>
 
         <!-- Public View -->
-        <section id="publicView" class="flex-grow container mx-auto px-4 py-8">
-            <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-                <h2 class="text-2xl font-bold text-mexican-green mb-4">Catálogo de Productos</h2>
-                <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-                    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-                        <div class="flex-grow">
-                            <div class="relative">
-                                <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." aria-label="Buscar productos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-                            </div>
-                        </div>
+        <section id="publicView" class="flex-grow container mx-auto px-0 sm:px-4 py-4 sm:py-8">
+                <h2 class="text-xl sm:text-2xl font-bold text-mexican-green mb-3 sm:mb-4 px-3 sm:px-0">Catálogo de Productos</h2>
+                <!-- Barra sticky: búsqueda + chips de departamento (se quedan arriba al hacer scroll) -->
+                <div id="catalogStickyBar" class="sticky top-0 z-30 px-3 sm:px-0 pt-2 pb-2 border-b border-gray-200" style="background:#f3f4f6;">
+                    <div class="relative mb-3">
+                        <input id="publicSearchInput" type="text" placeholder="Buscar productos por nombre o UPC..." aria-label="Buscar productos" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
                     </div>
+                    <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
                 </div>
-                <div id="publicTabs" class="flex space-x-4 border-b border-gray-200"></div>
-                <div id="publicTabContent" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+                <div id="publicTabContent" class="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 px-3 sm:px-0"></div>
                 <!-- Pagination Controls -->
-                <div id="paginationControls" class="mt-8 flex flex-wrap justify-center items-center gap-2">
+                <div id="paginationControls" class="mt-8 flex flex-wrap justify-center items-center gap-2 px-3 sm:px-0">
                     <button id="prevPage" class="bg-mexican-green hover:bg-opacity-90 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         Anterior
                     </button>
@@ -319,7 +315,6 @@
                         Siguiente
                     </button>
                 </div>
-            </div>
         </section>
 
         <!-- Especiales View -->
@@ -502,7 +497,8 @@
 
         <!-- Modal Detalle -->
         <div id="productDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <span class="sheet-handle" aria-hidden="true"></span>
                 <div class="bg-mexican-green text-white px-6 py-4 flex justify-between items-center">
                     <h3 id="modalProductTitle" class="text-xl font-bold">Detalles del Producto</h3>
                     <button id="closeDetailModal" class="text-white hover:text-gray-200">
@@ -546,8 +542,10 @@
                         <div>
                             <h4 class="text-lg font-semibold mb-2">Descripción</h4>
                             <p id="productDescription" class="text-gray-700 mb-4"></p>
-                            <h4 class="text-lg font-semibold mb-2">Costo</h4>
-                            <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4 cursor-pointer"></p>
+                            <div class="admin-only">
+                                <h4 class="text-lg font-semibold mb-2">Costo</h4>
+                                <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4 cursor-pointer"></p>
+                            </div>
                             <button id="favoriteToggleBtn" type="button" data-id="" aria-pressed="false" class="fav-toggle-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium border-2 border-red-500 text-red-500 hover:bg-red-50 transition-all">
                                 <svg class="fav-heart h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                                 <span id="favoriteToggleLabel">Agregar a Favoritos</span>
@@ -955,6 +953,7 @@
             // Actualización optimista local (para que se sienta instantáneo)
             if(makeFav) favorites.add(id); else favorites.delete(id);
             refreshFavoriteButton();
+            refreshCardHearts();
             updateFavoritesChip();
             if(currentDepartment === 'favoritos') renderPublicTabs(publicSearchInput?.value || '');
             // Persistir: SOLO tocamos el nodo NUEVO 'favoritos/<id>' con un booleano.
@@ -983,6 +982,15 @@
         function updateFavoritesChip(){
             const badge = document.querySelector('.dept-chip[data-key="favoritos"] .dept-chip-count');
             if(badge) badge.textContent = favorites.size;
+        }
+
+        // Sincroniza los corazones de las tarjetas visibles con el set de favoritos.
+        function refreshCardHearts(){
+            document.querySelectorAll('.card-fav-btn').forEach(b=>{
+                const on = favorites.has(b.dataset.favId);
+                b.classList.toggle('is-fav', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
         }
 
         // ==== DOM ====
@@ -1172,6 +1180,7 @@
                         favorites = new Set(Object.keys(val).filter(k=> val[k] === true));
                         updateFavoritesChip();
                         refreshFavoriteButton();
+                        refreshCardHearts();
                         if(currentDepartment === 'favoritos') renderPublicTabs(publicSearchInput?.value || '');
                     });
                 } else {
@@ -1335,17 +1344,19 @@
             container.innerHTML = '';
             list.forEach(product=>{
                 const card = document.createElement('div');
-                card.className = 'bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+                card.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover';
+                card.dataset.id = product.id;
+                const fav = isFavorite(product.id);
                 card.innerHTML = `
                     <div class='product-image-container relative'>
                         ${isNewProduct(product) ? `<span class='absolute top-2 left-2 bg-mexican-green text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse'>NEW</span>` : ''}
+                        <button type='button' class='card-fav-btn ${fav ? 'is-fav' : ''}' data-fav-id='${product.id}' aria-pressed='${fav}' aria-label='Agregar a Favoritos'>
+                            <svg class='card-fav-heart' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'/></svg>
+                        </button>
                         <img src='${product.url || 'https://placehold.co/300x200/png?text=Sin+Imagen'}' alt='${sanitizeInput(product.nombre || product.name || product.description || 'Producto')}' class='product-image' onerror="this.onerror=null; this.src='https://placehold.co/300x200/png?text=Error+al+cargar';">
                     </div>
-                    <div class='p-3 sm:p-4 lg:p-5'>
-                        <h3 class='text-sm sm:text-base lg:text-lg font-semibold text-gray-900 mb-2 leading-snug product-title-clamp' title='${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
-                        <div class='flex justify-center'>
-                            <button class='view-details bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all w-full sm:w-auto' data-id='${product.id}'>Ver detalles</button>
-                        </div>
+                    <div class='p-2.5 sm:p-4'>
+                        <h3 class='text-sm sm:text-base lg:text-lg font-semibold text-gray-900 leading-snug product-title-clamp' title='${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}'>${sanitizeInput(product.nombre || product.name || product.description || 'Sin nombre')}</h3>
                     </div>`;
                 container.appendChild(card);
             });
@@ -1886,7 +1897,16 @@ function resetImportModal() {
 
             // Delegación ver detalles
             productsContainer.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
-            publicTabContent.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
+            publicTabContent.addEventListener('click', (e)=>{
+                // 1) Corazón en la tarjeta → marca/quita favorito (sin abrir detalles)
+                const favBtn = e.target.closest('.card-fav-btn');
+                if(favBtn){ e.stopPropagation(); toggleFavorite(favBtn.dataset.favId); return; }
+                // 2) Toda la tarjeta es tocable → abre detalles
+                const card = e.target.closest('.product-card');
+                if(card && card.dataset.id){ showProductDetails(card.dataset.id); return; }
+                // (compat) botón viejo por si quedara
+                const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id);
+            });
 
             // Eliminar individual desde modal
             deleteProductBtn.addEventListener('click', ()=>{
