@@ -114,6 +114,50 @@ body {
 .fav-toggle-btn.is-fav:hover { background-color: #dc2626; border-color: #dc2626; }
 .fav-toggle-btn.is-fav .fav-heart { fill: #ffffff; }
 
+/* ===== UX/UI mobile-first ===== */
+/* Fondo gris suave para que las tarjetas blancas resalten (catálogo full-width) */
+body { background: #f3f4f6; }
+
+/* Tarjeta de producto: toda tocable */
+.product-card { cursor: pointer; }
+.product-card:active { transform: scale(0.985); }
+
+/* Corazón de favorito en la esquina de la tarjeta */
+.card-fav-btn {
+    position: absolute; top: 6px; right: 6px; z-index: 2;
+    width: 34px; height: 34px; border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    border: none; cursor: pointer; padding: 0;
+    transition: transform .12s ease, background .12s ease;
+}
+.card-fav-btn:active { transform: scale(0.85); }
+.card-fav-heart { width: 20px; height: 20px; fill: none; stroke: #ef4444; stroke-width: 2; }
+.card-fav-btn.is-fav { background: #ef4444; }
+.card-fav-btn.is-fav .card-fav-heart { fill: #ffffff; stroke: #ffffff; }
+
+/* Barrita para arrastrar (drag handle) del bottom-sheet en móvil */
+.sheet-handle { display: none; }
+
+/* Modal como bottom-sheet en móvil: sube desde abajo, esquinas redondeadas arriba */
+@media (max-width: 640px) {
+    #productDetailModal { align-items: flex-end !important; }
+    #productDetailModal > div {
+        max-width: 100% !important;
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 18px 18px 0 0;
+        animation: sheetUp .28s cubic-bezier(.22,.61,.36,1);
+    }
+    .sheet-handle {
+        display: block; position: absolute; top: 8px; left: 50%;
+        transform: translateX(-50%); width: 42px; height: 5px;
+        border-radius: 9999px; background: rgba(255,255,255,0.7); z-index: 3;
+    }
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
 /* Multi-selection (admin) */
 .selected-card {
     outline: 2px solid rgb(59 130 246); 
