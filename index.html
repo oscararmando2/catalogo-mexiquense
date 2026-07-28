@@ -548,6 +548,10 @@
                             <p id="productDescription" class="text-gray-700 mb-4"></p>
                             <h4 class="text-lg font-semibold mb-2">Costo</h4>
                             <p id="productCosto" class="text-2xl font-bold text-mexican-green mb-4 cursor-pointer"></p>
+                            <button id="favoriteToggleBtn" type="button" data-id="" aria-pressed="false" class="fav-toggle-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium border-2 border-red-500 text-red-500 hover:bg-red-50 transition-all">
+                                <svg class="fav-heart h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                <span id="favoriteToggleLabel">Agregar a Favoritos</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -844,6 +848,8 @@
         let currentPage = 1;
         const itemsPerPage = 20;
         let currentDepartment = 'all';
+        // IDs de productos marcados como favoritos. Compartidos por TODOS via el nodo Firebase 'favoritos'.
+        let favorites = new Set();
 
         // ==== Departamentos (clasificación automática por palabras clave) ====
         // El orden importa: gana el primer departamento cuyo keyword aparezca.
@@ -901,6 +907,8 @@
 
                 // Lista de chips a mostrar (Todos + deptos con al menos 1 producto)
                 const chips = [{ key:'all', label:'Todos', emoji:'🛒', count: counts.all }];
+                // Favoritos: siempre visible (aunque esté en 0) para que se descubra. No es por keyword: filtra por el set 'favorites'.
+                chips.push({ key:'favoritos', label:'Favoritos', emoji:'❤️', count: favorites.size });
                 DEPARTMENTS.forEach(d=>{ if(counts[d.key] > 0) chips.push({ key:d.key, label:d.label, emoji:d.emoji, count:counts[d.key] }); });
                 if(counts.otros > 0) chips.push({ key:'otros', label:'Otros', emoji:'📦', count:counts.otros });
 
@@ -935,6 +943,46 @@
                     badge.classList.toggle('text-gray-500', !on);
                 }
             });
+        }
+
+        // ==== Favoritos (nodo Firebase 'favoritos', compartido por todos) ====
+        function isFavorite(id){ return !!id && favorites.has(id); }
+
+        // Agrega/quita un producto de Favoritos con un click.
+        function toggleFavorite(id){
+            if(!id) return;
+            const makeFav = !favorites.has(id);
+            // Actualización optimista local (para que se sienta instantáneo)
+            if(makeFav) favorites.add(id); else favorites.delete(id);
+            refreshFavoriteButton();
+            updateFavoritesChip();
+            if(currentDepartment === 'favoritos') renderPublicTabs(publicSearchInput?.value || '');
+            // Persistir: SOLO tocamos el nodo NUEVO 'favoritos/<id>' con un booleano.
+            // Para quitar NUNCA borramos el nodo: ponemos false (respeta la regla de no borrar nodos).
+            try{
+                if(database){
+                    database.ref('favoritos/' + id).set(makeFav)
+                        .then(()=> showToast(makeFav ? 'Agregado a Favoritos ❤️' : 'Quitado de Favoritos'))
+                        .catch(()=> showToast('No se pudo guardar el favorito.', true));
+                }
+            }catch(e){ /* sin conexión: queda solo local */ }
+        }
+
+        // Refresca la apariencia del botón corazón del modal según el producto abierto.
+        function refreshFavoriteButton(){
+            const btn = document.getElementById('favoriteToggleBtn');
+            if(!btn) return;
+            const on = isFavorite(btn.dataset.id);
+            btn.classList.toggle('is-fav', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            const label = document.getElementById('favoriteToggleLabel');
+            if(label) label.textContent = on ? 'En Favoritos' : 'Agregar a Favoritos';
+        }
+
+        // Mantiene al día el número del chip ❤️ Favoritos.
+        function updateFavoritesChip(){
+            const badge = document.querySelector('.dept-chip[data-key="favoritos"] .dept-chip-count');
+            if(badge) badge.textContent = favorites.size;
         }
 
         // ==== DOM ====
@@ -1118,6 +1166,14 @@
                         renderPublicTabs();
                         showToast('Datos sincronizados desde Firebase.');
                     });
+                    // Favoritos compartidos: nodo 'favoritos' = { <idProducto>: true|false }
+                    database.ref('favoritos').on('value', (snap)=>{
+                        const val = snap.val() || {};
+                        favorites = new Set(Object.keys(val).filter(k=> val[k] === true));
+                        updateFavoritesChip();
+                        refreshFavoriteButton();
+                        if(currentDepartment === 'favoritos') renderPublicTabs(publicSearchInput?.value || '');
+                    });
                 } else {
                     throw new Error('Firebase not available');
                 }
@@ -1227,7 +1283,9 @@
 
             let filtered = [...products];
             // Filtro por departamento (chips)
-            if(currentDepartment && currentDepartment !== 'all'){
+            if(currentDepartment === 'favoritos'){
+                filtered = filtered.filter(p=> favorites.has(p.id));
+            } else if(currentDepartment && currentDepartment !== 'all'){
                 filtered = filtered.filter(p=> deptOf(p) === currentDepartment);
             }
             if(searchTerm){
@@ -1240,7 +1298,11 @@
                 );
             }
             if(filtered.length===0){
-                publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                if(currentDepartment === 'favoritos'){
+                    publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-red-300' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>Aún no hay favoritos</h3><p class='mt-1 text-gray-500'>Abre cualquier producto, dale a <span class='text-red-500 font-medium'>❤ Agregar a Favoritos</span> y aparecerá aquí.</p></div>`;
+                } else {
+                    publicTabContent.innerHTML = `<div class='col-span-full text-center py-12'><svg xmlns='http://www.w3.org/2000/svg' class='h-16 w-16 mx-auto text-gray-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg><h3 class='mt-4 text-lg font-medium text-gray-900'>No se encontraron productos</h3><p class='mt-1 text-gray-500'>Intenta con otra búsqueda.</p></div>`;
+                }
                 paginationControls.style.display = 'none';
                 return;
             }
@@ -1409,6 +1471,10 @@
                     customFieldsContainer.appendChild(p);
                 });
                 deleteProductBtn.dataset.id = product.id;
+                // Botón de Favoritos: apuntarlo a este producto y reflejar si ya es favorito
+                const favBtn = document.getElementById('favoriteToggleBtn');
+                if(favBtn){ favBtn.dataset.id = product.id; }
+                refreshFavoriteButton();
                 document.querySelectorAll('.admin-only').forEach(el=> el.style.display = currentView==='admin' ? '' : 'none');
                 productDetailModal.classList.remove('hidden');
             }catch(e){ console.error('Error mostrando detalles:', e); showToast('Error al mostrar detalles.', true); }
@@ -1781,6 +1847,11 @@ function resetImportModal() {
                     }
                 });
             }
+
+            // Favoritos: un click en el corazón lo agrega/quita
+            document.getElementById('favoriteToggleBtn')?.addEventListener('click', ()=>{
+                toggleFavorite(document.getElementById('favoriteToggleBtn').dataset.id);
+            });
 
             // Cierre modales
             document.getElementById('closeDetailModal').addEventListener('click', ()=> productDetailModal.classList.add('hidden'));
