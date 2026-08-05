@@ -4395,55 +4395,46 @@ function resetImportModal() {
         var aiHistory = [];   // memoria de la conversación [{role, content}]
         // Bloquea el scroll del fondo (catálogo) mientras el chat está abierto en móvil,
         // así las tarjetas no se mueven detrás y no se traba.
-        var aiSavedScrollY = 0;
         function aiIsMobile(){ return window.innerWidth <= 640; }
-        function aiLockScroll(){
-            if(!aiIsMobile() || document.body.classList.contains('ai-scroll-lock')) return;
-            aiSavedScrollY = window.scrollY || window.pageYOffset || 0;
-            document.body.style.top = (-aiSavedScrollY) + 'px';
-            document.body.classList.add('ai-scroll-lock');
-        }
-        function aiUnlockScroll(){
-            if(!document.body.classList.contains('ai-scroll-lock')) return;
-            document.body.classList.remove('ai-scroll-lock');
-            document.body.style.top = '';
-            window.scrollTo(0, aiSavedScrollY);
-        }
-        // Cuando el teclado del iPhone se abre, el área visible se encoge pero el
-        // panel (fixed/vh) no; el input y la conversación quedan tapados. Con la API
-        // visualViewport ajustamos el panel al área realmente visible sobre el teclado.
+        // En móvil el panel ocupa el área REALMENTE visible (arriba del teclado).
+        // Usamos visualViewport: cuando el teclado sale, el panel encoge y su input
+        // queda justo sobre el teclado; la conversación no se pierde.
         function aiClearPanelInline(){
             panel.style.top=''; panel.style.left=''; panel.style.right='';
-            panel.style.bottom=''; panel.style.height=''; panel.style.maxHeight='';
+            panel.style.bottom=''; panel.style.height=''; panel.style.width=''; panel.style.maxHeight='';
         }
-        function aiSyncViewport(){
+        function aiFitViewport(){
             if(panel.classList.contains('hidden')) return;
-            if(!aiIsMobile() || !window.visualViewport){ aiClearPanelInline(); return; }
+            if(!aiIsMobile()){ aiClearPanelInline(); return; }
             var vv = window.visualViewport;
-            var keyboardUp = (window.innerHeight - vv.height) > 120;
-            if(keyboardUp){
-                panel.style.top = (vv.offsetTop) + 'px';
-                panel.style.left = '8px';
-                panel.style.right = '8px';
-                panel.style.bottom = 'auto';
-                panel.style.height = (vv.height - 12) + 'px';
-                panel.style.maxHeight = 'none';
-                if(messages) messages.scrollTop = messages.scrollHeight;
-            } else {
-                aiClearPanelInline();
-            }
+            if(!vv) return;
+            panel.style.left = '0px';
+            panel.style.right = '0px';
+            panel.style.width = 'auto';
+            panel.style.top = (vv.offsetTop || 0) + 'px';
+            panel.style.bottom = 'auto';
+            panel.style.height = vv.height + 'px';
+            panel.style.maxHeight = 'none';
+            if(messages) messages.scrollTop = messages.scrollHeight;
         }
         if(window.visualViewport){
-            window.visualViewport.addEventListener('resize', aiSyncViewport);
-            window.visualViewport.addEventListener('scroll', aiSyncViewport);
+            window.visualViewport.addEventListener('resize', aiFitViewport);
+            window.visualViewport.addEventListener('scroll', aiFitViewport);
         }
-        input.addEventListener('focus', function(){ setTimeout(aiSyncViewport, 250); });
-        input.addEventListener('blur', function(){ setTimeout(aiSyncViewport, 250); });
+        // iOS abre el teclado con retraso: reajustamos varias veces
+        input.addEventListener('focus', function(){ [60,200,400,700].forEach(function(t){ setTimeout(aiFitViewport, t); }); });
+        input.addEventListener('blur', function(){ [60,300].forEach(function(t){ setTimeout(aiFitViewport, t); }); });
         function setOpen(open){
             panel.classList.toggle('hidden', !open);
             fab.classList.toggle('ai-fab-open', open);
-            if(open){ aiLockScroll(); setTimeout(function(){ input.focus(); aiSyncViewport(); }, 120); }
-            else { aiUnlockScroll(); aiClearPanelInline(); }
+            if(open){
+                document.body.classList.add('ai-scroll-lock');
+                aiFitViewport();
+                setTimeout(function(){ input.focus(); aiFitViewport(); }, 150);
+            } else {
+                document.body.classList.remove('ai-scroll-lock');
+                aiClearPanelInline();
+            }
         }
         fab.addEventListener('click', function(){ setOpen(panel.classList.contains('hidden')); });
         closeBtn.addEventListener('click', function(){ setOpen(false); });
