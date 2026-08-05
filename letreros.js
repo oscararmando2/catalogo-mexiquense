@@ -113,15 +113,6 @@ function makeBuilder(jsPDF) {
     const priceStr = String(d.price || '').replace('$', '').trim();
     let intPart = priceStr, cents = '';
     if (priceStr.indexOf('.') > -1) { const p = priceStr.split('.'); intPart = p[0]; cents = (p[1] + '00').slice(0, 2); }
-    // multi-unidad (ej "5 X") arriba a la derecha
-    let priceTop = contentTop + 18;
-    if (d.multi) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(34);
-      doc.setTextColor.apply(doc, MULTI_RED);
-      doc.text(String(d.multi).toUpperCase(), rightX, priceTop + 24, { align: 'right' });
-      priceTop += 42;
-    }
     // tamaño del entero — grande (como el de referencia); auto-reduce si no cabe
     let bigFs = 138;
     const supFs0 = () => Math.round(bigFs * 0.40);
@@ -133,8 +124,27 @@ function makeBuilder(jsPDF) {
     }
     while (priceWidth() > bw * 0.50 && bigFs > 40) bigFs -= 4;
     const supFs = supFs0();
-    // baseline del entero
-    const priceBaseY = (nameZoneTop + nameZoneBottom) / 2 + bigFs * 0.32;
+    // multi-unidad (ej "5 X") arriba a la derecha, claramente SEPARADO del precio
+    let multiBottom = nameZoneTop;
+    if (d.multi) {
+      doc.setFont('helvetica', 'bold');
+      const mfs = 30;
+      doc.setFontSize(mfs);
+      doc.setTextColor.apply(doc, MULTI_RED);
+      const my = nameZoneTop + mfs;                 // baseline del multi, pegado arriba
+      doc.text(String(d.multi).toUpperCase(), rightX, my, { align: 'right' });
+      multiBottom = my + 4;
+    }
+    // baseline del entero: si hay multi, va debajo del multi con holgura; si no, centrado
+    const zoneCenter = (nameZoneTop + nameZoneBottom) / 2;
+    let priceBaseY;
+    if (d.multi) {
+      priceBaseY = multiBottom + bigFs * 0.92;       // deja aire entre "5 X" y los centavos
+      const maxBase = nameZoneBottom + bigFs * 0.08;
+      if (priceBaseY > maxBase) priceBaseY = maxBase;
+    } else {
+      priceBaseY = zoneCenter + bigFs * 0.32;
+    }
     doc.setTextColor(15, 15, 15);
     // medir anchos
     doc.setFontSize(bigFs); const wInt = doc.getTextWidth(intPart);
