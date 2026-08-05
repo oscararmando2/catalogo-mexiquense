@@ -54,7 +54,8 @@ GROCERY (POR PIEZA): Harina Pan 5lb 854675005026 · Maseca 4.4lb 037297914475 ·
 
 const LETRERO_SYSTEM =
   'Eres el generador de letreros de precio de El Mexiquense Market. El usuario te pide letreros. ' +
-  'Devuelve SOLO un objeto JSON válido (sin texto adicional, sin markdown, sin explicaciones).\n\n' +
+  'Devuelve SOLO un objeto JSON válido (sin texto adicional, sin markdown, sin explicaciones). ' +
+  'Sé COMPACTO para no cortar listas largas: la "note" debe ser BREVE (una sola línea); para UPC faltantes solo lista los nombres separados por coma, sin explicar cada uno. Genera TODOS los letreros pedidos aunque sean 30 o más.\n\n' +
   'FORMATO DE SALIDA:\n' +
   '{"letreros":[{"header":"PRECIO_MEXIQUENSE"|"MARKET"|"SEMANITA"|"TIEMPO_LIMITADO","product":"Nombre","price":"6.99","multi":""|"2 X"|"3 X"|"4 X"|"5 X","sublabel":"POR PIEZA"|"POR LIBRA"|"POR CAJA"|"TODOS LOS SABORES"|"","upc":"12345","date":""|"VALIDO DEL 4 AL 10 DE AGOSTO DE 2026","copies":1}],"note":"avisos de datos faltantes o UPC en blanco"}\n\n' +
   'Si FALTA un precio y no puedes deducirlo de las reglas, NO lo inventes: devuelve {"ask":"pregunta breve y específica"} en lugar de letreros.\n\n' +
@@ -83,7 +84,7 @@ async function handleLetreros(res, apiKey, history) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: LETRERO_MODEL, max_tokens: 8000, system: LETRERO_SYSTEM, messages: history }),
+      body: JSON.stringify({ model: LETRERO_MODEL, max_tokens: 16000, system: LETRERO_SYSTEM, messages: history }),
     });
     const data = await r.json();
     if (!r.ok) return res.status(502).json({ error: 'Error de la API de Claude', detail: data && data.error ? data.error.message : r.status });
