@@ -4391,6 +4391,7 @@ function resetImportModal() {
         var input = document.getElementById('aiInput');
         var messages = document.getElementById('aiMessages');
         if(!fab || !panel) return;
+        var aiHistory = [];   // memoria de la conversación [{role, content}]
         function setOpen(open){
             panel.classList.toggle('hidden', !open);
             fab.classList.toggle('ai-fab-open', open);
@@ -4421,21 +4422,28 @@ function resetImportModal() {
             input.value = '';
             addMsg(q, 'user');
             var typing = addTyping();
-            var isAdmin = false;
-            try { isAdmin = (typeof currentView !== 'undefined' && currentView === 'admin'); } catch(_){}
+            // Agrega la pregunta al historial y manda TODO (memoria de conversación)
+            aiHistory.push({ role: 'user', content: q });
+            if (aiHistory.length > 20) aiHistory = aiHistory.slice(-20);
             try {
                 var r = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ question: q, isAdmin: isAdmin })
+                    body: JSON.stringify({ history: aiHistory })
                 });
                 var data = await r.json();
                 typing.remove();
-                if (data && data.answer) addMsg(data.answer, 'bot');
-                else addMsg('⚠️ ' + ((data && data.error) || 'No pude responder.'), 'bot');
+                if (data && data.answer) {
+                    addMsg(data.answer, 'bot');
+                    aiHistory.push({ role: 'assistant', content: data.answer });
+                } else {
+                    addMsg('⚠️ ' + ((data && data.error) || 'No pude responder.'), 'bot');
+                    aiHistory.pop(); // quita la pregunta fallida para no ensuciar el hilo
+                }
             } catch (err) {
                 typing.remove();
                 addMsg('⚠️ No me pude conectar. Revisa tu internet o que la IA ya esté configurada en Vercel.', 'bot');
+                aiHistory.pop();
             }
         });
     })();

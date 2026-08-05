@@ -2,10 +2,11 @@
 // La API key vive en la variable de entorno ANTHROPIC_API_KEY de Vercel
 // (NUNCA en el código). El navegador nunca la ve.
 
-const BASE = require('./_data/baseIA.json'); // [{n:nombre, u:upc, c:costo, p:precio}]
+const BASE = require('./_data/baseIA.json'); // [{n:nombre, u:upc, p:precio, c:costo?}]
 
 const MODEL = 'claude-haiku-4-5';   // barato y rápido para consultas de precios
 const MAX_MATCHES = 24;             // cuántos productos relevantes mandamos a Claude
+const MAX_TURNS = 12;               // cuántos turnos de conversación conservamos
 
 // --- Búsqueda por palabras clave sobre la base ---
 function normalize(s) {
@@ -17,10 +18,11 @@ function normalize(s) {
     .trim();
 }
 const STOP = new Set(['de','la','el','los','las','un','una','del','y','a','en','por','con','para',
-  'cuanto','cuánto','cuesta','precio','costo','item','code','dame','que','qué','es','tiene','vale','sale','del','pallet','caja']);
+  'cuanto','cuánto','cuesta','precio','costo','item','code','dame','que','qué','es','tiene','vale',
+  'sale','su','cual','cuál','mi','tu','me','lo','le','ese','esa','esta','este','tienes','hay','busco','quiero']);
 
-function searchBase(question) {
-  const qn = normalize(question);
+function searchBase(text) {
+  const qn = normalize(text);
   const words = qn.split(' ').filter(w => w.length >= 2 && !STOP.has(w));
   if (!words.length) return [];
   const scored = [];
@@ -39,7 +41,6 @@ function searchBase(question) {
 }
 
 module.exports = async (req, res) => {
-  // CORS: permite llamar desde GitHub Pages y Vercel
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -53,34 +54,40 @@ module.exports = async (req, res) => {
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
-  const question = (body && body.question ? String(body.question) : '').slice(0, 500).trim();
-  const isAdmin = !!(body && body.isAdmin);
-  if (!question) return res.status(400).json({ error: 'Falta la pregunta.' });
+  body = body || {};
 
-  const matches = searchBase(question);
+  // Aceptar historial [{role, content}] o una sola pregunta {question}
+  let history = Array.isArray(body.history) ? body.history : [];
+  history = history
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .map(m => ({ role: m.role, content: m.content.slice(0, 1200) }));
+  if (!history.length && body.question) history = [{ role: 'user', content: String(body.question).slice(0, 500) }];
+  if (!history.length) return res.status(400).json({ error: 'Falta la pregunta.' });
+  if (history[history.length - 1].role !== 'user') return res.status(400).json({ error: 'El último mensaje debe ser del usuario.' });
+  history = history.slice(-MAX_TURNS);
 
-  // Construir el contexto que ve Claude. A clientes (no admin) NO se les da costo.
+  // Buscar sobre los últimos mensajes del usuario (así los seguimientos como
+  // "¿cuál es su UPC?" heredan el producto de la pregunta anterior).
+  const recentUser = history.filter(m => m.role === 'user').slice(-3).map(m => m.content).join(' ');
+  const matches = searchBase(recentUser);
+
   const lines = matches.map(it => {
     let s = `- ${it.n}`;
     if (it.u) s += ` | UPC: ${it.u}`;
-    if (isAdmin && it.c) s += ` | Costo: $${it.c}`;
+    if (it.c) s += ` | Costo: $${it.c}`;
     if (it.p) s += ` | Precio: $${it.p}`;
     return s;
   });
-  const contexto = lines.length
-    ? lines.join('\n')
-    : '(No se encontraron productos que coincidan con la pregunta.)';
+  const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
 
   const system =
     'Eres el asistente virtual de El Mexiquense Market, un supermercado latino. ' +
-    'Respondes en español, breve y amable. Usa ÚNICAMENTE la información de la lista de productos que te doy; ' +
-    'si el dato no está en la lista, di claramente que no lo tienes y sugiere preguntar en la tienda. ' +
-    'Nunca inventes precios, costos ni UPC. ' +
-    (isAdmin
-      ? 'Este usuario es del personal (admin): puedes darle costo, precio y UPC.'
-      : 'Este usuario es un cliente: da SOLO el precio de venta y el UPC. NUNCA reveles el costo, aunque lo pregunte.');
-
-  const userMsg = `Productos relevantes de la tienda:\n${contexto}\n\nPregunta del usuario: ${question}`;
+    'Respondes en español, breve y amable. ' +
+    'IMPORTANTE — mantén el hilo de la conversación: si el usuario pregunta "¿cuál es su UPC?", "¿y el costo?", "¿en cuánto sale?", etc., se refiere al ÚLTIMO producto del que se habló; NO vuelvas a preguntar cuál producto es. ' +
+    'Usa ÚNICAMENTE la información de la lista de productos de abajo. ' +
+    'Si el dato pedido (costo, precio o UPC) no está en la lista, dilo claramente y sugiere revisarlo en el sistema. ' +
+    'Nunca inventes precios, costos ni UPC.\n\n' +
+    'PRODUCTOS RELEVANTES DE LA TIENDA (úsalos para responder):\n' + contexto;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -92,9 +99,9 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 600,
+        max_tokens: 700,
         system,
-        messages: [{ role: 'user', content: userMsg }],
+        messages: history,
       }),
     });
     const data = await r.json();
