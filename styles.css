@@ -1431,3 +1431,8 @@ body { background: #f3f4f6; }
     .ai-panel { right: 10px; left: 10px; bottom: 84px; width: auto; max-width: none; height: 70vh; }
     #aiFab { right: 16px; bottom: 16px; width: 56px; height: 56px; }
 }
+
+/* Bloqueo de scroll del fondo mientras el asistente IA está abierto (móvil) */
+body.ai-scroll-lock { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+/* Evita que el scroll del chat se propague al catálogo detrás */
+.ai-messages { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
