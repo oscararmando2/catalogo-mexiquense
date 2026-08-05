@@ -4408,11 +4408,41 @@ function resetImportModal() {
             document.body.style.top = '';
             window.scrollTo(0, aiSavedScrollY);
         }
+        // Cuando el teclado del iPhone se abre, el área visible se encoge pero el
+        // panel (fixed/vh) no; el input y la conversación quedan tapados. Con la API
+        // visualViewport ajustamos el panel al área realmente visible sobre el teclado.
+        function aiClearPanelInline(){
+            panel.style.top=''; panel.style.left=''; panel.style.right='';
+            panel.style.bottom=''; panel.style.height=''; panel.style.maxHeight='';
+        }
+        function aiSyncViewport(){
+            if(panel.classList.contains('hidden')) return;
+            if(!aiIsMobile() || !window.visualViewport){ aiClearPanelInline(); return; }
+            var vv = window.visualViewport;
+            var keyboardUp = (window.innerHeight - vv.height) > 120;
+            if(keyboardUp){
+                panel.style.top = (vv.offsetTop) + 'px';
+                panel.style.left = '8px';
+                panel.style.right = '8px';
+                panel.style.bottom = 'auto';
+                panel.style.height = (vv.height - 12) + 'px';
+                panel.style.maxHeight = 'none';
+                if(messages) messages.scrollTop = messages.scrollHeight;
+            } else {
+                aiClearPanelInline();
+            }
+        }
+        if(window.visualViewport){
+            window.visualViewport.addEventListener('resize', aiSyncViewport);
+            window.visualViewport.addEventListener('scroll', aiSyncViewport);
+        }
+        input.addEventListener('focus', function(){ setTimeout(aiSyncViewport, 250); });
+        input.addEventListener('blur', function(){ setTimeout(aiSyncViewport, 250); });
         function setOpen(open){
             panel.classList.toggle('hidden', !open);
             fab.classList.toggle('ai-fab-open', open);
-            if(open){ aiLockScroll(); setTimeout(function(){ input.focus(); }, 120); }
-            else { aiUnlockScroll(); }
+            if(open){ aiLockScroll(); setTimeout(function(){ input.focus(); aiSyncViewport(); }, 120); }
+            else { aiUnlockScroll(); aiClearPanelInline(); }
         }
         fab.addEventListener('click', function(){ setOpen(panel.classList.contains('hidden')); });
         closeBtn.addEventListener('click', function(){ setOpen(false); });
