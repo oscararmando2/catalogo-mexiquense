@@ -4392,10 +4392,27 @@ function resetImportModal() {
         var messages = document.getElementById('aiMessages');
         if(!fab || !panel) return;
         var aiHistory = [];   // memoria de la conversación [{role, content}]
+        // Bloquea el scroll del fondo (catálogo) mientras el chat está abierto en móvil,
+        // así las tarjetas no se mueven detrás y no se traba.
+        var aiSavedScrollY = 0;
+        function aiIsMobile(){ return window.innerWidth <= 640; }
+        function aiLockScroll(){
+            if(!aiIsMobile() || document.body.classList.contains('ai-scroll-lock')) return;
+            aiSavedScrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.style.top = (-aiSavedScrollY) + 'px';
+            document.body.classList.add('ai-scroll-lock');
+        }
+        function aiUnlockScroll(){
+            if(!document.body.classList.contains('ai-scroll-lock')) return;
+            document.body.classList.remove('ai-scroll-lock');
+            document.body.style.top = '';
+            window.scrollTo(0, aiSavedScrollY);
+        }
         function setOpen(open){
             panel.classList.toggle('hidden', !open);
             fab.classList.toggle('ai-fab-open', open);
-            if(open) setTimeout(function(){ input.focus(); }, 120);
+            if(open){ aiLockScroll(); setTimeout(function(){ input.focus(); }, 120); }
+            else { aiUnlockScroll(); }
         }
         fab.addEventListener('click', function(){ setOpen(panel.classList.contains('hidden')); });
         closeBtn.addEventListener('click', function(){ setOpen(false); });
