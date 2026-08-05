@@ -81,18 +81,22 @@ function makeBuilder(jsPDF) {
     }
 
     // --- Nombre del producto (izquierda, auto-size, hasta 3 líneas) ---
-    const nameMaxW = bw * 0.50;
+    const nameMaxW = bw * 0.52;
     const nameZoneTop = contentTop + 6;
     const nameZoneBottom = (d.sublabel ? pillBottom : footY) - 8;
+    const nameWords = String(d.product || '').split(/\s+/).filter(Boolean);
     let nfs = 58;
     let lines;
     doc.setFont('helvetica', 'bold');
-    while (nfs > 14) {
+    while (nfs > 12) {
       doc.setFontSize(nfs);
+      // la palabra MÁS ANCHA debe caber completa (nunca partir una palabra a la mitad)
+      let maxWordW = 0;
+      for (const w of nameWords) { const ww = doc.getTextWidth(w); if (ww > maxWordW) maxWordW = ww; }
       lines = doc.splitTextToSize(String(d.product || ''), nameMaxW);
       const lineH = nfs * 1.05;
       const totalH = lines.length * lineH;
-      if (lines.length <= 3 && totalH <= (nameZoneBottom - nameZoneTop)) break;
+      if (maxWordW <= nameMaxW && lines.length <= 3 && totalH <= (nameZoneBottom - nameZoneTop)) break;
       nfs -= 2;
     }
     doc.setFontSize(nfs);
