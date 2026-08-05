@@ -4354,5 +4354,91 @@ function resetImportModal() {
         }
         document.addEventListener('DOMContentLoaded', init);
     </script>
+
+    <!-- ===== Asistente IA (botón flotante) ===== -->
+    <button id="aiFab" aria-label="Asistente IA" title="Pregúntale a la IA">
+        <svg class="ai-fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3z"/>
+            <path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z"/>
+        </svg>
+    </button>
+    <div id="aiPanel" class="ai-panel hidden" role="dialog" aria-label="Asistente Mexiquense">
+        <div class="ai-header">
+            <div class="ai-header-title"><span class="ai-dot"></span> Asistente Mexiquense</div>
+            <button id="aiClose" class="ai-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div id="aiMessages" class="ai-messages">
+            <div class="ai-msg ai-msg-bot">¡Hola! 👋 Pregúntame por precios, productos o item codes.<br>Ej: <em>"¿cuánto cuesta la sandía?"</em></div>
+        </div>
+        <form id="aiForm" class="ai-input-row" autocomplete="off">
+            <input id="aiInput" type="text" placeholder="Escribe tu pregunta…" maxlength="500" />
+            <button type="submit" id="aiSend" aria-label="Enviar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+        </form>
+        <div class="ai-foot">IA de El Mexiquense · puede equivocarse</div>
+    </div>
+    <script>
+    (function(){
+        // Backend en Vercel (la API key vive allá, encriptada; el navegador nunca la ve)
+        var API_URL = 'https://catalogo-mexiquense.vercel.app/api/ai';
+        var fab = document.getElementById('aiFab');
+        var panel = document.getElementById('aiPanel');
+        var closeBtn = document.getElementById('aiClose');
+        var form = document.getElementById('aiForm');
+        var input = document.getElementById('aiInput');
+        var messages = document.getElementById('aiMessages');
+        if(!fab || !panel) return;
+        function setOpen(open){
+            panel.classList.toggle('hidden', !open);
+            fab.classList.toggle('ai-fab-open', open);
+            if(open) setTimeout(function(){ input.focus(); }, 120);
+        }
+        fab.addEventListener('click', function(){ setOpen(panel.classList.contains('hidden')); });
+        closeBtn.addEventListener('click', function(){ setOpen(false); });
+        function addMsg(text, who){
+            var d = document.createElement('div');
+            d.className = 'ai-msg ai-msg-' + who;
+            d.textContent = text;
+            messages.appendChild(d);
+            messages.scrollTop = messages.scrollHeight;
+            return d;
+        }
+        function addTyping(){
+            var d = document.createElement('div');
+            d.className = 'ai-msg ai-msg-bot ai-typing';
+            d.innerHTML = '<span></span><span></span><span></span>';
+            messages.appendChild(d);
+            messages.scrollTop = messages.scrollHeight;
+            return d;
+        }
+        form.addEventListener('submit', async function(e){
+            e.preventDefault();
+            var q = (input.value || '').trim();
+            if(!q) return;
+            input.value = '';
+            addMsg(q, 'user');
+            var typing = addTyping();
+            var isAdmin = false;
+            try { isAdmin = (typeof currentView !== 'undefined' && currentView === 'admin'); } catch(_){}
+            try {
+                var r = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ question: q, isAdmin: isAdmin })
+                });
+                var data = await r.json();
+                typing.remove();
+                if (data && data.answer) addMsg(data.answer, 'bot');
+                else addMsg('⚠️ ' + ((data && data.error) || 'No pude responder.'), 'bot');
+            } catch (err) {
+                typing.remove();
+                addMsg('⚠️ No me pude conectar. Revisa tu internet o que la IA ya esté configurada en Vercel.', 'bot');
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
