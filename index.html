@@ -4401,19 +4401,25 @@ function resetImportModal() {
         // queda justo sobre el teclado; la conversación no se pierde.
         function aiClearPanelInline(){
             panel.style.top=''; panel.style.left=''; panel.style.right='';
-            panel.style.bottom=''; panel.style.height=''; panel.style.width=''; panel.style.maxHeight='';
+            panel.style.bottom=''; panel.style.height=''; panel.style.width=''; panel.style.maxWidth=''; panel.style.maxHeight='';
         }
         function aiFitViewport(){
             if(panel.classList.contains('hidden')) return;
             if(!aiIsMobile()){ aiClearPanelInline(); return; }
             var vv = window.visualViewport;
-            if(!vv) return;
-            panel.style.left = '0px';
-            panel.style.right = '0px';
-            panel.style.width = 'auto';
-            panel.style.top = (vv.offsetTop || 0) + 'px';
+            // Fijamos el panel al área VISIBLE con ancho explícito (no left/right:0,
+            // que iOS Safari calcula contra el documento y puede salirse a la derecha).
+            var w = vv ? Math.round(vv.width) : window.innerWidth;
+            var l = vv ? Math.round(vv.offsetLeft || 0) : 0;
+            var t = vv ? Math.round(vv.offsetTop || 0) : 0;
+            var h = vv ? Math.round(vv.height) : window.innerHeight;
+            panel.style.left = l + 'px';
+            panel.style.right = 'auto';
+            panel.style.width = w + 'px';
+            panel.style.maxWidth = w + 'px';
+            panel.style.top = t + 'px';
             panel.style.bottom = 'auto';
-            panel.style.height = vv.height + 'px';
+            panel.style.height = h + 'px';
             panel.style.maxHeight = 'none';
             if(messages) messages.scrollTop = messages.scrollHeight;
         }
