@@ -145,14 +145,20 @@ module.exports = async (req, res) => {
   });
   const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
 
+  const totalStr = BASE.length.toLocaleString('es-MX');
   const system =
     'Eres el asistente virtual de El Mexiquense Market, un supermercado latino. ' +
-    'Respondes en español, breve y amable. ' +
+    'Respondes en español, breve y amable.\n' +
+    'TU CATÁLOGO: tienes acceso a una base con más de ' + totalStr + ' productos de la tienda (precios, costos y UPC). ' +
+    'Por cada pregunta, un buscador te muestra abajo SOLO los productos que coinciden con lo que preguntó el usuario — NO es toda tu base, es un resultado de búsqueda. ' +
+    'NUNCA digas que "solo tienes X productos", ni que "no tienes acceso a la lista", ni cuentes cuántos productos hay: sí tienes el catálogo completo, solo que buscas por nombre o UPC en cada consulta. ' +
+    'Si te piden un conteo total o "toda la lista", explica que puedes buscar cualquier producto por su nombre o código y pídele que te diga cuál necesita.\n' +
     'IMPORTANTE — mantén el hilo de la conversación: si el usuario pregunta "¿cuál es su UPC?", "¿y el costo?", "¿en cuánto sale?", etc., se refiere al ÚLTIMO producto del que se habló; NO vuelvas a preguntar cuál producto es. ' +
-    'Usa ÚNICAMENTE la información de la lista de productos de abajo. ' +
-    'Si el dato pedido (costo, precio o UPC) no está en la lista, dilo claramente y sugiere revisarlo en el sistema. ' +
+    'Para dar precios/costos/UPC usa ÚNICAMENTE los datos de la lista de abajo. ' +
+    'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
+    'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
     'Nunca inventes precios, costos ni UPC.\n\n' +
-    'PRODUCTOS RELEVANTES DE LA TIENDA (úsalos para responder):\n' + contexto;
+    'RESULTADOS DE BÚSQUEDA PARA ESTA PREGUNTA (no es toda tu base):\n' + contexto;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
