@@ -85,7 +85,9 @@ function makeBuilder(jsPDF) {
     const nameZoneTop = contentTop + 6;
     const nameZoneBottom = (d.sublabel ? pillBottom : footY) - 8;
     const nameWords = String(d.product || '').split(/\s+/).filter(Boolean);
-    let nfs = 58;
+    // Empieza GRANDE y reduce solo hasta que quepa: nombres cortos (ej "Limón")
+    // salen con letra enorme; los largos se achican y envuelven por palabra.
+    let nfs = 120;
     let lines;
     doc.setFont('helvetica', 'bold');
     while (nfs > 12) {
@@ -94,14 +96,14 @@ function makeBuilder(jsPDF) {
       let maxWordW = 0;
       for (const w of nameWords) { const ww = doc.getTextWidth(w); if (ww > maxWordW) maxWordW = ww; }
       lines = doc.splitTextToSize(String(d.product || ''), nameMaxW);
-      const lineH = nfs * 1.05;
+      const lineH = nfs * 1.02;
       const totalH = lines.length * lineH;
       if (maxWordW <= nameMaxW && lines.length <= 3 && totalH <= (nameZoneBottom - nameZoneTop)) break;
       nfs -= 2;
     }
     doc.setFontSize(nfs);
     doc.setTextColor(15, 15, 15);
-    const lineH = nfs * 1.05;
+    const lineH = nfs * 1.02;
     const blockH = lines.length * lineH;
     let ty = (nameZoneTop + nameZoneBottom) / 2 - blockH / 2 + nfs * 0.8;
     for (const ln of lines) { doc.text(ln, leftX, ty, { align: 'left' }); ty += lineH; }
@@ -120,16 +122,16 @@ function makeBuilder(jsPDF) {
       doc.text(String(d.multi).toUpperCase(), rightX, priceTop + 24, { align: 'right' });
       priceTop += 42;
     }
-    // tamaño del entero (auto-reduce si es muy ancho)
-    let bigFs = 96;
-    const supFs0 = () => Math.round(bigFs * 0.42);
+    // tamaño del entero — grande (como el de referencia); auto-reduce si no cabe
+    let bigFs = 138;
+    const supFs0 = () => Math.round(bigFs * 0.40);
     doc.setFont('helvetica', 'bold');
     function priceWidth() {
       doc.setFontSize(bigFs); const wi = doc.getTextWidth(intPart);
       doc.setFontSize(supFs0()); const wd = doc.getTextWidth('$') + (cents ? doc.getTextWidth(cents) : 0);
       return wi + wd + 8;
     }
-    while (priceWidth() > bw * 0.52 && bigFs > 40) bigFs -= 4;
+    while (priceWidth() > bw * 0.50 && bigFs > 40) bigFs -= 4;
     const supFs = supFs0();
     // baseline del entero
     const priceBaseY = (nameZoneTop + nameZoneBottom) / 2 + bigFs * 0.32;
