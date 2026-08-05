@@ -1436,3 +1436,11 @@ body { background: #f3f4f6; }
 body.ai-scroll-lock { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 /* Evita que el scroll del chat se propague al catálogo detrás */
 .ai-messages { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+
+/* Botones de resultado de letreros en el chat de IA */
+.ai-letrero-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.ai-lbtn { border: none; cursor: pointer; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+    background: #006847; color: #fff; transition: transform .12s ease, background .12s ease; }
+.ai-lbtn:hover { transform: translateY(-1px); background: #00794f; }
+.ai-lbtn-print { background: #374151; }
+.ai-lbtn-print:hover { background: #1f2937; }

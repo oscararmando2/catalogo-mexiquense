@@ -12,6 +12,7 @@
     <!-- jsPDF / html2canvas / PapaParse -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="letreros.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
@@ -4462,6 +4463,36 @@ function resetImportModal() {
             messages.scrollTop = messages.scrollHeight;
             return d;
         }
+        // Genera el PDF de letreros (jsPDF, en el navegador) y muestra Descargar/Imprimir
+        function addLetrerosResult(letreros, note){
+            var count = letreros.reduce(function(a,l){ return a + Math.max(1, parseInt(l.copies||1,10)||1); }, 0);
+            var d = document.createElement('div');
+            d.className = 'ai-msg ai-msg-bot';
+            d.innerHTML = '¡Listo! 🪧 Generé <b>' + count + ' letrero' + (count>1?'s':'') + '</b>.' +
+                (note ? '<br><span style="font-size:12px;color:#9ca3af;">' + note + '</span>' : '');
+            var doc;
+            try {
+                if (!(window.jspdf && window.jspdf.jsPDF) || typeof makeBuilder !== 'function') throw new Error('jsPDF no cargó');
+                doc = makeBuilder(window.jspdf.jsPDF).buildLetrerosDoc(letreros);
+            } catch(e) {
+                d.innerHTML = '⚠️ No pude armar el PDF (' + e.message + ').';
+                messages.appendChild(d); messages.scrollTop = messages.scrollHeight; return;
+            }
+            var row = document.createElement('div');
+            row.className = 'ai-letrero-btns';
+            var dl = document.createElement('button'); dl.type='button'; dl.className='ai-lbtn'; dl.textContent='📄 Descargar PDF';
+            var pr = document.createElement('button'); pr.type='button'; dl.className='ai-lbtn'; pr.className='ai-lbtn ai-lbtn-print'; pr.textContent='🖨️ Imprimir';
+            dl.addEventListener('click', function(){ doc.save('letreros_mexiquense.pdf'); });
+            pr.addEventListener('click', function(){
+                try { doc.autoPrint(); } catch(_){}
+                var w = window.open(doc.output('bloburl'), '_blank');
+                if(!w){ doc.save('letreros_mexiquense.pdf'); }
+            });
+            row.appendChild(dl); row.appendChild(pr);
+            d.appendChild(row);
+            messages.appendChild(d);
+            messages.scrollTop = messages.scrollHeight;
+        }
         form.addEventListener('submit', async function(e){
             e.preventDefault();
             var q = (input.value || '').trim();
@@ -4480,7 +4511,10 @@ function resetImportModal() {
                 });
                 var data = await r.json();
                 typing.remove();
-                if (data && data.answer) {
+                if (data && data.letreros && data.letreros.length) {
+                    addLetrerosResult(data.letreros, data.note);
+                    aiHistory.push({ role: 'assistant', content: '(Generé ' + data.letreros.length + ' letrero(s) en PDF para el usuario.)' });
+                } else if (data && data.answer) {
                     addMsg(data.answer, 'bot');
                     aiHistory.push({ role: 'assistant', content: data.answer });
                 } else {
