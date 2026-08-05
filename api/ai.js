@@ -30,10 +30,12 @@ function searchBase(text) {
   for (const it of BASE) {
     const name = normalize(it.n);
     const upc = it.u || '';
+    const prov = normalize(it.s || '');
     let score = 0;
     for (const w of words) {
       if (name.includes(w)) score += (name.startsWith(w) ? 3 : 2);
       if (upc && (upc === w || upc.includes(w))) score += 5;
+      if (prov && prov.includes(w)) score += 2;
     }
     if (score > 0) scored.push([score, it]);
   }
@@ -142,6 +144,7 @@ module.exports = async (req, res) => {
     if (it.u) s += ` | UPC: ${it.u}`;
     if (it.c) s += ` | Costo: $${it.c}`;
     if (it.p) s += ` | Precio: $${it.p}`;
+    if (it.s) s += ` | Proveedor: ${it.s}`;
     return s;
   });
   const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
@@ -158,7 +161,9 @@ module.exports = async (req, res) => {
     'Para dar precios/costos/UPC usa ÚNICAMENTE los datos de la lista de abajo. ' +
     'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
     'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
-    'Nunca inventes precios, costos ni UPC.\n\n' +
+    'Muchos productos traen "Proveedor" (quién los surte): si preguntan "¿quién surte X?", "¿de qué proveedor es X?" o "¿qué vende AWG?", usa ese dato. Si un producto no trae proveedor, dilo. ' +
+    'El costo mostrado es el más reciente (cambios de costo de proveedor de 2026). ' +
+    'Nunca inventes precios, costos, UPC ni proveedores.\n\n' +
     'RESULTADOS DE BÚSQUEDA PARA ESTA PREGUNTA (no es toda tu base):\n' + contexto;
 
   try {
