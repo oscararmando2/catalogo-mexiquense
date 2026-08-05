@@ -83,7 +83,7 @@ async function handleLetreros(res, apiKey, history) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: LETRERO_MODEL, max_tokens: 2500, system: LETRERO_SYSTEM, messages: history }),
+      body: JSON.stringify({ model: LETRERO_MODEL, max_tokens: 8000, system: LETRERO_SYSTEM, messages: history }),
     });
     const data = await r.json();
     if (!r.ok) return res.status(502).json({ error: 'Error de la API de Claude', detail: data && data.error ? data.error.message : r.status });
