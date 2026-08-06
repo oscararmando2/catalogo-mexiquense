@@ -197,6 +197,7 @@ module.exports = async (req, res) => {
     'NUNCA digas que "solo tienes X productos", ni que "no tienes acceso a la lista", ni cuentes cuántos productos hay: sí tienes el catálogo completo, solo que buscas por nombre o UPC en cada consulta. ' +
     'Si te piden un conteo total o "toda la lista", explica que puedes buscar cualquier producto por su nombre o código y pídele que te diga cuál necesita.\n' +
     'Muchos productos traen "Item code" (número de ítem de la tienda/AWG): si preguntan "¿cuál es el item code / número de ítem de X?" o "dame el item de X", dáselos. ' +
+    'UPC: los proveedores escriben el mismo UPC de forma distinta (AWG omite el último dígito verificador y los ceros de adelante; a veces traen guión). El buscador YA hace ese emparejamiento: si te muestra un producto para el UPC que preguntaron (aunque tenga más/menos dígitos o guión), ES ese producto — contéstalo con CONFIANZA, NO digas "no coincide exactamente". ' +
     'IMPORTANTE — mantén el hilo de la conversación: si el usuario pregunta "¿cuál es su UPC?", "¿su item code?", "¿y el costo?", "¿en cuánto sale?", etc., se refiere al ÚLTIMO producto del que se habló; NO vuelvas a preguntar cuál producto es. ' +
     'Para dar precios/costos/UPC usa ÚNICAMENTE los datos de la lista de abajo. ' +
     'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
