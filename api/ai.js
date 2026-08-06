@@ -32,9 +32,11 @@ function searchBase(text) {
     const upc = it.u || '';
     const prov = normalize(it.s || '');
     let score = 0;
+    const item = it.item ? String(it.item) : '';
     for (const w of words) {
       if (name.includes(w)) score += (name.startsWith(w) ? 3 : 2);
       if (upc && (upc === w || upc.includes(w))) score += 5;
+      if (item && (item === w || item.includes(w))) score += 5;
       if (prov && prov.includes(w)) score += 2;
     }
     if (score > 0) scored.push([score, it]);
@@ -141,7 +143,9 @@ module.exports = async (req, res) => {
 
   const lines = matches.map(it => {
     let s = `- ${it.n}`;
+    if (it.item) s += ` | Item code: ${it.item}`;
     if (it.u) s += ` | UPC: ${it.u}`;
+    if (it.size) s += ` | Tamaño: ${it.size}`;
     const provs = (it.provs && typeof it.provs === 'object') ? Object.entries(it.provs).filter(e => e[1] != null) : [];
     if (provs.length) {
       provs.sort((a, b) => a[1] - b[1]);
@@ -165,7 +169,8 @@ module.exports = async (req, res) => {
     'Por cada pregunta, un buscador te muestra abajo SOLO los productos que coinciden con lo que preguntó el usuario — NO es toda tu base, es un resultado de búsqueda. ' +
     'NUNCA digas que "solo tienes X productos", ni que "no tienes acceso a la lista", ni cuentes cuántos productos hay: sí tienes el catálogo completo, solo que buscas por nombre o UPC en cada consulta. ' +
     'Si te piden un conteo total o "toda la lista", explica que puedes buscar cualquier producto por su nombre o código y pídele que te diga cuál necesita.\n' +
-    'IMPORTANTE — mantén el hilo de la conversación: si el usuario pregunta "¿cuál es su UPC?", "¿y el costo?", "¿en cuánto sale?", etc., se refiere al ÚLTIMO producto del que se habló; NO vuelvas a preguntar cuál producto es. ' +
+    'Muchos productos traen "Item code" (número de ítem de la tienda/AWG): si preguntan "¿cuál es el item code / número de ítem de X?" o "dame el item de X", dáselos. ' +
+    'IMPORTANTE — mantén el hilo de la conversación: si el usuario pregunta "¿cuál es su UPC?", "¿su item code?", "¿y el costo?", "¿en cuánto sale?", etc., se refiere al ÚLTIMO producto del que se habló; NO vuelvas a preguntar cuál producto es. ' +
     'Para dar precios/costos/UPC usa ÚNICAMENTE los datos de la lista de abajo. ' +
     'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
     'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
