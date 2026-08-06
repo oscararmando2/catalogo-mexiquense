@@ -22,17 +22,44 @@ const STOP = new Set(['de','la','el','los','las','un','una','del','y','a','en','
   'cuanto','cuánto','cuesta','precio','costo','item','code','dame','que','qué','es','tiene','vale',
   'sale','su','cual','cuál','mi','tu','me','lo','le','ese','esa','esta','este','tienes','hay','busco','quiero']);
 
+// --- Motor de match de UPC: los proveedores reportan el mismo producto con UPC
+// distinto (AWG omite el dígito verificador y los ceros de adelante; hay guiones). ---
+function upcDigits(u) { return String(u == null ? '' : u).replace(/\D/g, ''); }
+function upcCore(u) { return upcDigits(u).replace(/^0+/, ''); }
+function sameUpc(a, b) {
+  const ca = upcCore(a), cb = upcCore(b);
+  if (!ca || !cb) return false;
+  if (ca === cb) return true;
+  if (ca.length > 6 && ca === cb.slice(0, -1)) return true;  // b trae verificador, a no (AWG)
+  if (cb.length > 6 && cb === ca.slice(0, -1)) return true;
+  return false;
+}
+// Extrae un UPC candidato del texto (junta dígitos separados por - o espacio).
+function extractUpc(text) {
+  const cands = String(text || '').match(/\d[\d\s\-]{4,}\d/g) || [];
+  let best = '';
+  for (const c of cands) { const d = c.replace(/\D/g, ''); if (d.length >= 6 && d.length > best.length) best = d; }
+  return best;
+}
+
 function searchBase(text) {
   const qn = normalize(text);
-  const words = qn.split(' ').filter(w => w.length >= 2 && !STOP.has(w));
-  if (!words.length) return [];
+  const upcQ = extractUpc(text);
+  // si viene un UPC, los dígitos ya los cubre el motor de UPC → no los uses como palabras
+  const words = qn.split(' ').filter(w => w.length >= 2 && !STOP.has(w) && !(upcQ && /^\d+$/.test(w)));
+  if (!words.length && !upcQ) return [];
   const scored = [];
   for (const it of BASE) {
     const name = normalize(it.n);
     const upc = it.u || '';
     const prov = normalize(it.s || '');
-    let score = 0;
     const item = it.item ? String(it.item) : '';
+    let score = 0;
+    // match de UPC tolerante (recortado / con guión / estilo AWG)
+    if (upcQ) {
+      if (sameUpc(upcQ, upc)) score += 12;
+      if (item && sameUpc(upcQ, item)) score += 12;
+    }
     for (const w of words) {
       if (name.includes(w)) score += (name.startsWith(w) ? 3 : 2);
       if (upc && (upc === w || upc.includes(w))) score += 5;
