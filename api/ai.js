@@ -142,9 +142,17 @@ module.exports = async (req, res) => {
   const lines = matches.map(it => {
     let s = `- ${it.n}`;
     if (it.u) s += ` | UPC: ${it.u}`;
-    if (it.c) s += ` | Costo: $${it.c}`;
+    const provs = (it.provs && typeof it.provs === 'object') ? Object.entries(it.provs).filter(e => e[1] != null) : [];
+    if (provs.length) {
+      provs.sort((a, b) => a[1] - b[1]);
+      const cheap = provs[0];
+      s += ` | Costo más barato: $${cheap[1]} (${cheap[0]})`;
+      s += ` | Proveedores: ${provs.map(([k, v]) => `${k} $${v}`).join(', ')}`;
+    } else {
+      if (it.c) s += ` | Costo: $${it.c}`;
+      if (it.s) s += ` | Proveedor: ${it.s}`;
+    }
     if (it.p) s += ` | Precio: $${it.p}`;
-    if (it.s) s += ` | Proveedor: ${it.s}`;
     return s;
   });
   const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
@@ -161,7 +169,7 @@ module.exports = async (req, res) => {
     'Para dar precios/costos/UPC usa ÚNICAMENTE los datos de la lista de abajo. ' +
     'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
     'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
-    'Muchos productos traen "Proveedor" (quién los surte): si preguntan "¿quién surte X?", "¿de qué proveedor es X?" o "¿qué vende AWG?", usa ese dato. Si un producto no trae proveedor, dilo. ' +
+    'Muchos productos traen varios "Proveedores" con su precio cada uno. Si preguntan "¿dónde está más barato X?", "¿quién lo tiene más barato?" o "¿cuánto cuesta X con cada proveedor?": di cuál es el MÁS BARATO y su precio, y lista todos los proveedores con su precio (de menor a mayor). Si solo hay un proveedor, dilo. Si preguntan "¿quién surte X?" o "¿qué vende AWG?", usa esos datos. Si un producto no trae proveedor, dilo. ' +
     'El costo mostrado es el más reciente (cambios de costo de proveedor de 2026). ' +
     'Nunca inventes precios, costos, UPC ni proveedores.\n\n' +
     'RESULTADOS DE BÚSQUEDA PARA ESTA PREGUNTA (no es toda tu base):\n' + contexto;
