@@ -28,8 +28,14 @@ function extractJson(text) {
   try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; }
 }
 
+const ALLOWED_ORIGINS = [
+  'https://oscararmando2.github.io',
+  'https://catalogo-mexiquense.vercel.app'
+];
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[1]);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -45,6 +51,9 @@ module.exports = async (req, res) => {
   let images = Array.isArray(body.images) ? body.images : [];
   images = images.map(d => String(d || '').replace(/^data:[^,]+,/, '')).filter(Boolean).slice(0, MAX_IMAGES);
   if (!images.length) return res.status(400).json({ error: 'Falta la imagen de la factura.' });
+  // Tope de tamaño total (anti-abuso): ~14 MB de base64.
+  const totalBytes = images.reduce((a, d) => a + d.length, 0);
+  if (totalBytes > 14 * 1024 * 1024) return res.status(413).json({ error: 'La factura es muy grande. Sube menos páginas o fotos más ligeras.' });
 
   const content = images.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }));
   content.push({ type: 'text', text: 'Desglosa esta factura en JSON según las reglas. Incluye TODOS los renglones con su costo por unidad.' });
