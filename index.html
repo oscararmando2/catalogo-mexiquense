@@ -168,7 +168,29 @@
             <p class="truck-loader-text">Cargando...</p>
         </div>
     </div>
-    
+
+    <!-- Portón de acceso: bloquea la app hasta iniciar sesión -->
+    <div id="loginGate" class="fixed inset-0 items-center justify-center px-4" style="display:none; z-index:10050; background:linear-gradient(135deg,#006847,#00a86b);">
+      <div class="login-card">
+        <div class="login-heading">El Mexiquense</div>
+        <div class="login-sub">Inicia sesión para continuar</div>
+        <div class="login-form">
+          <select id="gateUserSelect" class="login-input" aria-label="Usuario">
+            <option value="" disabled selected>👤 Selecciona tu usuario</option>
+            <option value="oscar">Oscar</option>
+            <option value="luis">Luis</option>
+            <option value="jesus">Jesús</option>
+            <option value="olegario">Olegario</option>
+            <option value="pepe">Pepe</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input required class="login-input" type="password" id="gatePassword" placeholder="🔒 Contraseña" autocomplete="current-password">
+          <button id="gateBtn" class="login-button" type="button">Entrar</button>
+          <div id="gateError" class="login-error"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="mainContent" class="min-h-screen flex flex-col" style="visibility: hidden;">
         <!-- Header -->
         <header class="bg-gradient-to-r from-mexican-green via-white to-mexican-red text-white shadow-lg">
@@ -647,6 +669,8 @@
         .login-button{ display:block; width:100%; font-weight:bold; font-size:16px; background:linear-gradient(45deg,#006847 0%,#00a86b 100%); color:#fff; padding-block:14px; margin:22px auto 4px; border-radius:18px; box-shadow:rgba(0,104,71,.5) 0 20px 10px -15px; border:none; transition:all .2s ease-in-out; cursor:pointer; }
         .login-button:hover{ transform:scale(1.03); }
         .login-button:active{ transform:scale(.95); }
+        .login-error{ text-align:center; color:#c0261c; font-size:13px; font-weight:600; min-height:16px; margin-top:2px; }
+        #loginGate.show{ display:flex !important; }
         </style>
         <!-- Modal Password Admin -->
         <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -4352,11 +4376,40 @@ function resetImportModal() {
             // After fade-out animation completes, hide the loader and show content
             setTimeout(() => {
                 loader.classList.add('hidden');
-                if (mainContent) {
-                    mainContent.style.visibility = 'visible';
+                var authed = false; try { authed = !!localStorage.getItem('staffUser'); } catch(e){}
+                if (authed) {
+                    if (mainContent) mainContent.style.visibility = 'visible';
+                } else {
+                    showLoginGate();   // pantalla de login; el catálogo queda oculto hasta entrar
                 }
             }, 800); // Match the CSS transition duration
         }
+
+        // ==== Portón de acceso (login para ver la app) ====
+        function showLoginGate(){
+            var gate = document.getElementById('loginGate');
+            if (gate) { gate.classList.add('show'); var s=document.getElementById('gateUserSelect'); if(s) setTimeout(function(){ try{ s.focus(); }catch(e){} }, 120); }
+        }
+        (function(){
+            var btn=document.getElementById('gateBtn'), sel=document.getElementById('gateUserSelect'),
+                pw=document.getElementById('gatePassword'), err=document.getElementById('gateError');
+            if(!btn) return;
+            async function gateLogin(){
+                var u=((sel&&sel.value)||'').trim().toLowerCase(), p=(pw&&pw.value)||'';
+                var ok=false; try{ ok = (typeof USERS!=='undefined') && USERS[u] && USERS[u]===(await sha256hex(p)); }catch(e){ ok=false; }
+                if(ok){
+                    var nombre = u.charAt(0).toUpperCase()+u.slice(1);
+                    try{ localStorage.setItem('staffUser', nombre); }catch(e){}
+                    var gate=document.getElementById('loginGate'); if(gate) gate.classList.remove('show');
+                    var mc=document.getElementById('mainContent'); if(mc) mc.style.visibility='visible';
+                } else {
+                    if(err) err.textContent='Usuario o contraseña incorrectos.';
+                }
+                if(pw) pw.value='';
+            }
+            btn.addEventListener('click', gateLogin);
+            if(pw) pw.addEventListener('keypress', function(e){ if(e.key==='Enter') gateLogin(); });
+        })();
 
         // Initialize loader control
         (function() {
