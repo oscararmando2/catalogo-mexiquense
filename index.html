@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>MEXIQUENSE - Catálogo de Productos (V4)</title>
+    <!-- Anti-clickjacking: si alguien intenta incrustar la app en un iframe (para engañar/robar), rompemos el marco. Funciona en cualquier host (GitHub Pages/Vercel). -->
+    <script>try{ if(window.self!==window.top){ window.top.location=window.self.location.href; } }catch(e){ document.documentElement.style.display='none'; }</script>
 
     <!-- Tailwind + fuentes -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
