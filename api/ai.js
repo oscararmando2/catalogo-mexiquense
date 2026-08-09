@@ -132,8 +132,15 @@ async function handleLetreros(res, apiKey, history) {
 }
 
 // ================= HANDLER =================
+const ALLOWED_ORIGINS = [
+  'https://oscararmando2.github.io',
+  'https://catalogo-mexiquense.vercel.app'
+];
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  // Solo respondemos con CORS a los dominios de la app (evita abuso desde otros sitios).
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[1]);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
