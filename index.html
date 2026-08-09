@@ -15,6 +15,7 @@
     <script src="letreros.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -4524,6 +4525,147 @@ function resetImportModal() {
                 aiHistory.pop();
             }
         });
+    })();
+    </script>
+
+    <!-- ===== /costeo: Costeo de Facturas (Claude visión) ===== -->
+    <button id="costeoFab" title="Costeo de facturas" aria-label="Costeo de facturas"
+        class="fixed z-[9998] bottom-6 left-4 md:left-6 flex items-center gap-2 bg-gradient-to-br from-[#8a1a2b] to-[#c0261c] text-white rounded-full shadow-lg px-4 h-14 font-semibold hover:scale-105 transition">
+        <span class="text-xl">🧾</span><span class="hidden sm:inline">Costeo</span>
+    </button>
+
+    <div id="costeoModal" class="fixed inset-0 z-[9999] hidden bg-black/50 p-0 md:p-6 overflow-y-auto">
+      <div class="bg-white w-full min-h-full md:min-h-0 md:max-w-5xl md:mx-auto md:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-gradient-to-br from-[#8a1a2b] to-[#c0261c] text-white px-5 py-4 flex items-center justify-between">
+          <div class="font-bold text-lg flex items-center gap-2">🧾 Costeo de Facturas <span class="text-xs font-normal opacity-80">· la IA saca el costo por unidad</span></div>
+          <button id="costeoClose" class="opacity-90 hover:opacity-100" aria-label="Cerrar">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="p-5 flex-1">
+          <div id="costeoUpload">
+            <label class="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#c0261c] transition">
+              <input id="costeoFile" type="file" accept="image/*,application/pdf" capture="environment" class="hidden" />
+              <div class="text-5xl mb-2">📷</div>
+              <div class="font-semibold text-gray-700">Toma foto o sube la factura (imagen o PDF)</div>
+              <div class="text-sm text-gray-500 mt-1">Escaneo o foto derecha y clara. Varias páginas OK.</div>
+            </label>
+            <div id="costeoPreview" class="mt-3 text-sm text-gray-600 hidden"></div>
+            <button id="costeoRun" class="mt-4 w-full hidden bg-[#006847] text-white rounded-lg py-3 font-semibold hover:bg-[#00563b] disabled:opacity-50">Procesar factura</button>
+          </div>
+          <div id="costeoStatus" class="hidden mt-4 text-center text-gray-600"></div>
+          <div id="costeoResult" class="hidden mt-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var COSTEO_URL='https://catalogo-mexiquense.vercel.app/api/costeo';
+      var fab=document.getElementById('costeoFab'), modal=document.getElementById('costeoModal'),
+          closeB=document.getElementById('costeoClose'), fileIn=document.getElementById('costeoFile'),
+          prev=document.getElementById('costeoPreview'), runB=document.getElementById('costeoRun'),
+          statusEl=document.getElementById('costeoStatus'), resEl=document.getElementById('costeoResult'),
+          uploadEl=document.getElementById('costeoUpload');
+      var pageImgs=[], lastData=null;
+      if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      function open(o){ modal.classList.toggle('hidden', !o); if(o){ reset(); } }
+      function reset(){ pageImgs=[]; lastData=null; fileIn.value=''; prev.classList.add('hidden'); runB.classList.add('hidden'); statusEl.classList.add('hidden'); resEl.classList.add('hidden'); resEl.innerHTML=''; uploadEl.classList.remove('hidden'); }
+      fab.addEventListener('click', function(){ open(true); });
+      closeB.addEventListener('click', function(){ open(false); });
+      modal.addEventListener('click', function(e){ if(e.target===modal) open(false); });
+
+      function fileToJpeg(file, maxW){
+        return new Promise(function(resolve,reject){
+          var img=new Image(), url=URL.createObjectURL(file);
+          img.onload=function(){ URL.revokeObjectURL(url);
+            var scale=Math.min(1, maxW/img.width);
+            var c=document.createElement('canvas'); c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+            c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+            resolve(c.toDataURL('image/jpeg',0.72)); };
+          img.onerror=reject; img.src=url; });
+      }
+      async function pdfToJpegs(file, maxW){
+        var buf=await file.arrayBuffer();
+        var pdf=await pdfjsLib.getDocument({data:buf}).promise, out=[];
+        for(var p=1;p<=pdf.numPages && p<=25;p++){
+          var page=await pdf.getPage(p);
+          var vp0=page.getViewport({scale:1});
+          var scale=Math.min(2.0, maxW/vp0.width);
+          var vp=page.getViewport({scale});
+          var c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+          await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+          out.push(c.toDataURL('image/jpeg',0.72));
+        }
+        return out;
+      }
+      fileIn.addEventListener('change', async function(){
+        var f=fileIn.files && fileIn.files[0]; if(!f) return;
+        prev.classList.remove('hidden'); prev.textContent='Preparando imagen…'; runB.classList.add('hidden');
+        try{
+          if(f.type==='application/pdf'){ pageImgs=await pdfToJpegs(f,1600); }
+          else { pageImgs=[await fileToJpeg(f,1600)]; }
+          prev.textContent='📄 '+pageImgs.length+' página(s) lista(s). Dale "Procesar factura".';
+          runB.classList.remove('hidden');
+        }catch(err){ prev.textContent='No pude leer el archivo. Prueba con una foto (JPG/PNG).'; }
+      });
+
+      runB.addEventListener('click', async function(){
+        if(!pageImgs.length) return;
+        runB.disabled=true; statusEl.classList.remove('hidden'); statusEl.innerHTML='🔎 La IA está leyendo la factura… (10–30 seg)';
+        try{
+          var r=await fetch(COSTEO_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:pageImgs})});
+          var data=await r.json();
+          runB.disabled=false;
+          if(data.error){ statusEl.innerHTML='⚠️ '+data.error; return; }
+          lastData=data; statusEl.classList.add('hidden'); render(data);
+        }catch(err){ runB.disabled=false; statusEl.innerHTML='⚠️ No me pude conectar. Revisa tu internet.'; }
+      });
+
+      function money(v){ return (typeof v==='number')? '$'+v.toFixed(2) : (v||'—'); }
+      function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+      function render(d){
+        var items=d.items||[];
+        var cuadraBadge = d.cuadra===true? '<span class="text-green-700 font-semibold">✓ Cuadra</span>'
+          : d.cuadra===false? '<span class="text-red-600 font-semibold">⚠️ No cuadra — revisa</span>' : '';
+        var head='<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-3 bg-gray-50 rounded-lg p-3">'
+          +'<div><b>Proveedor:</b> '+esc(d.proveedor)+'</div>'
+          +'<div><b>Factura:</b> '+esc(d.factura)+'</div>'
+          +'<div><b>Fecha:</b> '+esc(d.fecha)+'</div>'
+          +'<div><b>Total factura:</b> '+money(d.total_factura)+'</div>'
+          +'<div><b>Total calculado:</b> '+money(d.total_calculado)+' '+cuadraBadge+'</div></div>';
+        var rows=items.map(function(it,i){
+          return '<tr class="border-b">'
+            +'<td class="px-2 py-1 text-gray-400">'+(i+1)+'</td>'
+            +'<td class="px-2 py-1" contenteditable>'+esc(it.producto)+'</td>'
+            +'<td class="px-2 py-1" contenteditable>'+esc(it.upc)+'</td>'
+            +'<td class="px-2 py-1" contenteditable>'+esc(it.empaque)+'</td>'
+            +'<td class="px-2 py-1 text-right" contenteditable>'+esc(it.cantidad)+'</td>'
+            +'<td class="px-2 py-1 text-right" contenteditable>'+esc(it.costo_caja)+'</td>'
+            +'<td class="px-2 py-1 text-right font-semibold text-[#006847]" contenteditable>'+esc(it.costo_unidad)+'</td></tr>';
+        }).join('');
+        resEl.innerHTML=head
+          +'<div class="flex items-center justify-between mb-2"><div class="font-semibold text-gray-700">'+items.length+' productos</div>'
+          +'<div class="flex gap-2"><button id="costeoCsv" class="bg-[#006847] text-white text-sm rounded px-3 py-1.5 font-semibold">⬇️ Exportar CSV</button>'
+          +'<button id="costeoOtra" class="bg-gray-200 text-gray-700 text-sm rounded px-3 py-1.5 font-semibold">Otra factura</button></div></div>'
+          +'<div class="text-xs text-gray-500 mb-2">Puedes editar cualquier celda antes de exportar. El costo por unidad está en verde.</div>'
+          +'<div class="overflow-x-auto border rounded-lg"><table class="w-full text-sm"><thead class="bg-[#8a1a2b] text-white"><tr>'
+          +'<th class="px-2 py-2 text-left">#</th><th class="px-2 py-2 text-left">Producto</th><th class="px-2 py-2 text-left">UPC</th>'
+          +'<th class="px-2 py-2 text-left">Empaque</th><th class="px-2 py-2 text-right">Cant.</th><th class="px-2 py-2 text-right">Costo caja</th>'
+          +'<th class="px-2 py-2 text-right">Costo/unidad</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+        resEl.classList.remove('hidden'); uploadEl.classList.add('hidden');
+        document.getElementById('costeoOtra').addEventListener('click', reset);
+        document.getElementById('costeoCsv').addEventListener('click', exportCsv);
+      }
+      function exportCsv(){
+        var trs=resEl.querySelectorAll('tbody tr'); var out=[['Producto','UPC','Empaque','Cantidad','Costo Caja','Costo Unidad']];
+        trs.forEach(function(tr){ var td=tr.querySelectorAll('td'); out.push([td[1].textContent.trim(),td[2].textContent.trim(),td[3].textContent.trim(),td[4].textContent.trim(),td[5].textContent.trim(),td[6].textContent.trim()]); });
+        var prov=(lastData&&lastData.proveedor)||'factura';
+        var csv=out.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+        var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+        a.href=url; a.download='costeo_'+String(prov).replace(/[^a-z0-9]+/gi,'_')+'.csv'; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},3000);
+      }
     })();
     </script>
 </body>
