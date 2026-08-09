@@ -633,15 +633,39 @@
         <!-- Toast -->
         <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50"><span id="toastMessage">Operación completada con éxito</span></div>
 
+        <style>
+        .login-card{ max-width:340px; width:100%; background:linear-gradient(0deg,#fff 0%,#f4f7fb 100%); border-radius:32px; padding:26px 30px 22px; border:5px solid #fff; box-shadow:rgba(0,104,71,.35) 0 30px 30px -20px; position:relative; margin:16px; animation:loginUp .28s cubic-bezier(.22,.61,.36,1); }
+        @keyframes loginUp{ from{ opacity:0; transform:translateY(14px) scale(.98);} to{ opacity:1; transform:none;} }
+        .login-x{ position:absolute; top:12px; right:18px; font-size:28px; line-height:1; color:#b8c2cc; background:none; border:none; cursor:pointer; }
+        .login-x:hover{ color:#006847; }
+        .login-heading{ text-align:center; font-weight:900; font-size:26px; color:#006847; }
+        .login-sub{ text-align:center; font-size:12px; color:#9aa5b1; margin-top:2px; }
+        .login-form{ margin-top:18px; }
+        .login-input{ width:100%; background:#fff; border:none; padding:14px 18px; border-radius:18px; margin-top:14px; box-shadow:#d8efe4 0 10px 10px -5px; border-inline:2px solid transparent; font-size:15px; color:#222; box-sizing:border-box; }
+        .login-input:focus{ outline:none; border-inline:2px solid #00a86b; }
+        select.login-input{ appearance:none; -webkit-appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23006847' stroke-width='2.5' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; background-size:18px; }
+        .login-button{ display:block; width:100%; font-weight:bold; font-size:16px; background:linear-gradient(45deg,#006847 0%,#00a86b 100%); color:#fff; padding-block:14px; margin:22px auto 4px; border-radius:18px; box-shadow:rgba(0,104,71,.5) 0 20px 10px -15px; border:none; transition:all .2s ease-in-out; cursor:pointer; }
+        .login-button:hover{ transform:scale(1.03); }
+        .login-button:active{ transform:scale(.95); }
+        </style>
         <!-- Modal Password Admin -->
         <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                <h3 class="text-xl font-bold text-mexican-green mb-4">Iniciar sesión (personal)</h3>
-                <input type="text" id="adminUserInput" placeholder="Usuario" autocomplete="username" autocapitalize="none" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent mb-3" />
-                <input type="password" id="adminPasswordInput" placeholder="Contraseña" autocomplete="current-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-mexican-green focus:border-transparent mb-4" />
-                <div class="flex justify-end space-x-2">
-                    <button id="cancelPassword" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-medium transition-all">Cancelar</button>
-                    <button id="confirmPassword" class="bg-mexican-green hover:bg-opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-all">Confirmar</button>
+            <div class="login-card">
+                <button id="cancelPassword" class="login-x" aria-label="Cerrar" type="button">&times;</button>
+                <div class="login-heading">Iniciar sesión</div>
+                <div class="login-sub">Personal El Mexiquense</div>
+                <div class="login-form">
+                    <select id="adminUserSelect" class="login-input" aria-label="Usuario">
+                        <option value="" disabled selected>👤 Selecciona tu usuario</option>
+                        <option value="oscar">Oscar</option>
+                        <option value="luis">Luis</option>
+                        <option value="jesus">Jesús</option>
+                        <option value="olegario">Olegario</option>
+                        <option value="pepe">Pepe</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <input required class="login-input" type="password" id="adminPasswordInput" placeholder="🔒 Contraseña" autocomplete="current-password">
+                    <button id="confirmPassword" class="login-button" type="button">Entrar</button>
                 </div>
             </div>
         </div>
@@ -970,7 +994,7 @@
         const addProductBtn = document.getElementById('addProductBtn');
         const passwordModal = document.getElementById('passwordModal');
         const adminPasswordInput = document.getElementById('adminPasswordInput');
-        const adminUserInput = document.getElementById('adminUserInput');
+        const adminUserInput = document.getElementById('adminUserSelect');
         const confirmPassword = document.getElementById('confirmPassword');
         const cancelPassword = document.getElementById('cancelPassword');
 
