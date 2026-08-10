@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costeo de Facturas - MEXIQUENSE MARKET</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Crect width='20' height='20' rx='4' fill='%238a1a2b'/%3E%3Cpath fill='%23fff' d='M5 2h10a1 1 0 011 1v15l-2-1-2 1-2-1-2 1-2-1-2 1V3a1 1 0 011-1zm2 4h6v1H7V6zm0 3h6v1H7V9zm0 3h4v1H7v-1z'/%3E%3C/svg%3E" />
+    <!-- anti-clickjacking -->
+    <script>try{ if(window.self!==window.top){ window.top.location=window.self.location.href; } }catch(e){ document.documentElement.style.display='none'; }</script>
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    <style>
+        .bg-mexican-green { background-color: #006847; }
+        .text-mexican-green { color: #006847; }
+        .bg-costeo { background-color: #8a1a2b; }
+        .text-costeo { color: #8a1a2b; }
+        body { background-color: #f5f6f7; }
+        table td input { width: 100%; background: transparent; outline: none; }
+        table td input:focus { background: #fff7f7; }
+    </style>
+</head>
+<body class="text-gray-800">
+    <header class="bg-gradient-to-r from-[#8a1a2b] to-[#c0261c] text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">🧾</span>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold leading-tight">Costeo de Facturas</h1>
+                    <p class="text-xs md:text-sm opacity-90">La IA saca el costo por unidad y te sugiere el precio de venta</p>
+                </div>
+            </div>
+            <a href="index.html" class="bg-white/15 hover:bg-white/25 px-4 py-2 rounded-lg font-medium text-sm">← Volver al Catálogo</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Subir factura -->
+        <section id="uploadCard" class="bg-white rounded-2xl shadow p-5 mb-6">
+            <label class="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#c0261c] transition">
+                <input id="costeoFile" type="file" accept="image/*,application/pdf" capture="environment" class="hidden" />
+                <div class="text-5xl mb-2">📷</div>
+                <div class="font-semibold text-gray-700">Toma foto o sube la factura (imagen o PDF)</div>
+                <div class="text-sm text-gray-500 mt-1">Escaneo o foto derecha y clara. Varias páginas OK.</div>
+            </label>
+            <div id="preview" class="mt-3 text-sm text-gray-600 hidden"></div>
+            <button id="runBtn" class="mt-4 w-full hidden bg-mexican-green text-white rounded-lg py-3 font-semibold hover:bg-[#00563b] disabled:opacity-50">Procesar factura</button>
+            <div id="status" class="hidden mt-4 text-center text-gray-600"></div>
+        </section>
+
+        <!-- Resultado -->
+        <section id="resultCard" class="hidden"></section>
+
+        <!-- Historial -->
+        <section class="bg-white rounded-2xl shadow p-5 mt-8">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-lg text-costeo flex items-center gap-2">📚 Historial de costeos</h2>
+                <span id="histCount" class="text-xs text-gray-500"></span>
+            </div>
+            <div id="histList" class="divide-y text-sm"></div>
+        </section>
+    </main>
+
+    <script>
+    (function(){
+      var COSTEO_URL='https://catalogo-mexiquense.vercel.app/api/costeo';
+
+      // ---------- Firebase ----------
+      var database=null;
+      try{
+        firebase.initializeApp({
+          apiKey:"TU_API_KEY_AQUI", authDomain:"catalogomexiquense.firebaseapp.com",
+          databaseURL:"https://catalogomexiquense-default-rtdb.firebaseio.com",
+          projectId:"catalogomexiquense", storageBucket:"catalogomexiquense.appspot.com",
+          messagingSenderId:"TU_SENDER_ID_AQUI", appId:"TU_APP_ID_AQUI"
+        });
+        database=firebase.database();
+      }catch(e){ console.warn('Firebase no disponible', e); }
+
+      if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      // ---------- DOM ----------
+      var fileIn=document.getElementById('costeoFile'), prev=document.getElementById('preview'),
+          runB=document.getElementById('runBtn'), statusEl=document.getElementById('status'),
+          uploadCard=document.getElementById('uploadCard'), resultCard=document.getElementById('resultCard'),
+          histList=document.getElementById('histList'), histCount=document.getElementById('histCount');
+
+      var pageImgs=[], meta={}, rows=[], settings={margen:30, redondeo:'99'};
+
+      // ---------- Catálogo (para alerta de cambio de costo) ----------
+      var catalog=[]; // {upc, costo, nombre}
+      function upcCore(s){ var d=String(s||'').replace(/\D/g,'').replace(/^0+/,''); return d; }
+      function sameUpc(a,b){ a=upcCore(a); b=upcCore(b); if(!a||!b) return false; if(a===b) return true;
+        if(a.length>6 && a===b.slice(0,-1)) return true; if(b.length>6 && b===a.slice(0,-1)) return true; return false; }
+      if(database){
+        database.ref('products').once('value').then(function(s){
+          var v=s.val()||{}; var arr=Array.isArray(v)?v:Object.values(v);
+          catalog=arr.filter(Boolean).map(function(p){ return {upc:p.upc||'', costo:parseFloat(p.costo), nombre:p.nombre||p.name||''}; })
+                     .filter(function(p){ return p.upc; });
+        }).catch(function(){});
+      }
+      function catalogMatch(upc){ if(!upc) return null; for(var i=0;i<catalog.length;i++){ if(sameUpc(upc,catalog[i].upc)) return catalog[i]; } return null; }
+
+      // ---------- Helpers ----------
+      function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+      function money(v){ v=parseFloat(v); return isFinite(v)? '$'+v.toFixed(2):'—'; }
+      function num(v){ v=parseFloat(v); return isFinite(v)?v:0; }
+      function suggested(cost){ cost=num(cost); var m=num(settings.margen);
+        if(m<=0||m>=100||cost<=0) return cost>0?cost:0;
+        var raw=cost/(1-m/100); return roundPrice(raw); }
+      function roundPrice(x){ x=num(x); if(x<=0) return 0;
+        if(settings.redondeo==='none') return Math.round(x*100)/100;
+        if(settings.redondeo==='49'){ // termina en .49 o .99 (el más cercano hacia arriba)
+          var half=Math.ceil((x-0.49)/0.5)*0.5+0.49; return Math.round(half*100)/100; }
+        // .99 por defecto: sube al siguiente .x9
+        return Math.round((Math.ceil(x/0.10)*0.10-0.01)*100)/100; }
+      function unitsPerBox(r){ var c=num(r.costo_caja), u=num(r.costo_unidad); if(c>0&&u>0){ var n=Math.round(c/u); return n>=1?n:1; } return 1; }
+
+      // ---------- Cargar archivo ----------
+      function fileToJpeg(file,maxW){ return new Promise(function(res,rej){ var img=new Image(),url=URL.createObjectURL(file);
+        img.onload=function(){ URL.revokeObjectURL(url); var scale=Math.min(1,maxW/img.width);
+          var c=document.createElement('canvas'); c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',0.72)); };
+        img.onerror=rej; img.src=url; }); }
+      async function pdfToJpegs(file,maxW){ var buf=await file.arrayBuffer(); var pdf=await pdfjsLib.getDocument({data:buf}).promise, out=[];
+        for(var p=1;p<=pdf.numPages && p<=25;p++){ var page=await pdf.getPage(p); var vp0=page.getViewport({scale:1});
+          var scale=Math.min(2.0,maxW/vp0.width); var vp=page.getViewport({scale});
+          var c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+          await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise; out.push(c.toDataURL('image/jpeg',0.72)); }
+        return out; }
+
+      fileIn.addEventListener('change', async function(){
+        var f=fileIn.files&&fileIn.files[0]; if(!f) return;
+        prev.classList.remove('hidden'); prev.textContent='Preparando imagen…'; runB.classList.add('hidden');
+        try{ if(f.type==='application/pdf') pageImgs=await pdfToJpegs(f,1600); else pageImgs=[await fileToJpeg(f,1600)];
+          prev.textContent='📄 '+pageImgs.length+' página(s) lista(s). Dale "Procesar factura".'; runB.classList.remove('hidden');
+        }catch(err){ prev.textContent='No pude leer el archivo. Prueba con una foto (JPG/PNG).'; }
+      });
+
+      runB.addEventListener('click', async function(){
+        if(!pageImgs.length) return;
+        runB.disabled=true; statusEl.classList.remove('hidden'); statusEl.innerHTML='🔎 La IA está leyendo la factura… (10–30 seg)';
+        try{
+          var r=await fetch(COSTEO_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:pageImgs})});
+          var data=await r.json(); runB.disabled=false;
+          if(data.error){ statusEl.innerHTML='⚠️ '+esc(data.error); return; }
+          statusEl.classList.add('hidden'); loadData(data);
+        }catch(err){ runB.disabled=false; statusEl.innerHTML='⚠️ No me pude conectar. Revisa tu internet.'; }
+      });
+
+      // ---------- Cargar datos al modelo ----------
+      function loadData(d){
+        meta={ proveedor:d.proveedor, factura:d.factura, fecha:d.fecha, total_factura:d.total_factura, total_calculado:d.total_calculado, cuadra:d.cuadra };
+        rows=(d.items||[]).map(function(it){ return {
+          producto:it.producto||'', upc:it.upc||'', empaque:it.empaque||'', cantidad:it.cantidad,
+          costo_caja:it.costo_caja, costo_unidad:it.costo_unidad,
+          precio_venta:null // se inicializa al sugerido en render
+        }; });
+        rows.forEach(function(r){ r.precio_venta=suggested(r.costo_unidad); });
+        renderResult();
+      }
+
+      // ---------- Render resultado ----------
+      function renderResult(){
+        var cuadraBadge = meta.cuadra===true? '<span class="text-green-700 font-semibold">✓ Cuadra</span>'
+          : meta.cuadra===false? '<span class="text-red-600 font-semibold">⚠️ No cuadra — revisa</span>':'';
+        var html=''
+          +'<div class="bg-white rounded-2xl shadow p-5">'
+          +'<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-4 bg-gray-50 rounded-lg p-3">'
+            +'<div><b>Proveedor:</b> '+esc(meta.proveedor)+'</div>'
+            +'<div><b>Factura:</b> '+esc(meta.factura)+'</div>'
+            +'<div><b>Fecha:</b> '+esc(meta.fecha)+'</div>'
+            +'<div><b>Total factura:</b> '+money(meta.total_factura)+'</div>'
+            +'<div><b>Total calculado:</b> '+money(meta.total_calculado)+' '+cuadraBadge+'</div>'
+          +'</div>'
+          // Controles de precio
+          +'<div class="flex flex-wrap items-end gap-4 mb-3 bg-[#fdf2f3] rounded-lg p-3">'
+            +'<div><label class="block text-xs font-semibold text-gray-600 mb-1">Margen objetivo</label>'
+              +'<div class="flex items-center gap-1"><input id="setMargen" type="number" min="1" max="95" step="1" value="'+num(settings.margen)+'" class="w-20 rounded border-gray-300 text-sm"/><span class="text-sm">%</span></div></div>'
+            +'<div><label class="block text-xs font-semibold text-gray-600 mb-1">Redondeo</label>'
+              +'<select id="setRedondeo" class="rounded border-gray-300 text-sm">'
+                +'<option value="99"'+(settings.redondeo==='99'?' selected':'')+'>Termina en .99</option>'
+                +'<option value="49"'+(settings.redondeo==='49'?' selected':'')+'>.49 / .99</option>'
+                +'<option value="none"'+(settings.redondeo==='none'?' selected':'')+'>Exacto</option>'
+              +'</select></div>'
+            +'<button id="applySug" class="bg-mexican-green text-white text-sm rounded px-3 py-2 font-semibold">Aplicar sugerido a Precio venta</button>'
+            +'<div class="text-xs text-gray-500 max-w-xs">Precio sugerido = costo unidad ÷ (1 − margen). Puedes editar el precio de venta por producto.</div>'
+          +'</div>'
+          +'<div class="text-xs text-gray-500 mb-2">Edita cualquier celda. <span class="text-[#006847] font-semibold">Costo/u</span> en verde · <b>Precio venta</b> editable · ⚠️ marca cambios de costo vs. catálogo.</div>'
+          +'<div class="overflow-x-auto border rounded-lg"><table class="w-full text-sm whitespace-nowrap"><thead class="bg-costeo text-white"><tr>'
+            +'<th class="px-2 py-2 text-left">#</th><th class="px-2 py-2 text-left">Producto</th><th class="px-2 py-2 text-left">UPC</th>'
+            +'<th class="px-2 py-2 text-left">Empaque</th><th class="px-2 py-2 text-right">Cant.</th><th class="px-2 py-2 text-right">Costo caja</th>'
+            +'<th class="px-2 py-2 text-right">Costo/u</th><th class="px-2 py-2 text-right">Sugerido</th><th class="px-2 py-2 text-right">Precio venta</th>'
+            +'<th class="px-2 py-2 text-right">Margen</th><th class="px-2 py-2 text-right">Ganancia/u</th><th class="px-2 py-2 text-left">Catálogo</th>'
+          +'</tr></thead><tbody id="tbody"></tbody></table></div>'
+          // Totales
+          +'<div id="totals" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"></div>'
+          +'<div class="flex flex-wrap gap-2 mt-4">'
+            +'<button id="saveBtn" class="bg-costeo text-white rounded px-4 py-2 font-semibold text-sm">💾 Guardar costeo</button>'
+            +'<button id="csvBtn" class="bg-mexican-green text-white rounded px-4 py-2 font-semibold text-sm">⬇️ Exportar CSV</button>'
+            +'<button id="addRow" class="bg-gray-200 text-gray-700 rounded px-4 py-2 font-semibold text-sm">+ Agregar renglón</button>'
+            +'<button id="otraBtn" class="bg-gray-200 text-gray-700 rounded px-4 py-2 font-semibold text-sm">Otra factura</button>'
+          +'</div></div>';
+        resultCard.innerHTML=html; resultCard.classList.remove('hidden'); uploadCard.classList.add('hidden');
+        renderRows(); renderTotals();
+        document.getElementById('setMargen').addEventListener('input', function(){ settings.margen=num(this.value); rows.forEach(function(r){ r._sug=suggested(r.costo_unidad); }); renderRows(); renderTotals(); });
+        document.getElementById('setRedondeo').addEventListener('change', function(){ settings.redondeo=this.value; renderRows(); renderTotals(); });
+        document.getElementById('applySug').addEventListener('click', function(){ rows.forEach(function(r){ r.precio_venta=suggested(r.costo_unidad); }); renderRows(); renderTotals(); });
+        document.getElementById('addRow').addEventListener('click', function(){ rows.push({producto:'',upc:'',empaque:'',cantidad:1,costo_caja:0,costo_unidad:0,precio_venta:0}); renderRows(); renderTotals(); });
+        document.getElementById('otraBtn').addEventListener('click', reset);
+        document.getElementById('csvBtn').addEventListener('click', exportCsv);
+        document.getElementById('saveBtn').addEventListener('click', saveCosteo);
+      }
+
+      function rowCells(r,i){
+        var cost=num(r.costo_unidad), sug=suggested(cost), pv=num(r.precio_venta);
+        var mg=pv>0? (pv-cost)/pv*100 : 0; var gan=pv-cost;
+        var mgCls = pv<=0? 'text-gray-400' : (gan<0? 'text-red-600 font-bold' : (mg>=num(settings.margen)? 'text-green-700 font-semibold':'text-amber-600 font-semibold'));
+        var cat=catalogMatch(r.upc), catCell='<span class="text-gray-300">—</span>';
+        if(cat && isFinite(cat.costo)){
+          var diff=cost-cat.costo;
+          if(Math.abs(diff)<0.005) catCell='<span class="text-gray-500">= $'+cat.costo.toFixed(2)+'</span>';
+          else if(diff>0) catCell='<span class="text-red-600 font-semibold" title="Costo anterior en catálogo">▲ subió (antes $'+cat.costo.toFixed(2)+')</span>';
+          else catCell='<span class="text-green-700 font-semibold" title="Costo anterior en catálogo">▼ bajó (antes $'+cat.costo.toFixed(2)+')</span>';
+        }
+        return ''
+          +'<td class="px-2 py-1 text-gray-400">'+(i+1)+'</td>'
+          +'<td class="px-2 py-1 min-w-[160px]"><input data-i="'+i+'" data-f="producto" value="'+esc(r.producto)+'"/></td>'
+          +'<td class="px-2 py-1 min-w-[110px]"><input data-i="'+i+'" data-f="upc" value="'+esc(r.upc)+'"/></td>'
+          +'<td class="px-2 py-1"><input data-i="'+i+'" data-f="empaque" value="'+esc(r.empaque)+'" class="w-20"/></td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="cantidad" value="'+esc(r.cantidad)+'" class="text-right w-14"/></td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="costo_caja" value="'+esc(r.costo_caja)+'" class="text-right w-20"/></td>'
+          +'<td class="px-2 py-1 text-right text-[#006847] font-semibold"><input data-i="'+i+'" data-f="costo_unidad" value="'+esc(r.costo_unidad)+'" class="text-right w-16 text-[#006847] font-semibold"/></td>'
+          +'<td class="px-2 py-1 text-right text-gray-500">'+money(sug)+'</td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="precio_venta" value="'+esc(pv? pv.toFixed(2):'')+'" class="text-right w-20 font-semibold"/></td>'
+          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? mg.toFixed(1)+'%':'—')+'</td>'
+          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? money(gan):'—')+'</td>'
+          +'<td class="px-2 py-1 text-xs">'+catCell+'</td>';
+      }
+      function renderRows(){
+        var tb=document.getElementById('tbody'); if(!tb) return;
+        tb.innerHTML=rows.map(function(r,i){ return '<tr class="border-b">'+rowCells(r,i)+'</tr>'; }).join('');
+        tb.querySelectorAll('input').forEach(function(inp){
+          inp.addEventListener('input', function(){
+            var i=+this.getAttribute('data-i'), f=this.getAttribute('data-f'); rows[i][f]=this.value;
+            // recomputar sólo esta fila + totales (sin perder foco)
+            var tr=this.closest('tr'); var pos=Array.prototype.indexOf.call(tr.parentNode.children,tr);
+            if(f==='costo_unidad'||f==='precio_venta'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
+            renderTotals();
+          });
+        });
+      }
+      function rebind(tr){ tr.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){
+        var i=+this.getAttribute('data-i'), f=this.getAttribute('data-f'); rows[i][f]=this.value;
+        var pos=Array.prototype.indexOf.call(tr.parentNode.children,tr);
+        if(f==='costo_unidad'||f==='precio_venta'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
+        renderTotals(); }); }); }
+
+      function renderTotals(){
+        var el=document.getElementById('totals'); if(!el) return;
+        var totCosto=0, totVenta=0, totUnidades=0;
+        rows.forEach(function(r){ var upb=unitsPerBox(r), cant=num(r.cantidad)||0;
+          var units=upb*(cant||0); if(!units && num(r.costo_unidad)>0) units=1;
+          totUnidades+=units;
+          totCosto+=num(r.costo_caja)*cant || num(r.costo_unidad)*units;
+          totVenta+=num(r.precio_venta)*units; });
+        var ganancia=totVenta-totCosto; var margen=totVenta>0? ganancia/totVenta*100:0;
+        function tile(label,val,cls){ return '<div class="bg-gray-50 rounded-lg p-3"><div class="text-xs text-gray-500">'+label+'</div><div class="text-lg font-bold '+(cls||'')+'">'+val+'</div></div>'; }
+        el.innerHTML=tile('Costo total',money(totCosto))
+          +tile('Venta proyectada',money(totVenta),'text-mexican-green')
+          +tile('Ganancia estimada',money(ganancia), ganancia<0?'text-red-600':'text-mexican-green')
+          +tile('Margen promedio',(totVenta>0?margen.toFixed(1)+'%':'—'), margen<0?'text-red-600':'text-costeo');
+      }
+
+      function reset(){ pageImgs=[]; meta={}; rows=[]; fileIn.value=''; prev.classList.add('hidden'); runB.classList.add('hidden');
+        statusEl.classList.add('hidden'); resultCard.classList.add('hidden'); resultCard.innerHTML=''; uploadCard.classList.remove('hidden'); }
+
+      // ---------- CSV ----------
+      function exportCsv(){
+        var out=[['Producto','UPC','Empaque','Cantidad','Costo Caja','Costo Unidad','Precio Sugerido','Precio Venta','Margen %','Ganancia Unidad']];
+        rows.forEach(function(r){ var cost=num(r.costo_unidad), pv=num(r.precio_venta), mg=pv>0?(pv-cost)/pv*100:0;
+          out.push([r.producto,r.upc,r.empaque,r.cantidad,r.costo_caja,r.costo_unidad,suggested(cost).toFixed(2),pv.toFixed(2),mg.toFixed(1),(pv-cost).toFixed(2)]); });
+        var prov=(meta.proveedor)||'factura';
+        var csv=out.map(function(r){ return r.map(function(c){ return '"'+String(c==null?'':c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+        var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+        a.href=url; a.download='costeo_'+String(prov).replace(/[^a-z0-9]+/gi,'_')+'.csv'; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},3000);
+      }
+
+      // ---------- Guardar / Historial (nodo Firebase: costeos) ----------
+      function saveCosteo(){
+        if(!database){ alert('No hay conexión con la base. No se pudo guardar.'); return; }
+        if(!rows.length){ alert('No hay renglones que guardar.'); return; }
+        var id='c_'+Date.now();
+        var rec={ id:id, ts:Date.now(), proveedor:meta.proveedor||null, factura:meta.factura||null, fecha:meta.fecha||null,
+          total_factura:(meta.total_factura!=null?meta.total_factura:null), margen:num(settings.margen), redondeo:settings.redondeo,
+          items:rows.map(function(r){ return { producto:r.producto||'', upc:r.upc||'', empaque:r.empaque||'',
+            cantidad:num(r.cantidad), costo_caja:num(r.costo_caja), costo_unidad:num(r.costo_unidad), precio_venta:num(r.precio_venta) }; }) };
+        database.ref('costeos/'+id).set(rec).then(function(){ flash('💾 Costeo guardado en el historial.'); })
+          .catch(function(){ alert('No se pudo guardar.'); });
+      }
+      function flash(msg){ var d=document.createElement('div'); d.textContent=msg;
+        d.className='fixed bottom-5 left-1/2 -translate-x-1/2 bg-costeo text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm';
+        document.body.appendChild(d); setTimeout(function(){ d.remove(); },2500); }
+
+      function renderHist(list){
+        if(!list.length){ histList.innerHTML='<div class="text-gray-400 py-4">Aún no hay costeos guardados.</div>'; histCount.textContent=''; return; }
+        histCount.textContent=list.length+' guardado(s)';
+        histList.innerHTML=list.map(function(c){
+          var f=new Date(c.ts||0); var fecha=isFinite(f.getTime())? f.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : (c.fecha||'');
+          return '<div class="py-3 flex items-center justify-between gap-3">'
+            +'<div><div class="font-semibold text-gray-800">'+esc(c.proveedor||'Sin proveedor')+' <span class="text-xs text-gray-400 font-normal">'+esc(c.factura||'')+'</span></div>'
+            +'<div class="text-xs text-gray-500">'+fecha+' · '+((c.items&&c.items.length)||0)+' productos · margen '+num(c.margen)+'%'+(c.total_factura!=null?' · total '+money(c.total_factura):'')+'</div></div>'
+            +'<div class="flex gap-2 shrink-0"><button data-open="'+esc(c.id)+'" class="text-mexican-green hover:underline text-sm font-semibold">Abrir</button>'
+            +'<button data-del="'+esc(c.id)+'" class="text-red-500 hover:underline text-sm">Borrar</button></div></div>';
+        }).join('');
+        histList.querySelectorAll('[data-open]').forEach(function(b){ b.addEventListener('click', function(){ openHist(this.getAttribute('data-open')); }); });
+        histList.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click', function(){ var id=this.getAttribute('data-del');
+          if(confirm('¿Borrar este costeo del historial?')) database.ref('costeos/'+id).remove(); }); });
+      }
+      var histCache={};
+      function openHist(id){ var c=histCache[id]; if(!c) return;
+        meta={ proveedor:c.proveedor, factura:c.factura, fecha:c.fecha, total_factura:c.total_factura, total_calculado:null, cuadra:null };
+        settings.margen=num(c.margen)||30; settings.redondeo=c.redondeo||'99';
+        rows=(c.items||[]).map(function(it){ return { producto:it.producto, upc:it.upc, empaque:it.empaque, cantidad:it.cantidad,
+          costo_caja:it.costo_caja, costo_unidad:it.costo_unidad, precio_venta:it.precio_venta }; });
+        renderResult(); window.scrollTo({top:0,behavior:'smooth'});
+      }
+      if(database){
+        database.ref('costeos').on('value', function(s){ var v=s.val()||{}; histCache=v;
+          var list=Object.values(v).filter(Boolean).sort(function(a,b){ return (b.ts||0)-(a.ts||0); }); renderHist(list); });
+      } else { renderHist([]); }
+    })();
+    </script>
+</body>
+</html>
