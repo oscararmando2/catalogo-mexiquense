@@ -152,7 +152,9 @@
 
       // ---------- Cargar datos al modelo ----------
       function loadData(d){
-        meta={ proveedor:d.proveedor, factura:d.factura, fecha:d.fecha, total_factura:d.total_factura, total_calculado:d.total_calculado, cuadra:d.cuadra };
+        meta={ proveedor:d.proveedor, factura:d.factura, fecha:d.fecha, total_factura:d.total_factura,
+               total_calculado:d.total_calculado, total_con_cargos:d.total_con_cargos, cuadra:d.cuadra,
+               flete:d.flete, otros_cargos:d.otros_cargos, creditos:d.creditos };
         rows=(d.items||[]).map(function(it){ return {
           producto:it.producto||'', upc:it.upc||'', empaque:it.empaque||'', cantidad:it.cantidad,
           costo_caja:it.costo_caja, costo_unidad:it.costo_unidad,
@@ -172,8 +174,11 @@
             +'<div><b>Proveedor:</b> '+esc(meta.proveedor)+'</div>'
             +'<div><b>Factura:</b> '+esc(meta.factura)+'</div>'
             +'<div><b>Fecha:</b> '+esc(meta.fecha)+'</div>'
-            +'<div><b>Total factura:</b> '+money(meta.total_factura)+'</div>'
-            +'<div><b>Total calculado:</b> '+money(meta.total_calculado)+' '+cuadraBadge+'</div>'
+            +'<div><b>Mercancía:</b> '+money(meta.total_calculado)+'</div>'
+            +(meta.flete? '<div><b>Flete:</b> '+money(meta.flete)+'</div>':'')
+            +(meta.otros_cargos? '<div><b>Otros cargos:</b> '+money(meta.otros_cargos)+'</div>':'')
+            +(meta.creditos? '<div><b>Créditos (devolución):</b> −'+money(meta.creditos)+'</div>':'')
+            +'<div><b>Total factura:</b> '+money(meta.total_factura)+' '+cuadraBadge+'</div>'
           +'</div>'
           // Controles de precio
           +'<div class="flex flex-wrap items-end gap-4 mb-3 bg-[#fdf2f3] rounded-lg p-3">'
@@ -294,7 +299,9 @@
         if(!rows.length){ alert('No hay renglones que guardar.'); return; }
         var id='c_'+Date.now();
         var rec={ id:id, ts:Date.now(), proveedor:meta.proveedor||null, factura:meta.factura||null, fecha:meta.fecha||null,
-          total_factura:(meta.total_factura!=null?meta.total_factura:null), margen:num(settings.margen), redondeo:settings.redondeo,
+          total_factura:(meta.total_factura!=null?meta.total_factura:null),
+          flete:(meta.flete!=null?meta.flete:null), otros_cargos:(meta.otros_cargos!=null?meta.otros_cargos:null),
+          creditos:(meta.creditos!=null?meta.creditos:null), margen:num(settings.margen), redondeo:settings.redondeo,
           items:rows.map(function(r){ return { producto:r.producto||'', upc:r.upc||'', empaque:r.empaque||'',
             cantidad:num(r.cantidad), costo_caja:num(r.costo_caja), costo_unidad:num(r.costo_unidad), precio_venta:num(r.precio_venta) }; }) };
         database.ref('costeos/'+id).set(rec).then(function(){ flash('💾 Costeo guardado en el historial.'); })
@@ -321,7 +328,9 @@
       }
       var histCache={};
       function openHist(id){ var c=histCache[id]; if(!c) return;
-        meta={ proveedor:c.proveedor, factura:c.factura, fecha:c.fecha, total_factura:c.total_factura, total_calculado:null, cuadra:null };
+        var merc=(c.items||[]).reduce(function(a,it){ return a+num(it.costo_caja)*num(it.cantidad); },0);
+        meta={ proveedor:c.proveedor, factura:c.factura, fecha:c.fecha, total_factura:c.total_factura,
+               total_calculado:Math.round(merc*100)/100, flete:c.flete, otros_cargos:c.otros_cargos, creditos:c.creditos, cuadra:null };
         settings.margen=num(c.margen)||30; settings.redondeo=c.redondeo||'99';
         rows=(c.items||[]).map(function(it){ return { producto:it.producto, upc:it.upc, empaque:it.empaque, cantidad:it.cantidad,
           costo_caja:it.costo_caja, costo_unidad:it.costo_unidad, precio_venta:it.precio_venta }; });
