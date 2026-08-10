@@ -9,10 +9,13 @@ const COSTEO_SYSTEM =
   'Te doy la(s) imagen(es) de una factura (escaneada o foto). Extrae CADA renglón de producto. ' +
   'Devuelve SOLO un objeto JSON válido (sin markdown, sin texto adicional) con esta forma:\n' +
   '{"proveedor":"nombre o null","factura":"número o null","fecha":"fecha o null","moneda":"USD",' +
-  '"items":[{"producto":"nombre","upc":"UPC o null","cantidad":número de cajas/unidades facturadas o null,' +
+  '"items":[{"producto":"nombre","upc":"UPC o null","cantidad":cajas/unidades REALMENTE ENVIADAS o null,' +
   '"empaque":"pack size ej 12/12oz o null","costo_caja":precio del renglón (por caja/empaque) o null,' +
   '"costo_unidad":precio por unidad individual}],"total_factura":total impreso o null}\n\n' +
   'REGLAS:\n' +
+  '- CANTIDAD = la ENVIADA (Shipped), NUNCA la ordenada. Muchas facturas traen una columna doble tipo "Qty Ord|Shp", "Ordered/Shipped" o "Ord | Shp": usa SIEMPRE el segundo número (lo enviado). ' +
+  'Si lo enviado es 0 (o la columna "Total"/importe del renglón es 0 o está en blanco), ese producto NO se surtió: pon cantidad 0. Aun así incluye el renglón (con su costo por caja/unidad), pero con cantidad 0 para que el total cuadre.\n' +
+  '- El total del renglón ("Total"/"Amount"/"Extended") = costo_caja × cantidad enviada. Si no cuadra, confía en la columna Total impresa y en la cantidad ENVIADA.\n' +
   '- costo_unidad = costo por PIEZA individual. Si la factura da precio por caja y el empaque es "12/...", costo_unidad = costo_caja / 12. ' +
   'Si es a granel / random weight (RW, por libra), costo_unidad = el precio por libra tal cual.\n' +
   '- Usa el UPC / código de barras del producto si aparece; NO el número de ítem interno del proveedor.\n' +
