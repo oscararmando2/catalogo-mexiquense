@@ -78,27 +78,36 @@ function searchBase(text) {
 const UNIT_WORDS = new Set(['l', 'lt', 'litro', 'litros', 'ml', 'g', 'gr', 'gramo', 'gramos', 'kg', 'oz', 'ozs', 'fl', 'lb', 'lbs', 'pk', 'ct', 'cc']);
 const FILLER_WORDS = new Set(['soda', 'refresco', 'bebida', 'botella', 'lata', 'drink', 'original', 'clasico', 'clasica', 'clasico', 'the', 'de', 'con', 'y']);
 
-// Tamaño canónico: volumen -> ml, peso -> g. Devuelve "" si no se puede leer.
+// Tamaño canónico: volumen -> ml (redondeado a 5), peso -> g. Devuelve "" si no
+// se puede leer. oz se trata como líquido (uso SOLO interno para agrupar): así
+// "16 oz", "16 fl oz / 473 ml" y "473 ml" del mismo producto caen en el mismo
+// grupo. Como el núcleo del nombre debe coincidir igual, no mezcla cosas ajenas.
 function sizeKeyOf(rawName) {
   const s = String(rawName || '').toLowerCase();
-  const re = /(\d+\s*\/\s*\d+|\d+(?:\.\d+)?)\s*(litros?|lt|l|ml|kgs?|kg|gr?|oz|lbs?|lb)\b/g;
-  let m, best = '';
+  const re = /(\d+\s*\/\s*\d+|\d+(?:\.\d+)?)\s*(?:fl\.?\s*)?(litros?|lt|l|ml|kgs?|kg|gr?|ozs?|oz|lbs?|lb)\b/g;
+  let m, vol = '', mass = '';
   while ((m = re.exec(s))) {
     let num = m[1];
     if (num.includes('/')) { const [a, b] = num.split('/').map(x => parseFloat(x)); num = b ? a / b : parseFloat(a); }
     else num = parseFloat(num);
-    if (!isFinite(num)) continue;
+    if (!isFinite(num) || num <= 0) continue;
     const u = m[2];
-    let key = '';
-    if (u === 'l' || u === 'lt' || u === 'litro' || u === 'litros') key = 'v' + Math.round(num * 1000);      // L -> ml
-    else if (u === 'ml') key = 'v' + Math.round(num);                                                          // ml
-    else if (u === 'kg' || u === 'kgs') key = 'm' + Math.round(num * 1000);                                    // kg -> g
-    else if (u === 'g' || u === 'gr') key = 'm' + Math.round(num);                                             // g
-    // oz/lb quedan fuera (ambiguos peso/volumen) a propósito: no forzamos merge.
-    if (key && key.length > best.length) best = key;   // prioriza la lectura más específica (ml/g exactos)
-    else if (key && !best) best = key;
+    let ml = null, g = null;
+    if (u === 'l' || u === 'lt' || u === 'litro' || u === 'litros') ml = num * 1000;
+    else if (u === 'ml') ml = num;
+    else if (u === 'oz' || u === 'ozs') ml = num * 29.5735;         // oz -> ml (aprox), solo p/agrupar
+    else if (u === 'kg' || u === 'kgs') g = num * 1000;
+    else if (u === 'g' || u === 'gr') g = num;
+    else if (u === 'lb' || u === 'lbs') g = num * 453.592;
+    if (ml != null) { const k = 'v' + (Math.round(ml / 5) * 5); if (k.length > vol.length) vol = k; else if (!vol) vol = k; }
+    if (g != null) { const k = 'm' + Math.round(g); if (k.length > mass.length) mass = k; else if (!mass) mass = k; }
   }
-  return best;
+  const base = vol || mass;   // el volumen manda sobre el peso cuando el nombre trae ambos
+  // Paquete/multipack: 6 pk, 12 pk, 24 ct... deben quedar en grupos separados
+  // (mismo tamaño por lata pero precio muy distinto). Sin base de tamaño no agrupamos.
+  if (!base) return '';
+  const pk = s.match(/(\d+)\s*(?:pk|pack|pkg|pzas?|piezas?|ct|cnt)\b/);
+  return pk ? base + 'x' + pk[1] : base;
 }
 
 // Núcleo del producto: tokens que NO son número, unidad ni relleno.
