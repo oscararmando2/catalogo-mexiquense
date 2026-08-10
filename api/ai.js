@@ -6,7 +6,7 @@ const BASE = require('./_data/baseIA.json'); // [{n:nombre, u:upc, p:precio, c:c
 
 const MODEL = 'claude-haiku-4-5';          // Q&A de precios (barato)
 const LETRERO_MODEL = 'claude-sonnet-4-6'; // generación de letreros (más listo)
-const MAX_MATCHES = 24;
+const MAX_MATCHES = 45;
 const MAX_TURNS = 12;
 
 // --- Búsqueda por palabras clave sobre la base ---
@@ -210,6 +210,7 @@ module.exports = async (req, res) => {
     'Si un producto no aparece en los resultados de abajo, NO digas que no existe: pide que lo escriban con otras palabras o revisen el nombre exacto. ' +
     'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
     'Muchos productos traen varios "Proveedores" con su precio cada uno. Si preguntan "¿dónde está más barato X?", "¿quién lo tiene más barato?" o "¿cuánto cuesta X con cada proveedor?": di cuál es el MÁS BARATO y su precio, y lista todos los proveedores con su precio (de menor a mayor). Si solo hay un proveedor, dilo. Si preguntan "¿quién surte X?" o "¿qué vende AWG?", usa esos datos. Si un producto no trae proveedor, dilo. ' +
+    'MUY IMPORTANTE — un mismo producto puede aparecer como VARIAS fichas escritas distinto y con proveedores separados (porque cada proveedor lo captura a su manera y algunos no traen UPC). Ejemplo real: "Coca-Cola 1/2 lt." (Palimex) y "Soda 1/2 Litro Coca Cola" (Limeña) son EL MISMO producto. Cuando el usuario pregunte por un producto, JUNTA todas las fichas del MISMO tamaño/presentación que veas abajo, combina sus proveedores y precios como si fueran una sola, y así di cuál es el más barato. No contestes basándote en una sola ficha si abajo hay otras del mismo producto y tamaño con otro proveedor. Solo trátalas como distintas si claramente son otra cosa (otro tamaño, otra variedad o marca diferente). ' +
     'El costo mostrado es el más reciente (cambios de costo de proveedor de 2026). ' +
     'Nunca inventes precios, costos, UPC ni proveedores.\n\n' +
     'RESULTADOS DE BÚSQUEDA PARA ESTA PREGUNTA (no es toda tu base):\n' + contexto;
