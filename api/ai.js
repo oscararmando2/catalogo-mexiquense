@@ -103,7 +103,7 @@ function sizeKeyOf(rawName) {
 
 // Núcleo del producto: tokens que NO son número, unidad ni relleno.
 function coreKeyOf(name) {
-  const toks = normalize(name).split(' ').filter(Boolean);
+  const toks = normalize(name).split(' ').map(t => t.replace(/\./g, '')).filter(Boolean);
   const core = toks.filter(t => !/^\d/.test(t) && !UNIT_WORDS.has(t) && !FILLER_WORDS.has(t));
   return core.sort().join(' ');
 }
