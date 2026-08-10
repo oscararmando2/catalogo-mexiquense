@@ -72,6 +72,64 @@ function searchBase(text) {
   return scored.slice(0, MAX_MATCHES).map(s => s[1]);
 }
 
+// ---- Consolidación: junta fichas del MISMO producto+tamaño aunque estén
+// escritas distinto y con proveedores separados (ej. "Coca-Cola 1/2 lt." de
+// Palimex y "Soda 1/2 Litro Coca Cola" de Limeña son el mismo producto). ----
+const UNIT_WORDS = new Set(['l', 'lt', 'litro', 'litros', 'ml', 'g', 'gr', 'gramo', 'gramos', 'kg', 'oz', 'ozs', 'fl', 'lb', 'lbs', 'pk', 'ct', 'cc']);
+const FILLER_WORDS = new Set(['soda', 'refresco', 'bebida', 'botella', 'lata', 'drink', 'original', 'clasico', 'clasica', 'clasico', 'the', 'de', 'con', 'y']);
+
+// Tamaño canónico: volumen -> ml, peso -> g. Devuelve "" si no se puede leer.
+function sizeKeyOf(rawName) {
+  const s = String(rawName || '').toLowerCase();
+  const re = /(\d+\s*\/\s*\d+|\d+(?:\.\d+)?)\s*(litros?|lt|l|ml|kgs?|kg|gr?|oz|lbs?|lb)\b/g;
+  let m, best = '';
+  while ((m = re.exec(s))) {
+    let num = m[1];
+    if (num.includes('/')) { const [a, b] = num.split('/').map(x => parseFloat(x)); num = b ? a / b : parseFloat(a); }
+    else num = parseFloat(num);
+    if (!isFinite(num)) continue;
+    const u = m[2];
+    let key = '';
+    if (u === 'l' || u === 'lt' || u === 'litro' || u === 'litros') key = 'v' + Math.round(num * 1000);      // L -> ml
+    else if (u === 'ml') key = 'v' + Math.round(num);                                                          // ml
+    else if (u === 'kg' || u === 'kgs') key = 'm' + Math.round(num * 1000);                                    // kg -> g
+    else if (u === 'g' || u === 'gr') key = 'm' + Math.round(num);                                             // g
+    // oz/lb quedan fuera (ambiguos peso/volumen) a propósito: no forzamos merge.
+    if (key && key.length > best.length) best = key;   // prioriza la lectura más específica (ml/g exactos)
+    else if (key && !best) best = key;
+  }
+  return best;
+}
+
+// Núcleo del producto: tokens que NO son número, unidad ni relleno.
+function coreKeyOf(name) {
+  const toks = normalize(name).split(' ').filter(Boolean);
+  const core = toks.filter(t => !/^\d/.test(t) && !UNIT_WORDS.has(t) && !FILLER_WORDS.has(t));
+  return core.sort().join(' ');
+}
+
+// Agrupa las coincidencias por (núcleo + tamaño). Solo agrupa cuando hay tamaño
+// legible y núcleo no vacío; el resto se queda tal cual (una ficha por línea).
+function consolidateMatches(matches) {
+  const groups = new Map();
+  const out = [];
+  for (const it of matches) {
+    const sz = sizeKeyOf(it.n);
+    const core = coreKeyOf(it.n);
+    const gk = (sz && core) ? core + '|' + sz : null;
+    if (gk && groups.has(gk)) {
+      groups.get(gk).push(it);
+    } else if (gk) {
+      const arr = [it];
+      groups.set(gk, arr);
+      out.push({ group: arr });
+    } else {
+      out.push({ group: [it] });
+    }
+  }
+  return out.map(o => o.group);
+}
+
 // ================= LETREROS =================
 function isLetreroRequest(text) {
   return /letrero|letreros|cartel|carteles|\bsign\b/i.test(text || '');
@@ -175,22 +233,35 @@ module.exports = async (req, res) => {
   const recentUser = history.filter(m => m.role === 'user').slice(-3).map(m => m.content).join(' ');
   const matches = searchBase(recentUser);
 
-  const lines = matches.map(it => {
-    let s = `- ${it.n}`;
-    if (it.item) s += ` | Item code: ${it.item}`;
-    if (it.u) s += ` | UPC: ${it.u}`;
-    if (it.size) s += ` | Tamaño: ${it.size}`;
-    const provs = (it.provs && typeof it.provs === 'object') ? Object.entries(it.provs).filter(e => e[1] != null) : [];
-    if (provs.length) {
-      provs.sort((a, b) => a[1] - b[1]);
-      const cheap = provs[0];
-      s += ` | Costo más barato: $${cheap[1]} (${cheap[0]})`;
-      s += ` | Proveedores: ${provs.map(([k, v]) => `${k} $${v}`).join(', ')}`;
-    } else {
-      if (it.c) s += ` | Costo: $${it.c}`;
-      if (it.s) s += ` | Proveedor: ${it.s}`;
+  const groups = consolidateMatches(matches);
+  const lines = groups.map(g => {
+    const head = g[0];
+    // Nombres de las variantes que se juntaron (para que la IA vea que es lo mismo)
+    const names = [...new Set(g.map(x => x.n))];
+    let s = `- ${names[0]}`;
+    if (names.length > 1) s += ` (también: ${names.slice(1).join('; ')})`;
+    const item = g.map(x => x.item).find(Boolean);
+    const upc = g.map(x => x.u).find(Boolean);
+    const size = g.map(x => x.size).find(Boolean);
+    if (item) s += ` | Item code: ${item}`;
+    if (upc) s += ` | UPC: ${upc}`;
+    if (size) s += ` | Tamaño: ${size}`;
+    // Junta TODOS los proveedores de todas las variantes del grupo (el más barato gana por proveedor)
+    const provMap = {};
+    for (const x of g) {
+      const ps = (x.provs && typeof x.provs === 'object') ? Object.entries(x.provs) : [];
+      for (const [k, v] of ps) { if (v != null && (provMap[k] == null || v < provMap[k])) provMap[k] = v; }
+      if ((!ps || !ps.length) && x.s && x.c != null && (provMap[x.s] == null || x.c < provMap[x.s])) provMap[x.s] = x.c;
     }
-    if (it.p) s += ` | Precio: $${it.p}`;
+    const provs = Object.entries(provMap).sort((a, b) => a[1] - b[1]);
+    if (provs.length) {
+      s += ` | Costo más barato: $${provs[0][1]} (${provs[0][0]})`;
+      s += ` | Proveedores: ${provs.map(([k, v]) => `${k} $${v}`).join(', ')}`;
+    } else if (head.c) {
+      s += ` | Costo: $${head.c}`;
+    }
+    const precio = g.map(x => x.p).find(Boolean);
+    if (precio) s += ` | Precio: $${precio}`;
     return s;
   });
   const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
