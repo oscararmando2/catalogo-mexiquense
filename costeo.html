@@ -102,6 +102,8 @@
           list.forEach(function(row){ var m=row.upc?pr[row.upc]:null; if(!m) return;
             if(!(num(row.instore)>0) && m.p!=null) row.instore=m.p;   // no pisa un In/Store ya puesto
             row.catCost=(m.c!=null?m.c:null); row.catName=m.n||'';
+            // El UPC manda: si coincide, usamos el NOMBRE DE TU SISTEMA (no el de la factura)
+            if(m.n){ if(row.producto && row.producto!==m.n) row.invoiceName=row.producto; row.producto=m.n; }
           });
         }catch(e){ /* sin conexión: se queda sin precio de tienda, editable a mano */ }
       }
@@ -238,7 +240,7 @@
         }
         return ''
           +'<td class="px-2 py-1 text-gray-400">'+(i+1)+'</td>'
-          +'<td class="px-2 py-1 min-w-[280px]"><input data-i="'+i+'" data-f="producto" value="'+esc(r.producto)+'" class="w-full"/></td>'
+          +'<td class="px-2 py-1 min-w-[280px]"><input data-i="'+i+'" data-f="producto" value="'+esc(r.producto)+'" class="w-full"'+(r.catName?' title="Nombre de tu sistema (UPC coincide)"':'')+'/>'+(r.invoiceName?'<div class="text-[10px] text-gray-400 leading-tight">en factura: '+esc(r.invoiceName)+'</div>':'')+'</td>'
           +'<td class="px-2 py-1 min-w-[150px]"><input data-i="'+i+'" data-f="upc" value="'+esc(r.upc)+'" class="w-full"/></td>'
           +'<td class="px-2 py-1"><input data-i="'+i+'" data-f="empaque" value="'+esc(r.empaque)+'" class="w-28"/></td>'
           +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="cantidad" value="'+esc(r.cantidad)+'" class="text-right w-16"/></td>'
@@ -308,7 +310,7 @@
           total_factura:(meta.total_factura!=null?meta.total_factura:null),
           flete:(meta.flete!=null?meta.flete:null), otros_cargos:(meta.otros_cargos!=null?meta.otros_cargos:null),
           creditos:(meta.creditos!=null?meta.creditos:null), margen:num(settings.margen), redondeo:settings.redondeo,
-          items:rows.map(function(r){ return { producto:r.producto||'', upc:r.upc||'', empaque:r.empaque||'',
+          items:rows.map(function(r){ return { producto:r.producto||'', upc:r.upc||'', empaque:r.empaque||'', invoiceName:r.invoiceName||null,
             cantidad:num(r.cantidad), costo_caja:num(r.costo_caja), costo_unidad:num(r.costo_unidad), instore:num(r.instore) }; }) };
         database.ref('costeos/'+id).set(rec).then(function(){ feedIA(); flash('💾 Guardado. La IA ya sabe estas últimas compras.'); })
           .catch(function(){ alert('No se pudo guardar.'); });
@@ -352,7 +354,7 @@
         meta={ proveedor:c.proveedor, factura:c.factura, fecha:c.fecha, total_factura:c.total_factura,
                total_calculado:Math.round(merc*100)/100, flete:c.flete, otros_cargos:c.otros_cargos, creditos:c.creditos, cuadra:null };
         settings.margen=num(c.margen)||30; settings.redondeo=c.redondeo||'99';
-        rows=(c.items||[]).map(function(it){ return { producto:it.producto, upc:it.upc, empaque:it.empaque, cantidad:it.cantidad,
+        rows=(c.items||[]).map(function(it){ return { producto:it.producto, upc:it.upc, empaque:it.empaque, invoiceName:it.invoiceName||'', cantidad:it.cantidad,
           costo_caja:it.costo_caja, costo_unidad:it.costo_unidad, instore:(it.instore!=null?it.instore:(it.precio_venta!=null?it.precio_venta:'')), catCost:null, catName:'' }; });
         await fetchPrices(rows);  // rellena In/Store faltantes + costo de catálogo (no pisa los ya guardados)
         renderResult(); window.scrollTo({top:0,behavior:'smooth'});
