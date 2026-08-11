@@ -36,9 +36,9 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-6 max-w-6xl">
+    <main class="w-full px-2 md:px-5 py-6">
         <!-- Subir factura -->
-        <section id="uploadCard" class="bg-white rounded-2xl shadow p-5 mb-6">
+        <section id="uploadCard" class="bg-white rounded-2xl shadow p-5 mb-6 max-w-3xl mx-auto">
             <label class="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#c0261c] transition">
                 <input id="costeoFile" type="file" accept="image/*,application/pdf" capture="environment" class="hidden" />
                 <div class="text-5xl mb-2">📷</div>
@@ -54,7 +54,7 @@
         <section id="resultCard" class="hidden"></section>
 
         <!-- Historial -->
-        <section class="bg-white rounded-2xl shadow p-5 mt-8">
+        <section class="bg-white rounded-2xl shadow p-5 mt-8 max-w-3xl mx-auto">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="font-bold text-lg text-costeo flex items-center gap-2">📚 Historial de costeos</h2>
                 <span id="histCount" class="text-xs text-gray-500"></span>
@@ -169,7 +169,7 @@
         var cuadraBadge = meta.cuadra===true? '<span class="text-green-700 font-semibold">✓ Cuadra</span>'
           : meta.cuadra===false? '<span class="text-red-600 font-semibold">⚠️ No cuadra — revisa</span>':'';
         var html=''
-          +'<div class="bg-white rounded-2xl shadow p-5">'
+          +'<div class="bg-white rounded-xl shadow-sm p-2 md:p-4">'
           +'<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-4 bg-gray-50 rounded-lg p-3">'
             +'<div><b>Proveedor:</b> '+esc(meta.proveedor)+'</div>'
             +'<div><b>Factura:</b> '+esc(meta.factura)+'</div>'
@@ -232,14 +232,14 @@
         }
         return ''
           +'<td class="px-2 py-1 text-gray-400">'+(i+1)+'</td>'
-          +'<td class="px-2 py-1 min-w-[160px]"><input data-i="'+i+'" data-f="producto" value="'+esc(r.producto)+'"/></td>'
-          +'<td class="px-2 py-1 min-w-[110px]"><input data-i="'+i+'" data-f="upc" value="'+esc(r.upc)+'"/></td>'
-          +'<td class="px-2 py-1"><input data-i="'+i+'" data-f="empaque" value="'+esc(r.empaque)+'" class="w-20"/></td>'
-          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="cantidad" value="'+esc(r.cantidad)+'" class="text-right w-14"/></td>'
-          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="costo_caja" value="'+esc(r.costo_caja)+'" class="text-right w-20"/></td>'
-          +'<td class="px-2 py-1 text-right text-[#006847] font-semibold"><input data-i="'+i+'" data-f="costo_unidad" value="'+esc(r.costo_unidad)+'" class="text-right w-16 text-[#006847] font-semibold"/></td>'
+          +'<td class="px-2 py-1 min-w-[280px]"><input data-i="'+i+'" data-f="producto" value="'+esc(r.producto)+'" class="w-full"/></td>'
+          +'<td class="px-2 py-1 min-w-[150px]"><input data-i="'+i+'" data-f="upc" value="'+esc(r.upc)+'" class="w-full"/></td>'
+          +'<td class="px-2 py-1"><input data-i="'+i+'" data-f="empaque" value="'+esc(r.empaque)+'" class="w-28"/></td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="cantidad" value="'+esc(r.cantidad)+'" class="text-right w-16"/></td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="costo_caja" value="'+esc(r.costo_caja)+'" class="text-right w-24"/></td>'
+          +'<td class="px-2 py-1 text-right text-[#006847] font-semibold"><input data-i="'+i+'" data-f="costo_unidad" value="'+esc(r.costo_unidad)+'" class="text-right w-24 text-[#006847] font-semibold"/></td>'
           +'<td class="px-2 py-1 text-right text-gray-500">'+money(sug)+'</td>'
-          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="precio_venta" value="'+esc(pv? pv.toFixed(2):'')+'" class="text-right w-20 font-semibold"/></td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="precio_venta" value="'+esc(pv? pv.toFixed(2):'')+'" class="text-right w-24 font-semibold"/></td>'
           +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? mg.toFixed(1)+'%':'—')+'</td>'
           +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? money(gan):'—')+'</td>'
           +'<td class="px-2 py-1 text-xs">'+catCell+'</td>';
