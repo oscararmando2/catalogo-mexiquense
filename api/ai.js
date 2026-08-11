@@ -42,6 +42,34 @@ function extractUpc(text) {
   return best;
 }
 
+// --- Últimas compras (las alimenta /costeo al guardar una factura): por UPC,
+// el proveedor + costo por unidad + fecha de la última vez que se compró. ---
+const FB_URL = 'https://catalogomexiquense-default-rtdb.firebaseio.com';
+async function fetchUltimasCompras() {
+  try {
+    const r = await fetch(FB_URL + '/ultimasCompras.json');
+    if (!r.ok) return {};
+    const v = await r.json();
+    if (!v || typeof v !== 'object') return {};
+    const idx = {};
+    for (const k of Object.keys(v)) {
+      const rec = v[k]; if (!rec) continue;
+      const core = upcCore(rec.upc || k); if (!core) continue;
+      idx[core] = rec;
+      if (core.length > 6) { const c2 = core.slice(0, -1); if (!idx[c2]) idx[c2] = rec; }
+    }
+    return idx;
+  } catch (e) { return {}; }
+}
+function ultimaCompraDe(idx, upcs) {
+  for (const u of upcs) {
+    const core = upcCore(u); if (!core) continue;
+    if (idx[core]) return idx[core];
+    if (core.length > 6 && idx[core.slice(0, -1)]) return idx[core.slice(0, -1)];
+  }
+  return null;
+}
+
 function searchBase(text) {
   const qn = normalize(text);
   const upcQ = extractUpc(text);
@@ -242,6 +270,7 @@ module.exports = async (req, res) => {
   const recentUser = history.filter(m => m.role === 'user').slice(-3).map(m => m.content).join(' ');
   const matches = searchBase(recentUser);
 
+  const ultimasIdx = await fetchUltimasCompras();
   const groups = consolidateMatches(matches);
   const lines = groups.map(g => {
     const head = g[0];
@@ -271,6 +300,11 @@ module.exports = async (req, res) => {
     }
     const precio = g.map(x => x.p).find(Boolean);
     if (precio) s += ` | Precio: $${precio}`;
+    // Última compra (de facturas costeadas): proveedor + costo/u + fecha
+    const uc = ultimaCompraDe(ultimasIdx, g.map(x => x.u).filter(Boolean));
+    if (uc && uc.costo != null) {
+      s += ` | Última compra: $${uc.costo} con ${uc.prov || 'proveedor'}${uc.fecha ? ' el ' + uc.fecha : ''}`;
+    }
     return s;
   });
   const contexto = lines.length ? lines.join('\n') : '(No se encontraron productos que coincidan.)';
@@ -291,6 +325,7 @@ module.exports = async (req, res) => {
     'Si el dato pedido (costo, precio o UPC) de un producto que SÍ aparece no está, dilo y sugiere revisarlo en el sistema. ' +
     'Muchos productos traen varios "Proveedores" con su precio cada uno. Si preguntan "¿dónde está más barato X?", "¿quién lo tiene más barato?" o "¿cuánto cuesta X con cada proveedor?": di cuál es el MÁS BARATO y su precio, y lista todos los proveedores con su precio (de menor a mayor). Si solo hay un proveedor, dilo. Si preguntan "¿quién surte X?" o "¿qué vende AWG?", usa esos datos. Si un producto no trae proveedor, dilo. ' +
     'MUY IMPORTANTE — un mismo producto puede aparecer como VARIAS fichas escritas distinto y con proveedores separados (porque cada proveedor lo captura a su manera y algunos no traen UPC). Ejemplo real: "Coca-Cola 1/2 lt." (Palimex) y "Soda 1/2 Litro Coca Cola" (Limeña) son EL MISMO producto. Cuando el usuario pregunte por un producto, JUNTA todas las fichas del MISMO tamaño/presentación que veas abajo, combina sus proveedores y precios como si fueran una sola, y así di cuál es el más barato. No contestes basándote en una sola ficha si abajo hay otras del mismo producto y tamaño con otro proveedor. Solo trátalas como distintas si claramente son otra cosa (otro tamaño, otra variedad o marca diferente). ' +
+    'Algunos productos traen "Última compra: $X con Proveedor el (fecha)": es la última vez que la tienda compró ese producto (sale de las facturas costeadas). Si preguntan "¿a cómo compramos X?", "¿con quién fue la última compra de X?", "¿a cuánto llegó X?" o "¿cuál fue el último costo de X?", responde con ese dato (proveedor, costo y fecha). Si no aparece "Última compra" para ese producto, dilo y usa los proveedores/costo de catálogo. ' +
     'El costo mostrado es el más reciente (cambios de costo de proveedor de 2026). ' +
     'Nunca inventes precios, costos, UPC ni proveedores.\n\n' +
     'RESULTADOS DE BÚSQUEDA PARA ESTA PREGUNTA (no es toda tu base):\n' + contexto;

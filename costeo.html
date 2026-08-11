@@ -89,19 +89,22 @@
 
       var pageImgs=[], meta={}, rows=[], settings={margen:30, redondeo:'99'};
 
-      // ---------- Catálogo (para alerta de cambio de costo) ----------
-      var catalog=[]; // {upc, costo, nombre}
-      function upcCore(s){ var d=String(s||'').replace(/\D/g,'').replace(/^0+/,''); return d; }
-      function sameUpc(a,b){ a=upcCore(a); b=upcCore(b); if(!a||!b) return false; if(a===b) return true;
-        if(a.length>6 && a===b.slice(0,-1)) return true; if(b.length>6 && b===a.slice(0,-1)) return true; return false; }
-      if(database){
-        database.ref('products').once('value').then(function(s){
-          var v=s.val()||{}; var arr=Array.isArray(v)?v:Object.values(v);
-          catalog=arr.filter(Boolean).map(function(p){ return {upc:p.upc||'', costo:parseFloat(p.costo), nombre:p.nombre||p.name||''}; })
-                     .filter(function(p){ return p.upc; });
-        }).catch(function(){});
+      // ---------- Precios de tienda (In/Store) y costo de catálogo (archivo grande) ----------
+      var PRECIO_URL='https://catalogo-mexiquense.vercel.app/api/precio';
+      function upcCore(s){ return String(s||'').replace(/\D/g,'').replace(/^0+/,''); }
+      // Consulta al endpoint el precio de tienda (p) y costo (c) por UPC; los pega a cada renglón.
+      async function fetchPrices(list){
+        var upcs=list.map(function(r){ return r.upc; }).filter(Boolean);
+        if(!upcs.length) return;
+        try{
+          var r=await fetch(PRECIO_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({upcs:upcs})});
+          var d=await r.json(); var pr=(d&&d.precios)||{};
+          list.forEach(function(row){ var m=row.upc?pr[row.upc]:null; if(!m) return;
+            if(!(num(row.instore)>0) && m.p!=null) row.instore=m.p;   // no pisa un In/Store ya puesto
+            row.catCost=(m.c!=null?m.c:null); row.catName=m.n||'';
+          });
+        }catch(e){ /* sin conexión: se queda sin precio de tienda, editable a mano */ }
       }
-      function catalogMatch(upc){ if(!upc) return null; for(var i=0;i<catalog.length;i++){ if(sameUpc(upc,catalog[i].upc)) return catalog[i]; } return null; }
 
       // ---------- Helpers ----------
       function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -151,16 +154,18 @@
       });
 
       // ---------- Cargar datos al modelo ----------
-      function loadData(d){
+      async function loadData(d){
         meta={ proveedor:d.proveedor, factura:d.factura, fecha:d.fecha, total_factura:d.total_factura,
                total_calculado:d.total_calculado, total_con_cargos:d.total_con_cargos, cuadra:d.cuadra,
                flete:d.flete, otros_cargos:d.otros_cargos, creditos:d.creditos };
         rows=(d.items||[]).map(function(it){ return {
           producto:it.producto||'', upc:it.upc||'', empaque:it.empaque||'', cantidad:it.cantidad,
           costo_caja:it.costo_caja, costo_unidad:it.costo_unidad,
-          precio_venta:null // se inicializa al sugerido en render
+          instore:'', catCost:null, catName:''   // In/Store = precio real de tienda (se jala por UPC)
         }; });
-        rows.forEach(function(r){ r.precio_venta=suggested(r.costo_unidad); });
+        statusEl.classList.remove('hidden'); statusEl.innerHTML='💲 Buscando precios de tienda…';
+        await fetchPrices(rows);
+        statusEl.classList.add('hidden');
         renderResult();
       }
 
@@ -190,14 +195,14 @@
                 +'<option value="49"'+(settings.redondeo==='49'?' selected':'')+'>.49 / .99</option>'
                 +'<option value="none"'+(settings.redondeo==='none'?' selected':'')+'>Exacto</option>'
               +'</select></div>'
-            +'<button id="applySug" class="bg-mexican-green text-white text-sm rounded px-3 py-2 font-semibold">Aplicar sugerido a Precio venta</button>'
-            +'<div class="text-xs text-gray-500 max-w-xs">Precio sugerido = costo unidad ÷ (1 − margen). Puedes editar el precio de venta por producto.</div>'
+            +'<button id="applySug" class="bg-mexican-green text-white text-sm rounded px-3 py-2 font-semibold">Rellenar In/Store vacíos con sugerido</button>'
+            +'<div class="text-xs text-gray-500 max-w-xs"><b>In/Store</b> = precio real en tu tienda (del catálogo). El margen y la ganancia se calculan con ESE precio. Si un producto no tiene precio, ponlo tú a mano.</div>'
           +'</div>'
-          +'<div class="text-xs text-gray-500 mb-2">Edita cualquier celda. <span class="text-[#006847] font-semibold">Costo/u</span> en verde · <b>Precio venta</b> editable · ⚠️ marca cambios de costo vs. catálogo.</div>'
+          +'<div class="text-xs text-gray-500 mb-2">Edita cualquier celda. <span class="text-[#006847] font-semibold">Costo/u</span> en verde · <b>In/Store</b> = tu precio de tienda (amarillo = falta) · ⚠️ marca cambios de costo vs. catálogo.</div>'
           +'<div class="overflow-x-auto border rounded-lg"><table class="w-full text-sm whitespace-nowrap"><thead class="bg-costeo text-white"><tr>'
             +'<th class="px-2 py-2 text-left">#</th><th class="px-2 py-2 text-left">Producto</th><th class="px-2 py-2 text-left">UPC</th>'
             +'<th class="px-2 py-2 text-left">Empaque</th><th class="px-2 py-2 text-right">Cant.</th><th class="px-2 py-2 text-right">Costo caja</th>'
-            +'<th class="px-2 py-2 text-right">Costo/u</th><th class="px-2 py-2 text-right">Sugerido</th><th class="px-2 py-2 text-right">Precio venta</th>'
+            +'<th class="px-2 py-2 text-right">Costo/u</th><th class="px-2 py-2 text-right">Sugerido</th><th class="px-2 py-2 text-right">In/Store</th>'
             +'<th class="px-2 py-2 text-right">Margen</th><th class="px-2 py-2 text-right">Ganancia/u</th><th class="px-2 py-2 text-left">Catálogo</th>'
           +'</tr></thead><tbody id="tbody"></tbody></table></div>'
           // Totales
@@ -212,23 +217,24 @@
         renderRows(); renderTotals();
         document.getElementById('setMargen').addEventListener('input', function(){ settings.margen=num(this.value); rows.forEach(function(r){ r._sug=suggested(r.costo_unidad); }); renderRows(); renderTotals(); });
         document.getElementById('setRedondeo').addEventListener('change', function(){ settings.redondeo=this.value; renderRows(); renderTotals(); });
-        document.getElementById('applySug').addEventListener('click', function(){ rows.forEach(function(r){ r.precio_venta=suggested(r.costo_unidad); }); renderRows(); renderTotals(); });
-        document.getElementById('addRow').addEventListener('click', function(){ rows.push({producto:'',upc:'',empaque:'',cantidad:1,costo_caja:0,costo_unidad:0,precio_venta:0}); renderRows(); renderTotals(); });
+        document.getElementById('applySug').addEventListener('click', function(){ rows.forEach(function(r){ if(!(num(r.instore)>0)) r.instore=suggested(r.costo_unidad); }); renderRows(); renderTotals(); });
+        document.getElementById('addRow').addEventListener('click', function(){ rows.push({producto:'',upc:'',empaque:'',cantidad:1,costo_caja:0,costo_unidad:0,instore:'',catCost:null,catName:''}); renderRows(); renderTotals(); });
         document.getElementById('otraBtn').addEventListener('click', reset);
         document.getElementById('csvBtn').addEventListener('click', exportCsv);
         document.getElementById('saveBtn').addEventListener('click', saveCosteo);
       }
 
       function rowCells(r,i){
-        var cost=num(r.costo_unidad), sug=suggested(cost), pv=num(r.precio_venta);
-        var mg=pv>0? (pv-cost)/pv*100 : 0; var gan=pv-cost;
-        var mgCls = pv<=0? 'text-gray-400' : (gan<0? 'text-red-600 font-bold' : (mg>=num(settings.margen)? 'text-green-700 font-semibold':'text-amber-600 font-semibold'));
-        var cat=catalogMatch(r.upc), catCell='<span class="text-gray-300">—</span>';
-        if(cat && isFinite(cat.costo)){
-          var diff=cost-cat.costo;
-          if(Math.abs(diff)<0.005) catCell='<span class="text-gray-500">= $'+cat.costo.toFixed(2)+'</span>';
-          else if(diff>0) catCell='<span class="text-red-600 font-semibold" title="Costo anterior en catálogo">▲ subió (antes $'+cat.costo.toFixed(2)+')</span>';
-          else catCell='<span class="text-green-700 font-semibold" title="Costo anterior en catálogo">▼ bajó (antes $'+cat.costo.toFixed(2)+')</span>';
+        var cost=num(r.costo_unidad), sug=suggested(cost), pv=num(r.instore), tienePv=num(r.instore)>0;
+        var mg=tienePv? (pv-cost)/pv*100 : 0; var gan=pv-cost;
+        var mgCls = !tienePv? 'text-gray-400' : (gan<0? 'text-red-600 font-bold' : (mg>=num(settings.margen)? 'text-green-700 font-semibold':'text-amber-600 font-semibold'));
+        var inCls = tienePv? 'text-right w-24 font-semibold' : 'text-right w-24 font-semibold bg-amber-100';
+        var catCell='<span class="text-gray-300">—</span>';
+        if(r.catCost!=null && isFinite(r.catCost)){
+          var diff=cost-r.catCost;
+          if(Math.abs(diff)<0.005) catCell='<span class="text-gray-500">= $'+r.catCost.toFixed(2)+'</span>';
+          else if(diff>0) catCell='<span class="text-red-600 font-semibold" title="Costo anterior en catálogo">▲ subió (antes $'+r.catCost.toFixed(2)+')</span>';
+          else catCell='<span class="text-green-700 font-semibold" title="Costo anterior en catálogo">▼ bajó (antes $'+r.catCost.toFixed(2)+')</span>';
         }
         return ''
           +'<td class="px-2 py-1 text-gray-400">'+(i+1)+'</td>'
@@ -239,9 +245,9 @@
           +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="costo_caja" value="'+esc(r.costo_caja)+'" class="text-right w-24"/></td>'
           +'<td class="px-2 py-1 text-right text-[#006847] font-semibold"><input data-i="'+i+'" data-f="costo_unidad" value="'+esc(r.costo_unidad)+'" class="text-right w-24 text-[#006847] font-semibold"/></td>'
           +'<td class="px-2 py-1 text-right text-gray-500">'+money(sug)+'</td>'
-          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="precio_venta" value="'+esc(pv? pv.toFixed(2):'')+'" class="text-right w-24 font-semibold"/></td>'
-          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? mg.toFixed(1)+'%':'—')+'</td>'
-          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(pv>0? money(gan):'—')+'</td>'
+          +'<td class="px-2 py-1 text-right"><input data-i="'+i+'" data-f="instore" placeholder="?" value="'+esc(tienePv? pv.toFixed(2): (r.instore||''))+'" class="'+inCls+'"/></td>'
+          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(tienePv? mg.toFixed(1)+'%':'—')+'</td>'
+          +'<td class="px-2 py-1 text-right '+mgCls+'">'+(tienePv? money(gan):'—')+'</td>'
           +'<td class="px-2 py-1 text-xs">'+catCell+'</td>';
       }
       function renderRows(){
@@ -252,7 +258,7 @@
             var i=+this.getAttribute('data-i'), f=this.getAttribute('data-f'); rows[i][f]=this.value;
             // recomputar sólo esta fila + totales (sin perder foco)
             var tr=this.closest('tr'); var pos=Array.prototype.indexOf.call(tr.parentNode.children,tr);
-            if(f==='costo_unidad'||f==='precio_venta'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
+            if(f==='costo_unidad'||f==='instore'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
             renderTotals();
           });
         });
@@ -260,7 +266,7 @@
       function rebind(tr){ tr.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){
         var i=+this.getAttribute('data-i'), f=this.getAttribute('data-f'); rows[i][f]=this.value;
         var pos=Array.prototype.indexOf.call(tr.parentNode.children,tr);
-        if(f==='costo_unidad'||f==='precio_venta'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
+        if(f==='costo_unidad'||f==='instore'||f==='costo_caja'||f==='upc'){ tr.innerHTML=rowCells(rows[i],pos); rebind(tr); }
         renderTotals(); }); }); }
 
       function renderTotals(){
@@ -270,11 +276,11 @@
           var units=upb*(cant||0); if(!units && num(r.costo_unidad)>0) units=1;
           totUnidades+=units;
           totCosto+=num(r.costo_caja)*cant || num(r.costo_unidad)*units;
-          totVenta+=num(r.precio_venta)*units; });
+          totVenta+=num(r.instore)*units; });
         var ganancia=totVenta-totCosto; var margen=totVenta>0? ganancia/totVenta*100:0;
         function tile(label,val,cls){ return '<div class="bg-gray-50 rounded-lg p-3"><div class="text-xs text-gray-500">'+label+'</div><div class="text-lg font-bold '+(cls||'')+'">'+val+'</div></div>'; }
         el.innerHTML=tile('Costo total',money(totCosto))
-          +tile('Venta proyectada',money(totVenta),'text-mexican-green')
+          +tile('Venta (In/Store)',money(totVenta),'text-mexican-green')
           +tile('Ganancia estimada',money(ganancia), ganancia<0?'text-red-600':'text-mexican-green')
           +tile('Margen promedio',(totVenta>0?margen.toFixed(1)+'%':'—'), margen<0?'text-red-600':'text-costeo');
       }
@@ -284,9 +290,9 @@
 
       // ---------- CSV ----------
       function exportCsv(){
-        var out=[['Producto','UPC','Empaque','Cantidad','Costo Caja','Costo Unidad','Precio Sugerido','Precio Venta','Margen %','Ganancia Unidad']];
-        rows.forEach(function(r){ var cost=num(r.costo_unidad), pv=num(r.precio_venta), mg=pv>0?(pv-cost)/pv*100:0;
-          out.push([r.producto,r.upc,r.empaque,r.cantidad,r.costo_caja,r.costo_unidad,suggested(cost).toFixed(2),pv.toFixed(2),mg.toFixed(1),(pv-cost).toFixed(2)]); });
+        var out=[['Producto','UPC','Empaque','Cantidad','Costo Caja','Costo Unidad','Precio Sugerido','In/Store','Margen %','Ganancia Unidad']];
+        rows.forEach(function(r){ var cost=num(r.costo_unidad), pv=num(r.instore), mg=pv>0?(pv-cost)/pv*100:0;
+          out.push([r.producto,r.upc,r.empaque,r.cantidad,r.costo_caja,r.costo_unidad,suggested(cost).toFixed(2),(pv>0?pv.toFixed(2):''),(pv>0?mg.toFixed(1):''),(pv>0?(pv-cost).toFixed(2):'')]); });
         var prov=(meta.proveedor)||'factura';
         var csv=out.map(function(r){ return r.map(function(c){ return '"'+String(c==null?'':c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
         var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}), url=URL.createObjectURL(blob), a=document.createElement('a');
@@ -303,9 +309,23 @@
           flete:(meta.flete!=null?meta.flete:null), otros_cargos:(meta.otros_cargos!=null?meta.otros_cargos:null),
           creditos:(meta.creditos!=null?meta.creditos:null), margen:num(settings.margen), redondeo:settings.redondeo,
           items:rows.map(function(r){ return { producto:r.producto||'', upc:r.upc||'', empaque:r.empaque||'',
-            cantidad:num(r.cantidad), costo_caja:num(r.costo_caja), costo_unidad:num(r.costo_unidad), precio_venta:num(r.precio_venta) }; }) };
-        database.ref('costeos/'+id).set(rec).then(function(){ flash('💾 Costeo guardado en el historial.'); })
+            cantidad:num(r.cantidad), costo_caja:num(r.costo_caja), costo_unidad:num(r.costo_unidad), instore:num(r.instore) }; }) };
+        database.ref('costeos/'+id).set(rec).then(function(){ feedIA(); flash('💾 Guardado. La IA ya sabe estas últimas compras.'); })
           .catch(function(){ alert('No se pudo guardar.'); });
+      }
+      // Alimenta la IA: registra la ÚLTIMA COMPRA por UPC (proveedor + costo/u + fecha).
+      function feedIA(){
+        if(!database) return;
+        var prov=meta.proveedor||'', fecha=meta.fecha||'', ts=Date.now();
+        rows.forEach(function(r){
+          var core=upcCore(r.upc), cu=num(r.costo_unidad);
+          if(!core || !(cu>0)) return;
+          database.ref('ultimasCompras/'+core).transaction(function(prev){
+            // conserva el más reciente
+            if(prev && prev.ts && prev.ts>ts) return prev;
+            return { producto:r.producto||'', upc:r.upc||'', prov:prov, costo:cu, fecha:fecha, ts:ts };
+          });
+        });
       }
       function flash(msg){ var d=document.createElement('div'); d.textContent=msg;
         d.className='fixed bottom-5 left-1/2 -translate-x-1/2 bg-costeo text-white px-4 py-2 rounded-lg shadow-lg z-50 text-sm';
@@ -327,13 +347,14 @@
           if(confirm('¿Borrar este costeo del historial?')) database.ref('costeos/'+id).remove(); }); });
       }
       var histCache={};
-      function openHist(id){ var c=histCache[id]; if(!c) return;
+      async function openHist(id){ var c=histCache[id]; if(!c) return;
         var merc=(c.items||[]).reduce(function(a,it){ return a+num(it.costo_caja)*num(it.cantidad); },0);
         meta={ proveedor:c.proveedor, factura:c.factura, fecha:c.fecha, total_factura:c.total_factura,
                total_calculado:Math.round(merc*100)/100, flete:c.flete, otros_cargos:c.otros_cargos, creditos:c.creditos, cuadra:null };
         settings.margen=num(c.margen)||30; settings.redondeo=c.redondeo||'99';
         rows=(c.items||[]).map(function(it){ return { producto:it.producto, upc:it.upc, empaque:it.empaque, cantidad:it.cantidad,
-          costo_caja:it.costo_caja, costo_unidad:it.costo_unidad, precio_venta:it.precio_venta }; });
+          costo_caja:it.costo_caja, costo_unidad:it.costo_unidad, instore:(it.instore!=null?it.instore:(it.precio_venta!=null?it.precio_venta:'')), catCost:null, catName:'' }; });
+        await fetchPrices(rows);  // rellena In/Store faltantes + costo de catálogo (no pisa los ya guardados)
         renderResult(); window.scrollTo({top:0,behavior:'smooth'});
       }
       if(database){
