@@ -1466,7 +1466,10 @@
                 // .textContent ya es seguro (no interpreta HTML); solo decodificamos las entidades
                 // que el dato traía, para NO mostrar "&amp;" literal.
                 modalProductTitle.textContent = decodeEntities(displayName);
-                productItemNumber.textContent = decodeEntities(product.itemNumber || 'N/A');
+                // Se busca el elemento FRESCO cada vez: la edición inline reemplaza este
+                // <span>, y una referencia memorizada quedaría apuntando al nodo viejo/oculto
+                // (por eso antes se veía el mismo item code en todos los productos).
+                document.getElementById('productItemNumber').textContent = decodeEntities(product.itemNumber || 'N/A');
                 productUpc.textContent = decodeEntities(product.upc || 'N/A');
                 productSize.textContent = decodeEntities(product.size || 'N/A');
                 productQty.textContent = decodeEntities(String(product.qty ?? 'N/A'));
@@ -1475,7 +1478,7 @@
                 productDescription.textContent = shouldShowDescription
                     ? decodeEntities(product.description || 'Sin descripción')
                     : 'Sin descripción adicional';
-                productCosto.textContent = formatCurrency(product.costo || 0);
+                document.getElementById('productCosto').textContent = formatCurrency(product.costo || 0);
 
                 if(product.url){
                     productImageSrc.src = product.url;
