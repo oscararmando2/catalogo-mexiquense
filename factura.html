@@ -1657,15 +1657,14 @@
                 return;
             }
             
-            const userConfirmed = window.confirm(`¿Terminar factura #${invoiceNumber}? Se eliminará de facturas pendientes.`);
+            const userConfirmed = window.confirm(`¿Terminar factura #${invoiceNumber}? Quedará guardada en facturas pendientes para poder editarla.`);
             if (!userConfirmed) return;
-            
-            // Remove from pending invoices
-            delete pendingInvoices[currentInvoiceId];
-            savePendingInvoicesToFirebase();
-            
-            showToast(`Factura #${invoiceNumber} completada`, 'success');
-            
+
+            // NO se borra: se guarda la factura actual para que quede editable en Facturas Pendientes
+            saveCurrentInvoice();
+
+            showToast(`Factura #${invoiceNumber} guardada en pendientes`, 'success');
+
             // Create new invoice
             createNewInvoice();
         }
