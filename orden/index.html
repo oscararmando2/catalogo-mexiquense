@@ -143,6 +143,8 @@
   .seg{ display:flex; gap:10px; margin-bottom:18px; }
   .seg button{ flex:1; padding:16px; border-radius:var(--r); border:2px solid var(--line); background:#fff; font-size:16px; font-weight:800; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:8px; transition:all .15s; }
   .seg button.on{ border-color:var(--green); background:var(--green-tint); color:var(--green-d); }
+  .seg3 button{ flex-direction:column; gap:5px; padding:13px 4px; font-size:13.5px; }
+  .seg3 button .ico{ width:18px; height:18px; }
   .qrow{ display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:20px; }
   .qrow button{ width:58px; height:58px; border-radius:16px; border:2px solid var(--line); background:#fff; color:var(--green-d); display:flex; align-items:center; justify-content:center; transition:transform .08s; }
   .qrow button:active{ transform:scale(.92); background:var(--green-tint); }
@@ -223,11 +225,6 @@
         <div class="reader-hint" id="readerHint">Apunta al código… si no lee, <b>toca la imagen</b> para reintentar</div>
       </div>
       <div id="readerTmp" style="display:none"></div>
-    <div class="reader-wrap" id="readerWrap">
-      <div id="reader"></div>
-      <div class="reader-hint" id="readerHint">Apunta al código… si no lee, <b>toca la imagen</b> para reintentar</div>
-    </div>
-    <div id="readerTmp" style="display:none"></div>
 
       <div class="loadbar" id="loadbar"><span class="dot"></span> Cargando base…</div>
 
@@ -282,8 +279,8 @@
     <div class="sheet">
       <div class="grip"></div>
       <h2>Capturar producto</h2>
-      <div class="sz" style="margin-bottom:14px">Escribe el UPC o parte del nombre</div>
-      <input id="manInput" class="nf-in" placeholder="UPC o nombre…" autocomplete="off" inputmode="search">
+      <div class="sz" style="margin-bottom:14px">Escribe y elige de la lista (ej. "tomate", "chicharron"), o teclea el UPC</div>
+      <input id="manInput" class="nf-in" placeholder="Buscar producto o UPC…" autocomplete="off" inputmode="search">
       <div class="matches" id="matches"></div>
       <div class="sheet-actions">
         <button class="btn btn-add" id="manGoBtn">Buscar</button>
@@ -306,6 +303,8 @@
   const core   = s => digits(s).replace(/^0+/,'');
   function upcVariants(u){ const c=core(u),set=new Set(); if(c){ set.add(c); if(c.length>1) set.add(c.slice(0,-1)); } const d=digits(u); if(d) set.add(d.replace(/^0+/,'')||d); return [...set].filter(Boolean); }
   function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function norm(s){ s=String(s==null?'':s).toLowerCase(); try{ s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){} return s; }
+  function guessUnit(nombre){ return /per lb|per gr|granel|\bpor libra\b|\/lb\b/.test(norm(nombre)) ? 'libra' : 'pieza'; }
 
   // ---- iconos reutilizables ----
   const ICO={ check:'<svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' };
@@ -320,7 +319,9 @@
   const pad=n=>String(n).padStart(2,'0');
   function fmtDate(d){ return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); }
   function fmtDateTime(ts){ const d=new Date(ts); return fmtDate(d)+' · '+pad(d.getHours())+':'+pad(d.getMinutes()); }
-  function unitLabel(u,n){ if(u==='caja') return n===1?'caja':'cajas'; return n===1?'pieza':'piezas'; }
+  function unitLabel(u,n){ if(u==='caja') return n===1?'caja':'cajas'; if(u==='libra') return n===1?'libra':'libras'; return n===1?'pieza':'piezas'; }
+  function sumU(arr,u){ return arr.filter(o=>o.unidad===u).reduce((a,b)=>a+b.cant,0); }
+  function resumenText(t){ const p=[t.n+' renglones']; if(t.cj) p.push(t.cj+' cajas'); if(t.lb) p.push(t.lb+' lb'); if(t.pz) p.push(t.pz+' pzas'); return p.join(' · '); }
 
   // ================= PRODUCTOS =================
   function indexProducts(arr){
@@ -329,6 +330,7 @@
       if(!p||typeof p!=='object') return;
       const nombre=p.nombre||p.name||''; if(!nombre && !p.upc) return;
       const rec={ upc:String(p.upc||''), nombre:nombre||'(sin nombre)', size:p.size||'' };
+      rec.n=norm(rec.nombre);
       productList.push(rec);
       upcVariants(p.upc).forEach(v=>{ if(!productIndex.has(v)) productIndex.set(v,rec); });
     });
@@ -346,7 +348,13 @@
         .catch(()=>{ $("loadbar").textContent="No se pudieron cargar productos (revisa internet)."; }); });
   }
   function findByUpc(u){ for(const v of upcVariants(u)){ if(productIndex.has(v)) return productIndex.get(v); } return null; }
-  function searchByName(q){ q=q.trim().toLowerCase(); if(!q) return []; const out=[]; for(const p of productList){ if((p.nombre||'').toLowerCase().includes(q)){ out.push(p); if(out.length>=12) break; } } return out; }
+  function searchByName(q){
+    const nq=norm(q).trim(); if(!nq) return [];
+    const toks=nq.split(/\s+/).filter(Boolean), out=[];
+    for(const p of productList){ const n=p.n||norm(p.nombre); if(toks.every(t=>n.includes(t))) out.push({p,s:n.startsWith(toks[0])?0:1}); }
+    out.sort((a,b)=>a.s-b.s || a.p.nombre.length-b.p.nombre.length);
+    return out.slice(0,20).map(x=>x.p);
+  }
 
   // ================= ESCÁNER =================
   function fmts(){ const F=window.Html5QrcodeSupportedFormats||{}; return [F.UPC_A,F.UPC_E,F.EAN_13,F.EAN_8,F.CODE_128,F.CODE_39,F.ITF].filter(v=>v!==undefined); }
@@ -388,7 +396,7 @@
   let pending=null;
   function openAdd(upc, presetProd){
     const prod=presetProd||findByUpc(upc);
-    pending={ upc:prod?(prod.upc||digits(upc)):digits(upc), nombre:prod?prod.nombre:'', size:prod?prod.size:'', unidad:'pieza', cant:1, found:!!prod };
+    pending={ upc:prod?(prod.upc||digits(upc)):digits(upc), nombre:prod?prod.nombre:'', size:prod?prod.size:'', unidad:prod?guessUnit(prod.nombre):'pieza', cant:1, found:!!prod };
     renderAdd(); $("addModal").classList.add("open");
   }
   function renderAdd(){
@@ -398,8 +406,9 @@
       +'<h2>'+(p.found?escHtml(p.nombre):'Producto nuevo')+'</h2>'
       +(p.found&&p.size?'<div class="sz">'+escHtml(p.size)+'</div>':'')
       +'<div class="upc">UPC: '+escHtml(p.upc||'—')+'</div>'+nf
-      +'<div class="lbl">Unidad</div><div class="seg">'
+      +'<div class="lbl">Unidad</div><div class="seg seg3">'
       +'<button id="uPieza" class="'+(p.unidad==='pieza'?'on':'')+'"><svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>Piezas</button>'
+      +'<button id="uLibra" class="'+(p.unidad==='libra'?'on':'')+'"><svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/><path d="M6 7h12l3 10a4 4 0 0 1-4 3H7a4 4 0 0 1-4-3z"/></svg>Libras</button>'
       +'<button id="uCaja" class="'+(p.unidad==='caja'?'on':'')+'"><svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M3 9 12 4l9 5v6l-9 5-9-5z"/><path d="M3 9l9 5 9-5"/><path d="M12 14v7"/></svg>Cajas</button></div>'
       +'<div class="lbl">Cantidad</div><div class="qrow">'
       +'<button id="qMinus"><svg class="ico ico-lg" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>'
@@ -408,6 +417,7 @@
       +'<div class="sheet-actions"><button class="btn btn-add" id="addOk">'+ICO.check+' Agregar</button><button class="btn btn-cancel" id="addCancel">Cancelar</button></div>';
     if(!p.found){ const nfn=$("nfName"); if(nfn) nfn.oninput=()=>{ p.nombre=nfn.value; }; }
     $("uPieza").onclick=()=>{ p.cant=curQty(); p.unidad='pieza'; renderAdd(); };
+    $("uLibra").onclick=()=>{ p.cant=curQty(); p.unidad='libra'; renderAdd(); };
     $("uCaja").onclick =()=>{ p.cant=curQty(); p.unidad='caja';  renderAdd(); };
     $("qMinus").onclick=()=>{ $("qInput").value=Math.max(1,curQty()-1); };
     $("qPlus").onclick =()=>{ $("qInput").value=curQty()+1; };
@@ -435,19 +445,18 @@
         +'<div class="row-actions">'
         +'<button class="chipbtn round" data-a="minus"><svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>'
         +'<button class="chipbtn round" data-a="plus"><svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>'
-        +'<button class="chipbtn" data-a="unit">'+(it.unidad==='caja'?'→ piezas':'→ cajas')+'</button></div></div>'
+        +'<button class="chipbtn" data-a="unit">→ '+unitLabel(({pieza:'libra',libra:'caja',caja:'pieza'})[it.unidad],2)+'</button></div></div>'
         +'<button class="del" data-a="del" aria-label="Quitar"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
       row.querySelector('[data-a=minus]').onclick=()=>{ it.cant=Math.max(1,it.cant-1); saveOrder(); renderList(); };
       row.querySelector('[data-a=plus]').onclick =()=>{ it.cant++; saveOrder(); renderList(); };
-      row.querySelector('[data-a=unit]').onclick =()=>{ it.unidad=it.unidad==='caja'?'pieza':'caja'; saveOrder(); renderList(); };
+      row.querySelector('[data-a=unit]').onclick =()=>{ it.unidad=({pieza:'libra',libra:'caja',caja:'pieza'})[it.unidad]; saveOrder(); renderList(); };
       row.querySelector('[data-a=del]').onclick  =()=>{ order.splice(i,1); saveOrder(); renderList(); };
       list.appendChild(row);
     });
-    const t=totals(order);
-    $("counter").textContent = order.length ? (t.n+' renglones · '+t.cj+' cajas · '+t.pz+' pzas') : '';
+    $("counter").textContent = order.length ? resumenText(totals(order)) : '';
     $("finishBtn").disabled = !order.length;
   }
-  function totals(arr){ return { n:arr.length, cj:arr.filter(o=>o.unidad==='caja').reduce((a,b)=>a+b.cant,0), pz:arr.filter(o=>o.unidad==='pieza').reduce((a,b)=>a+b.cant,0) }; }
+  function totals(arr){ return { n:arr.length, cj:sumU(arr,'caja'), pz:sumU(arr,'pieza'), lb:sumU(arr,'libra') }; }
   function saveOrder(){ try{ localStorage.setItem(ORDER_KEY,JSON.stringify(order)); }catch(e){} }
   function loadOrder(){ try{ order=JSON.parse(localStorage.getItem(ORDER_KEY)||'[]')||[]; }catch(e){ order=[]; } }
 
@@ -513,7 +522,7 @@
         +'<div class="folio">Folio '+escHtml(o.folio||'')+'</div>'
         +'<div class="when">'+fmtDateTime(o.ts)+'</div>'
         +(o.cliente?'<div class="cli">'+escHtml(o.cliente)+'</div>':'')
-        +'<div class="chips"><span class="miniChip">'+t.n+' renglones</span><span class="miniChip gray">'+t.cj+' cajas</span><span class="miniChip gray">'+t.pz+' pzas</span></div></div>'
+        +'<div class="chips"><span class="miniChip">'+t.n+' renglones</span>'+(t.cj?'<span class="miniChip gray">'+t.cj+' cajas</span>':'')+(t.lb?'<span class="miniChip gray">'+t.lb+' lb</span>':'')+(t.pz?'<span class="miniChip gray">'+t.pz+' pzas</span>':'')+'</div></div>'
         +'<svg class="ico go" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>';
       card.onclick=()=>openDetail(o);
       rl.appendChild(card);
@@ -544,13 +553,28 @@
   // ================= MANUAL / BÚSQUEDA =================
   function openManual(){ $("manInput").value=""; $("matches").innerHTML=""; $("manModal").classList.add("open"); setTimeout(()=>$("manInput").focus(),100); }
   function closeManual(){ $("manModal").classList.remove("open"); }
+  function renderMatchList(res){
+    const box=$("matches"); box.innerHTML="";
+    res.forEach(p=>{ const b=document.createElement('button');
+      b.innerHTML='<div>'+escHtml(p.nombre)+'</div><div class="mm">'+(p.size?escHtml(p.size)+' · ':'')+'UPC '+escHtml(p.upc||'—')+'</div>';
+      b.onclick=()=>{ closeManual(); openAdd(p.upc||p.nombre,p); }; box.appendChild(b); });
+  }
+  function liveSearch(){
+    const v=($("manInput").value||'').trim();
+    if(!v){ $("matches").innerHTML=""; return; }
+    const isUpc = v.replace(/\D/g,'').length>=6 && /^[\d\s-]+$/.test(v);
+    if(isUpc){ const prod=findByUpc(v);
+      if(prod) renderMatchList([prod]);
+      else $("matches").innerHTML='<div class="mm" style="padding:10px">Enter para agregar UPC '+escHtml(v.replace(/\D/g,''))+'</div>';
+      return; }
+    const res=searchByName(v);
+    if(!res.length){ $("matches").innerHTML='<div class="mm" style="padding:10px;color:#9a3412">Sin coincidencias.</div>'; return; }
+    renderMatchList(res);
+  }
   function manGo(){
     const v=($("manInput").value||'').trim(); if(!v) return;
     if(v.replace(/\D/g,'').length>=6 && /^[\d\s-]+$/.test(v)){ closeManual(); openAdd(v); return; }
-    const res=searchByName(v);
-    if(!res.length){ $("matches").innerHTML='<div class="mm" style="padding:10px;color:#9a3412">Sin coincidencias.</div>'; return; }
-    $("matches").innerHTML="";
-    res.forEach(p=>{ const b=document.createElement('button'); b.innerHTML='<div>'+escHtml(p.nombre)+'</div><div class="mm">'+(p.size?escHtml(p.size)+' · ':'')+'UPC '+escHtml(p.upc||'—')+'</div>'; b.onclick=()=>{ closeManual(); openAdd(p.upc||p.nombre,p); }; $("matches").appendChild(b); });
+    liveSearch();
   }
 
   // ================= TABS =================
@@ -571,6 +595,8 @@
   $("readerWrap").addEventListener('click',tapDecode);
   $("manualBtn").onclick=openManual;
   $("manGoBtn").onclick=manGo; $("manCancelBtn").onclick=closeManual;
+  let _searchT=null;
+  $("manInput").addEventListener('input',()=>{ clearTimeout(_searchT); _searchT=setTimeout(liveSearch,110); });
   $("manInput").addEventListener('keydown',e=>{ if(e.key==='Enter') manGo(); });
   $("pdfBtn").onclick=()=>exportPDF(order,($("notaInput").value||'').trim(),'');
   $("waBtn").onclick =()=>sendWhatsApp(order,($("notaInput").value||'').trim(),'');
