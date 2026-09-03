@@ -243,10 +243,23 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                             Importar CSV
                         </button>
-                        <button id="exportBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                            Exportar PDF
-                        </button>
+                        <div class="relative" id="exportMenuWrap">
+                            <button id="exportBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                Exportar Datos
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <div id="exportMenu" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                                <button id="exportPdfOption" class="w-full text-left px-4 py-2.5 hover:bg-gray-100 flex items-center text-gray-700 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-red-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+                                    Exportar PDF
+                                </button>
+                                <button id="exportCsvOption" class="w-full text-left px-4 py-2.5 hover:bg-gray-100 flex items-center text-gray-700 font-medium border-t border-gray-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+                                    Exportar CSV
+                                </button>
+                            </div>
+                        </div>
                         <button id="addProductBtn" class="bg-white text-mexican-green hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
                             Nuevo Producto
@@ -1792,22 +1805,60 @@ function resetImportModal() {
 
         // ==== Export PDF ====
         function exportToPDF(){
+            const original = exportBtn.innerHTML;
             try{
                 if(!window.jspdf){ showToast('No se pudo cargar jsPDF.', true); return; }
+                if(!products || !products.length){ showToast('No hay productos para exportar.', true); return; }
                 const { jsPDF } = window.jspdf;
                 exportBtn.disabled = true;
                 exportBtn.innerHTML = '<div class="loader inline-block"></div> Exportando...';
-                const doc = new jsPDF();
+                const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
                 doc.autoTable({
                     head: [[ 'Nombre','Descripción','Número de Ítem','UPC','Tamaño','Cantidad','Costo' ]],
-                    body: products.map(p=> [ sanitizeInput(p.nombre||'N/A'), sanitizeInput(p.description||'N/A'), sanitizeInput(p.itemNumber||'N/A'), sanitizeInput(p.upc||'N/A'), sanitizeInput(p.size||'N/A'), sanitizeInput(p.qty||'N/A'), formatCurrency(p.costo||0) ]),
-                    theme: 'grid', headStyles:{ fillColor:[99,102,241] }, styles:{ font:'helvetica', fontSize:10 }, margin:{ top:20 },
-                    didDrawPage: (data)=>{ if(data.pageNumber===1){ doc.setFontSize(18); doc.text('Catálogo de Productos', data.settings.margin.left, 10); doc.setFontSize(10); doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}`, data.settings.margin.left, 15); } }
+                    body: products.map(p=> [ decodeEntities(p.nombre||'')||'N/A', decodeEntities(p.description||'')||'N/A', decodeEntities(p.itemNumber||'')||'N/A', decodeEntities(p.upc||'')||'N/A', decodeEntities(p.size||'')||'N/A', (p.qty!=null&&p.qty!=='')?String(p.qty):'N/A', formatCurrency(p.costo||0) ]),
+                    theme:'grid',
+                    startY:22,
+                    margin:{ top:22, left:10, right:10, bottom:12 },
+                    headStyles:{ fillColor:[0,104,71], textColor:255, fontStyle:'bold', fontSize:8 },
+                    styles:{ font:'helvetica', fontSize:8, cellPadding:1.5, overflow:'linebreak', valign:'middle' },
+                    columnStyles:{ 0:{cellWidth:52}, 1:{cellWidth:68}, 2:{cellWidth:28}, 3:{cellWidth:42}, 4:{cellWidth:26}, 5:{cellWidth:20, halign:'center'}, 6:{cellWidth:26, halign:'right'} },
+                    didDrawPage:(data)=>{ doc.setFontSize(16); doc.setTextColor(0,104,71); doc.text('Catálogo de Productos', data.settings.margin.left, 12); doc.setFontSize(9); doc.setTextColor(90); doc.text(`Generado el ${new Date().toLocaleDateString('es-MX')}  ·  ${products.length} productos`, data.settings.margin.left, 17); }
                 });
                 doc.save('catalogo-productos.pdf');
                 showToast('Catálogo exportado correctamente a PDF.');
             }catch(e){ console.error('PDF error:', e); showToast('Error al generar el PDF.', true); }
-            finally{ exportBtn.disabled=false; exportBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.293a1 1 0 011.414 0L10 11.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>Exportar PDF`; }
+            finally{ exportBtn.disabled=false; exportBtn.innerHTML = original; }
+        }
+
+        // ==== Export CSV ====
+        function exportToCSV(){
+            const original = exportBtn.innerHTML;
+            try{
+                if(!window.Papa){ showToast('Error: PapaParse no se cargó.', true); return; }
+                if(!products || !products.length){ showToast('No hay productos para exportar.', true); return; }
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<div class="loader inline-block"></div> Exportando...';
+                const data = products.map(p=>({
+                    'NOMBRE': decodeEntities(p.nombre||''),
+                    'DESCRIPTION': decodeEntities(p.description||''),
+                    'ITEM NUMBER': decodeEntities(p.itemNumber||''),
+                    'UPC': decodeEntities(p.upc||''),
+                    'SIZE': decodeEntities(p.size||''),
+                    'QTY': (p.qty!=null&&p.qty!=='')?p.qty:0,
+                    'COSTO': (p.costo!=null&&p.costo!=='')?p.costo:0,
+                    'URL': decodeEntities(p.url||''),
+                    'PALIMEX': decodeEntities(p.proveedor||'')
+                }));
+                const csv = Papa.unparse(data, { delimiter:',' });
+                const blob = new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'catalogo-productos.csv';
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(()=>URL.revokeObjectURL(url), 1000);
+                showToast('Catálogo exportado correctamente a CSV.');
+            }catch(e){ console.error('CSV error:', e); showToast('Error al generar el CSV.', true); }
+            finally{ exportBtn.disabled=false; exportBtn.innerHTML = original; }
         }
 
         // ==== Toast ====
@@ -1918,7 +1969,11 @@ function resetImportModal() {
             document.getElementById('importBackBtn').addEventListener('click', ()=>{ csvPreviewData = null; importStep1.classList.remove('hidden'); importStep2.classList.add('hidden'); importModalInner.classList.remove('max-w-4xl'); importModalInner.classList.add('max-w-md'); });
 
             // Export PDF
-            exportBtn.addEventListener('click', exportToPDF);
+            const exportMenu = document.getElementById('exportMenu');
+            exportBtn.addEventListener('click', (e)=>{ e.stopPropagation(); exportMenu.classList.toggle('hidden'); });
+            document.getElementById('exportPdfOption').addEventListener('click', ()=>{ exportMenu.classList.add('hidden'); exportToPDF(); });
+            document.getElementById('exportCsvOption').addEventListener('click', ()=>{ exportMenu.classList.add('hidden'); exportToCSV(); });
+            document.addEventListener('click', (e)=>{ const w=document.getElementById('exportMenuWrap'); if(w && !w.contains(e.target)) exportMenu.classList.add('hidden'); });
 
             // Delegación ver detalles
             productsContainer.addEventListener('click', (e)=>{ const btn=e.target.closest('.view-details'); if(btn) showProductDetails(btn.dataset.id); });
