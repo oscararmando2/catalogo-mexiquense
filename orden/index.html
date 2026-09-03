@@ -227,30 +227,44 @@
     const F = window.Html5QrcodeSupportedFormats||{};
     return [F.UPC_A,F.UPC_E,F.EAN_13,F.EAN_8,F.CODE_128,F.CODE_39,F.ITF].filter(v=>v!==undefined);
   }
-  function startScan(){
+  async function startScan(){
     if(scanning) return;
     if(!window.Html5Qrcode){ toast("Escáner no disponible"); return; }
     $("readerWrap").style.display="block";
     $("scanBtn").textContent="⏹️ Detener";
     const opts = { verbose:false, experimentalFeatures:{ useBarCodeDetectorIfSupported:true } };
     const ff = fmts(); if(ff.length) opts.formatsToSupport = ff;
-    scanner = new Html5Qrcode("reader", opts);
     // caja ANCHA y baja (los códigos de barras 1D necesitan ancho, no alto)
     const cfg = {
       fps: 12,
-      qrbox: (vw, vh)=>{ const w=Math.floor(Math.min(vw, (vh||vw))*0.92); return { width:w, height:Math.max(90, Math.floor(w*0.5)) }; },
-      disableFlip: true
+      qrbox: (vw, vh)=>{ const w=Math.floor(Math.min(vw, (vh||vw))*0.92); return { width:w, height:Math.max(90, Math.floor(w*0.5)) }; }
     };
-    // pedir video en alta resolución para que las barras finas del UPC salgan nítidas
-    const constraints = { facingMode:{ ideal:"environment" }, width:{ ideal:1920 }, height:{ ideal:1080 } };
-    scanner.start(constraints, cfg, onScan, ()=>{})
-      .then(()=>{ scanning=true; })
-      .catch(()=>{
-        // fallback: sin constraints de resolución (algunos iOS los rechazan)
-        scanner.start({ facingMode:"environment" }, cfg, onScan, ()=>{})
-          .then(()=>{ scanning=true; })
-          .catch(()=>{ toast("No se pudo abrir la cámara"); stopScan(); });
-      });
+    // Intentos en orden. IMPORTANTE: usar una instancia NUEVA en cada intento,
+    // porque reintentar start() sobre una instancia que ya falló deja la cámara
+    // en un estado roto (no abría nada).
+    const attempts = [
+      { facingMode:{ ideal:"environment" }, width:{ ideal:1280 }, height:{ ideal:720 } },
+      { facingMode:"environment" },
+      { facingMode:"user" },
+      true
+    ];
+    let lastErr=null;
+    for(const cam of attempts){
+      try{
+        scanner = new Html5Qrcode("reader", opts);
+        await scanner.start(cam, cfg, onScan, ()=>{});
+        scanning = true;
+        return;
+      }catch(e){
+        lastErr = e;
+        try{ await scanner.stop(); }catch(_){}
+        try{ await scanner.clear(); }catch(_){}
+        scanner = null;
+      }
+    }
+    const msg = (lastErr && (lastErr.message||lastErr.name)) ? (': '+(lastErr.message||lastErr.name)) : '';
+    toast("No se pudo abrir la cámara"+msg);
+    stopScan();
   }
   function stopScan(){
     $("scanBtn").textContent="📷 Escanear producto";
