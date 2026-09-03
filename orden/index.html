@@ -23,7 +23,7 @@
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; padding:0; }
   body{ font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:var(--bg); color:var(--ink); padding-bottom:104px; -webkit-font-smoothing:antialiased; }
+    background:var(--bg); color:var(--ink); padding-bottom:96px; -webkit-font-smoothing:antialiased; }
   button{ font-family:inherit; cursor:pointer; }
   svg{ display:block; }
   .ico{ width:20px; height:20px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
@@ -60,6 +60,10 @@
   .btn-scan{ flex:1.5; background:var(--green); color:#fff; box-shadow:0 4px 14px rgba(0,104,71,.28); }
   .btn-scan:active{ background:var(--green-d); }
   .btn-manual{ flex:1; background:var(--card); color:var(--green-d); border:1.5px solid var(--line); box-shadow:var(--shadow-sm); }
+  .btn-finish-top{ flex:1; background:var(--green); color:#fff; box-shadow:0 4px 14px rgba(0,104,71,.28); }
+  .btn-finish-top:active{ background:var(--green-d); }
+  .btn-finish-top:disabled{ background:#cdd6d1; color:#fff; box-shadow:none; }
+  .matches.inline{ margin-top:8px; margin-bottom:0; max-height:56vh; }
 
   .reader-wrap{ margin-top:12px; border-radius:var(--r-lg); overflow:hidden; background:#000; display:none; box-shadow:var(--shadow); position:relative; }
   #reader{ width:100%; }
@@ -102,16 +106,18 @@
   /* Bottom action bar */
   .bar{ position:fixed; left:0; right:0; bottom:0; background:rgba(255,255,255,.94); backdrop-filter:blur(10px);
     border-top:1px solid var(--line); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); z-index:25; }
-  .bar-inner{ max-width:640px; margin:0 auto; display:flex; gap:8px; align-items:stretch; }
-  .iconbtn{ width:50px; border-radius:var(--r); border:1px solid var(--line); background:#fff; color:var(--ink);
-    display:flex; align-items:center; justify-content:center; transition:transform .08s; }
-  .iconbtn:active{ transform:scale(.94); }
-  .iconbtn.wa{ color:var(--wa); }
-  .iconbtn.pdf{ color:var(--ink); }
-  .iconbtn.danger{ color:var(--red); }
-  .btn-finish{ flex:1; background:var(--green); color:#fff; border:none; border-radius:var(--r); font-size:16px; font-weight:800;
-    display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(0,104,71,.3); transition:transform .08s, background .15s; }
-  .btn-finish:active{ transform:scale(.98); background:var(--green-d); }
+  .bar-inner{ max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:8px; }
+  .bar-row{ display:flex; gap:8px; }
+  .barbtn{ flex:1; height:46px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--ink);
+    font-size:13.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; transition:transform .08s, background .12s; }
+  .barbtn .ico{ width:18px; height:18px; }
+  .barbtn:active{ transform:scale(.96); background:var(--bg); }
+  .barbtn.wa{ color:var(--wa); border-color:#bfe6cd; }
+  .barbtn.danger{ color:var(--red); border-color:#f2ccd2; }
+  .btn-finish{ width:100%; height:54px; background:var(--green); color:#fff; border:none; border-radius:var(--r); font-size:17px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 16px rgba(0,104,71,.32); transition:transform .08s, background .15s; }
+  .btn-finish .ico{ width:22px; height:22px; stroke-width:2.4; }
+  .btn-finish:active{ transform:scale(.99); background:var(--green-d); }
   .btn-finish:disabled{ background:#cdd6d1; box-shadow:none; color:#fff; }
 
   /* Registro cards */
@@ -204,20 +210,27 @@
   <!-- ===== VISTA ORDEN ===== -->
   <div id="viewOrden">
     <div class="wrap">
+      <!-- Búsqueda / captura de producto con autocompletado en vivo -->
       <div class="field">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-        <input id="notaInput" class="note-in" placeholder="Cliente / nota (opcional)">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="searchInput" class="note-in" placeholder="Buscar producto o UPC…" autocomplete="off" inputmode="search">
       </div>
+      <div class="matches inline" id="inlineMatches"></div>
 
       <div class="btnrow">
         <button class="btn btn-scan" id="scanBtn">
           <svg class="ico" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
-          Escanear producto
+          Escanear
         </button>
-        <button class="btn btn-manual" id="manualBtn">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
-          Manual
+        <button class="btn btn-finish-top" id="finishTopBtn" disabled>
+          <svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          Terminar orden
         </button>
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <input id="notaInput" class="note-in" placeholder="Cliente / nota (opcional)">
       </div>
 
       <div class="reader-wrap" id="readerWrap">
@@ -242,19 +255,20 @@
 
     <div class="bar" id="orderBar">
       <div class="bar-inner">
-        <button class="iconbtn danger" id="clearBtn" aria-label="Vaciar orden" title="Vaciar">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
-        <button class="iconbtn pdf" id="pdfBtn" aria-label="Exportar PDF" title="PDF">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
-        </button>
-        <button class="iconbtn wa" id="waBtn" aria-label="Enviar por WhatsApp" title="WhatsApp">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.3L3 20l1.3-4.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 9c0 4 2.5 6.5 6.5 6.5"/></svg>
-        </button>
-        <button class="btn-finish" id="finishBtn">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
-          Terminar orden
-        </button>
+        <div class="bar-row">
+          <button class="barbtn wa" id="waBtn">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.5 7.3L3 20l1.3-4.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 9c0 4 2.5 6.5 6.5 6.5"/></svg>
+            WhatsApp
+          </button>
+          <button class="barbtn" id="pdfBtn">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+            PDF
+          </button>
+          <button class="barbtn danger" id="clearBtn">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Vaciar
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -275,19 +289,6 @@
   <!-- Modales -->
   <div class="modal" id="addModal"><div class="sheet" id="addSheet"></div></div>
 
-  <div class="modal" id="manModal">
-    <div class="sheet">
-      <div class="grip"></div>
-      <h2>Capturar producto</h2>
-      <div class="sz" style="margin-bottom:14px">Escribe y elige de la lista (ej. "tomate", "chicharron"), o teclea el UPC</div>
-      <input id="manInput" class="nf-in" placeholder="Buscar producto o UPC…" autocomplete="off" inputmode="search">
-      <div class="matches" id="matches"></div>
-      <div class="sheet-actions">
-        <button class="btn btn-add" id="manGoBtn">Buscar</button>
-        <button class="btn btn-cancel" id="manCancelBtn">Cerrar</button>
-      </div>
-    </div>
-  </div>
 
   <div class="modal" id="detModal"><div class="sheet" id="detSheet"></div></div>
 
@@ -454,7 +455,7 @@
       list.appendChild(row);
     });
     $("counter").textContent = order.length ? resumenText(totals(order)) : '';
-    $("finishBtn").disabled = !order.length;
+    $("finishTopBtn").disabled = !order.length;
   }
   function totals(arr){ return { n:arr.length, cj:sumU(arr,'caja'), pz:sumU(arr,'pieza'), lb:sumU(arr,'libra') }; }
   function saveOrder(){ try{ localStorage.setItem(ORDER_KEY,JSON.stringify(order)); }catch(e){} }
@@ -468,10 +469,7 @@
     m+="\n\n"+orderLines(items).join("\n")+"\n\nTotal: "+items.length+" renglones";
     return m;
   }
-  function sendWhatsApp(items,nota,folio){ if(!items.length){ toast("La orden está vacía"); return; } window.open("https://wa.me/?text="+encodeURIComponent(waText(items,nota,folio)),"_blank"); }
-  function exportPDF(items,nota,folio){
-    if(!items.length){ toast("La orden está vacía"); return; }
-    if(!window.jspdf){ toast("PDF no disponible"); return; }
+  function buildPdf(items,nota,folio){
     const {jsPDF}=window.jspdf, doc=new jsPDF();
     doc.autoTable({ head:[['#','Cant.','Unidad','Producto','UPC']],
       body:items.map((it,i)=>[i+1,it.cant,unitLabel(it.unidad,it.cant),it.nombre+(it.size?(' — '+it.size):''),it.upc||'']),
@@ -481,7 +479,27 @@
       columnStyles:{0:{cellWidth:12,halign:'center'},1:{cellWidth:16,halign:'center'},2:{cellWidth:22},3:{cellWidth:'auto'},4:{cellWidth:40}},
       didDrawPage:(d)=>{ doc.setFontSize(16); doc.setTextColor(0,104,71); doc.text('Orden — El Mexiquense',d.settings.margin.left,16);
         doc.setFontSize(10); doc.setTextColor(90); doc.text((folio?('Folio '+folio+'   ·   '):'')+'Fecha: '+fmtDate(new Date())+(nota?('   ·   '+nota):''),d.settings.margin.left,23); } });
-    const dt=new Date(); doc.save('orden-'+(folio||(dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())))+'.pdf');
+    return doc;
+  }
+  function pdfName(folio){ const dt=new Date(); return 'orden-'+(folio||(dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+'-'+pad(dt.getHours())+pad(dt.getMinutes())))+'.pdf'; }
+  function exportPDF(items,nota,folio){
+    if(!items.length){ toast("La orden está vacía"); return; }
+    if(!window.jspdf){ toast("PDF no disponible"); return; }
+    buildPdf(items,nota,folio).save(pdfName(folio));
+  }
+  // Enviar por WhatsApp COMO PDF: usa el share nativo (hoja de compartir → WhatsApp
+  // con el PDF adjunto). Si el equipo no lo soporta, cae a texto por wa.me.
+  async function shareWhatsApp(items,nota,folio){
+    if(!items.length){ toast("La orden está vacía"); return; }
+    let file=null;
+    try{ if(window.jspdf){ const blob=buildPdf(items,nota,folio).output('blob'); file=new File([blob],pdfName(folio),{type:'application/pdf'}); } }catch(e){}
+    if(file && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({ files:[file], title:'Orden El Mexiquense'+(folio?(' '+folio):''), text:waText(items,nota,folio) }); return; }
+      catch(e){ if(e && e.name==='AbortError') return; }
+    }
+    // Fallback: WhatsApp por texto + descarga del PDF para adjuntar a mano
+    window.open("https://wa.me/?text="+encodeURIComponent(waText(items,nota,folio)),"_blank");
+    if(file){ try{ buildPdf(items,nota,folio).save(pdfName(folio)); }catch(e){} toast("Se abrió WhatsApp; el PDF se descargó para adjuntar"); }
   }
 
   // ================= TERMINAR ORDEN + REGISTRO =================
@@ -541,7 +559,7 @@
       +'<button class="btn btn-manual" id="dReopen"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Reabrir</button>'
       +'<button class="btn" id="dDel" style="background:var(--red-tint);color:var(--red)"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Borrar</button></div>';
     $("detModal").classList.add("open");
-    $("dWa").onclick =()=>sendWhatsApp(items,o.cliente,o.folio);
+    $("dWa").onclick =()=>shareWhatsApp(items,o.cliente,o.folio);
     $("dPdf").onclick=()=>exportPDF(items,o.cliente,o.folio);
     $("dReopen").onclick=()=>{ order=items.slice(); saveOrder(); renderList(); $("notaInput").value=o.cliente||''; $("detModal").classList.remove("open"); setTab('orden'); toast("Orden reabierta"); };
     $("dDel").onclick=()=>{ if(!confirm('¿Borrar la orden '+(o.folio||'')+'?')) return;
@@ -550,30 +568,29 @@
       $("detModal").classList.remove("open"); loadRegistro(false); toast("Orden borrada"); };
   }
 
-  // ================= MANUAL / BÚSQUEDA =================
-  function openManual(){ $("manInput").value=""; $("matches").innerHTML=""; $("manModal").classList.add("open"); setTimeout(()=>$("manInput").focus(),100); }
-  function closeManual(){ $("manModal").classList.remove("open"); }
+  // ============ BÚSQUEDA INLINE (autocompletado en vivo) ============
+  function clearSearch(){ $("searchInput").value=""; $("inlineMatches").innerHTML=""; }
   function renderMatchList(res){
-    const box=$("matches"); box.innerHTML="";
+    const box=$("inlineMatches"); box.innerHTML="";
     res.forEach(p=>{ const b=document.createElement('button');
       b.innerHTML='<div>'+escHtml(p.nombre)+'</div><div class="mm">'+(p.size?escHtml(p.size)+' · ':'')+'UPC '+escHtml(p.upc||'—')+'</div>';
-      b.onclick=()=>{ closeManual(); openAdd(p.upc||p.nombre,p); }; box.appendChild(b); });
+      b.onclick=()=>{ openAdd(p.upc||p.nombre,p); clearSearch(); $("searchInput").blur(); }; box.appendChild(b); });
   }
   function liveSearch(){
-    const v=($("manInput").value||'').trim();
-    if(!v){ $("matches").innerHTML=""; return; }
+    const v=($("searchInput").value||'').trim();
+    if(!v){ $("inlineMatches").innerHTML=""; return; }
     const isUpc = v.replace(/\D/g,'').length>=6 && /^[\d\s-]+$/.test(v);
     if(isUpc){ const prod=findByUpc(v);
       if(prod) renderMatchList([prod]);
-      else $("matches").innerHTML='<div class="mm" style="padding:10px">Enter para agregar UPC '+escHtml(v.replace(/\D/g,''))+'</div>';
+      else $("inlineMatches").innerHTML='<div class="mm" style="padding:10px 12px">Enter para agregar UPC '+escHtml(v.replace(/\D/g,''))+'</div>';
       return; }
     const res=searchByName(v);
-    if(!res.length){ $("matches").innerHTML='<div class="mm" style="padding:10px;color:#9a3412">Sin coincidencias.</div>'; return; }
+    if(!res.length){ $("inlineMatches").innerHTML='<div class="mm" style="padding:10px 12px;color:#9a3412">Sin coincidencias.</div>'; return; }
     renderMatchList(res);
   }
-  function manGo(){
-    const v=($("manInput").value||'').trim(); if(!v) return;
-    if(v.replace(/\D/g,'').length>=6 && /^[\d\s-]+$/.test(v)){ closeManual(); openAdd(v); return; }
+  function searchGo(){
+    const v=($("searchInput").value||'').trim(); if(!v) return;
+    if(v.replace(/\D/g,'').length>=6 && /^[\d\s-]+$/.test(v)){ openAdd(v); clearSearch(); $("searchInput").blur(); return; }
     liveSearch();
   }
 
@@ -593,18 +610,15 @@
   $("notaInput").addEventListener('input',()=>{ try{ localStorage.setItem(NOTE_KEY,$("notaInput").value); }catch(e){} });
   $("scanBtn").onclick=toggleScan;
   $("readerWrap").addEventListener('click',tapDecode);
-  $("manualBtn").onclick=openManual;
-  $("manGoBtn").onclick=manGo; $("manCancelBtn").onclick=closeManual;
   let _searchT=null;
-  $("manInput").addEventListener('input',()=>{ clearTimeout(_searchT); _searchT=setTimeout(liveSearch,110); });
-  $("manInput").addEventListener('keydown',e=>{ if(e.key==='Enter') manGo(); });
+  $("searchInput").addEventListener('input',()=>{ clearTimeout(_searchT); _searchT=setTimeout(liveSearch,110); });
+  $("searchInput").addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); searchGo(); } });
   $("pdfBtn").onclick=()=>exportPDF(order,($("notaInput").value||'').trim(),'');
-  $("waBtn").onclick =()=>sendWhatsApp(order,($("notaInput").value||'').trim(),'');
-  $("finishBtn").onclick=finishOrder;
+  $("waBtn").onclick =()=>shareWhatsApp(order,($("notaInput").value||'').trim(),'');
+  $("finishTopBtn").onclick=finishOrder;
   $("clearBtn").onclick=()=>{ if(order.length&&confirm('¿Vaciar toda la orden?')){ order=[]; saveOrder(); renderList(); } };
   $("tabOrden").onclick=()=>setTab('orden'); $("tabReg").onclick=()=>setTab('registro');
   $("addModal").addEventListener('click',e=>{ if(e.target.id==='addModal') closeAdd(); });
-  $("manModal").addEventListener('click',e=>{ if(e.target.id==='manModal') closeManual(); });
   $("detModal").addEventListener('click',e=>{ if(e.target.id==='detModal') $("detModal").classList.remove("open"); });
 
   loadOrder(); renderList(); loadProducts(false);
