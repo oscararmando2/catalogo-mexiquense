@@ -97,8 +97,9 @@
 
     <div class="reader-wrap" id="readerWrap">
       <div id="reader"></div>
-      <div class="reader-hint" id="readerHint">Apunta al código de barras…</div>
+      <div class="reader-hint" id="readerHint">Apunta al código… si no lee, <b>toca la imagen</b> para reintentar</div>
     </div>
+    <div id="readerTmp" style="display:none"></div>
 
     <div class="loadbar" id="loadbar">Cargando productos…</div>
 
@@ -243,6 +244,7 @@
     // porque reintentar start() sobre una instancia que ya falló deja la cámara
     // en un estado roto (no abría nada).
     const attempts = [
+      { facingMode:{ ideal:"environment" }, width:{ ideal:1920 }, height:{ ideal:1080 }, advanced:[{ focusMode:"continuous" }] },
       { facingMode:{ ideal:"environment" }, width:{ ideal:1280 }, height:{ ideal:720 } },
       { facingMode:"environment" },
       { facingMode:"user" },
@@ -282,6 +284,37 @@
     openAdd(text);
   }
   function resumeScanIfOn(){ if(scanner && scanning){ try{ scanner.resume(); }catch(e){} } }
+
+  // Toca la imagen = intento EXTRA de lectura (decodifica el cuadro actual a
+  // fondo, más potente que el escaneo en vivo) + fuerza enfoque.
+  let tapBusy=false;
+  function tapDecode(){
+    if(tapBusy || !scanning) return;
+    const video=document.querySelector('#reader video');
+    if(!video || !video.videoWidth){ return; }
+    tapBusy=true;
+    $("readerHint").textContent="Leyendo…";
+    // intentar (re)enfocar el punto tocado
+    try{
+      const tr=video.srcObject && video.srcObject.getVideoTracks && video.srcObject.getVideoTracks()[0];
+      if(tr && tr.applyConstraints) tr.applyConstraints({ advanced:[{ focusMode:"continuous" }] }).catch(()=>{});
+    }catch(e){}
+    const W=video.videoWidth, H=video.videoHeight;
+    const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H;
+    canvas.getContext('2d').drawImage(video,0,0,W,H);
+    const done=()=>{ tapBusy=false; $("readerHint").innerHTML="Apunta al código… si no lee, <b>toca la imagen</b> para reintentar"; };
+    const ok=(res)=>{ const t=(res&&res.decodedText)?res.decodedText:res; lastScan=''; done(); onScan(String(t)); };
+    const fail=()=>{ done(); toast("No se leyó — acércate un poco y vuelve a tocar"); };
+    canvas.toBlob(blob=>{
+      if(!blob){ fail(); return; }
+      try{
+        const file=new File([blob],'f.png',{type:'image/png'});
+        const tmp=new Html5Qrcode("readerTmp", { formatsToSupport: fmts(), verbose:false });
+        tmp.scanFile(file, false).then(txt=>{ tmp.clear().catch(()=>{}); ok(txt); })
+                                 .catch(()=>{ tmp.clear().catch(()=>{}); fail(); });
+      }catch(e){ fail(); }
+    }, 'image/png');
+  }
 
   // ---------- modal agregar ----------
   let pending=null; // {upc,nombre,size,unidad,cant,found}
@@ -439,6 +472,7 @@
   try{ $("notaInput").value = localStorage.getItem(NOTE_KEY)||''; }catch(e){}
   $("notaInput").addEventListener('input',()=>{ try{ localStorage.setItem(NOTE_KEY,$("notaInput").value); }catch(e){} });
   $("scanBtn").onclick=toggleScan;
+  $("readerWrap").addEventListener('click', tapDecode);
   $("manualBtn").onclick=openManual;
   $("manGoBtn").onclick=manGo;
   $("manCancelBtn").onclick=closeManual;
