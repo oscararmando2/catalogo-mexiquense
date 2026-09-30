@@ -5,7 +5,7 @@
 
 const MODEL = 'claude-opus-5';
 const CTD_FIREBASE_API_KEY = 'AIzaSyBhJuY0Wdh_UeZL0KHNn5WofWYPhQiVTuU'; // llave web pública del proyecto ctd-ia
-const ALLOWED_EMAILS = ['oscar@ctd-ia.firebaseapp.com', 'luis@ctd-ia.firebaseapp.com'];
+const ALLOWED_EMAILS = ['oscar@ctd-ia.firebaseapp.com', 'luis@ctd-ia.firebaseapp.com', 'diego@ctd-ia.firebaseapp.com'];
 const ALLOWED_ORIGINS = [
   'https://www.centraltradedist.com',
   'https://centraltradedist.com'
